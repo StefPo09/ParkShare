@@ -1,0 +1,6 @@
+This is where the main components for our project will be stored.
+The main components are the parts of our application that are found in more the one page like the navigation bar.
+These components will be the building blocks of our application and can be imported into other components as needed.
+This directory will help us keep our project organized and make it easy to manage our components.
+
+This file will be deleted once we have added the components to the directory.
