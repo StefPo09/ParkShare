@@ -1,14 +1,3 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "My App",
-  description: "Starter Next.js app"
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
+export default function SignUpLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
