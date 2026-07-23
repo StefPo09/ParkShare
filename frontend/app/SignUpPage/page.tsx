@@ -7,7 +7,7 @@ export default function SignUpScreen() {
           {/* Logo + wordmark */}
           <div className="flex flex-col items-center pb-8 pt-16">
             <Image
-                src="/Icon.svg"
+                src="../Icon.svg"
                 alt="Park | Share logo"
                 width={135}
                 height={110}
