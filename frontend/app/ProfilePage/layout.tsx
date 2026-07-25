@@ -1,9 +1,14 @@
-import type { Metadata } from "next";
+import React from "react";
+import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "My App",
-  description: "Starter Next.js app"
-};
+  title: "ParkShare",
+  description: "Park | Share app",
+  icons: {
+    icon: '/Icon.svg',
+    apple: '/Icon.svg',
+  },
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
