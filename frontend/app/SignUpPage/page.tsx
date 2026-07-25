@@ -14,7 +14,7 @@ export default function SignUpScreen() {
                         alt="Park | Share logo"
                         width={135}
                         height={110}
-                        className="h-[92px] w-auto"
+                        className="h-23 w-auto"
                         priority
                     />
                     <h1 className="mt-4 text-3xl font-bold tracking-tight">
@@ -26,7 +26,7 @@ export default function SignUpScreen() {
 
                 {/* Bottom sheet */}
                 <div
-                    className="flex flex-1 flex-col items-center rounded-t-[32px] px-6 pb-10 pt-8"
+                    className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-8"
                     style={{
                         background: "linear-gradient(180deg, #B3E3DE 0%, #B6CDDA 100%)",
                     }}
@@ -51,15 +51,14 @@ export default function SignUpScreen() {
                         Enter your email to sign up for this app
                     </p>
 
-                    <form className="mt-6 w-full space-y-3">
+                    <form className="mt-6 w-full space-y-3" onSubmit={(e) => { e.preventDefault(); router.push('/RegisterPage'); }}>
                         <input
                             type="email"
                             placeholder="email@domain.com"
-                            className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                            className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
                         />
                         <button
                             type="submit"
-                            onClick={() => router.push('/RegisterPage')}
                             className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99]"
                         >
                             Continue
