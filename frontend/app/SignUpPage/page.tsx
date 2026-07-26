@@ -1,9 +1,23 @@
 'use client'
 import Image from "next/image"
 import { useRouter } from 'next/navigation';
+import React from "react";
 
 export default function SignUpScreen() {
     const router = useRouter();
+    const [email, setEmail] = React.useState("");
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        if (!isEmailValid) {
+            return;
+        }
+
+        router.push('/RegisterPage');
+    };
+
     return (
         <div className="flex min-h-screen w-full flex-col items-center bg-white">
             <div className="flex w-full max-w-sm flex-1 flex-col">
@@ -51,15 +65,18 @@ export default function SignUpScreen() {
                         Enter your email to sign up for this app
                     </p>
 
-                    <form className="mt-6 w-full space-y-3" onSubmit={(e) => { e.preventDefault(); router.push('/RegisterPage'); }}>
+                    <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit}>
                         <input
                             type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             placeholder="email@domain.com"
                             className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
                         />
                         <button
                             type="submit"
-                            className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99]"
+                            disabled={!isEmailValid}
+                            className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
                         >
                             Continue
                         </button>
@@ -91,11 +108,11 @@ export default function SignUpScreen() {
 
                     <p className="mt-6 text-center text-[11px] leading-relaxed text-[#4A5A63]">
                         By clicking continue, you agree to our{" "}
-                        <a href="/terms" className="font-medium text-[#0B1C2C] underline">
+                        <a href="/TermsOfService" className="font-medium text-[#0B1C2C] underline">
                             Terms of Service
                         </a>{" "}
                         and{" "}
-                        <a href="/privacy" className="font-medium text-[#0B1C2C] underline">
+                        <a href="/PrivacyPolicy" className="font-medium text-[#0B1C2C] underline">
                             Privacy Policy
                         </a>
                     </p>
@@ -115,7 +132,7 @@ function SocialButton({
     return (
         <button
             type="button"
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#EEEEEE] text-sm font-medium text-[#0B1C2C] transition hover:bg-[#E4E4E4] active:scale-[0.99]"
+            className="flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-[#EEEEEE] text-sm font-medium text-[#0B1C2C] transition hover:bg-[#E4E4E4] active:scale-[0.99]"
         >
             {icon}
             <span>{label}</span>
