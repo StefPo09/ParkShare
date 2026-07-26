@@ -134,7 +134,9 @@ export default function RegisterPage() {
                   type="tel"
                   required
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="774 123 567"
                   className="h-12 w-full bg-transparent px-4 text-sm text-[#0B1C2C] focus:outline-none"
               />
