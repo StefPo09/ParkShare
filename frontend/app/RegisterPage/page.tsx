@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import Link from "next/link";
+import { useRouter } from 'next/navigation';
 
 // Country-to-cities dictionary
 const CITIES_BY_COUNTRY: Record<string, string[]> = {
@@ -15,6 +17,14 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
 };
 
 export default function RegisterPage() {
+  const router = useRouter();
+
+  // State for text inputs
+  const [fullName, setFullName] = useState('');
+  const [hasFullNameBlurred, setHasFullNameBlurred] = useState(false);
+  const [isFullNameFocused, setIsFullNameFocused] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+
   // State for country & city selection
   const [selectedCountry, setSelectedCountry] = useState<string>('Romania');
   const [selectedCity, setSelectedCity] = useState<string>(CITIES_BY_COUNTRY['Romania'][0]);
@@ -36,14 +46,30 @@ export default function RegisterPage() {
   };
 
   const passwordsMatch = confirmPassword === '' || password === confirmPassword;
+  const isFullNameValid = fullName.trim().split(/[\s-]+/).filter(word => word.length > 0).length >= 2;
+  const showFullNameWarning =
+      hasFullNameBlurred &&
+      !isFullNameFocused &&
+      fullName.trim() !== '' &&
+      !isFullNameValid;
+
+  const canSignUp =
+      isFullNameValid &&
+      phoneNumber.trim() !== '' &&
+      selectedCountry.trim() !== '' &&
+      selectedCity.trim() !== '' &&
+      password.trim() !== '' &&
+      confirmPassword.trim() !== '' &&
+      password === confirmPassword;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passwordsMatch) {
-      alert('Passwords do not match!');
+
+    if (!canSignUp) {
       return;
     }
-    console.log('Form submitted successfully!');
+
+    router.push('/HomePage');
   };
 
   return (
@@ -66,9 +92,25 @@ export default function RegisterPage() {
             <input
                 type="text"
                 required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                onFocus={() => setIsFullNameFocused(true)}
+                onBlur={() => {
+                  setHasFullNameBlurred(true);
+                  setIsFullNameFocused(false);
+                }}
                 placeholder="e.g. John Doe"
-                className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 transition ${
+                    showFullNameWarning
+                        ? 'border-red-500 focus:ring-red-500/40'
+                        : 'border-white/40 focus:ring-[#0F4C81]/40'
+                }`}
             />
+            {showFullNameWarning && (
+                <span className="text-xs text-red-600 font-medium mt-0.5">
+              Please enter your full name with at least first and last name.
+            </span>
+            )}
           </div>
 
           {/* Phone Number */}
@@ -91,6 +133,8 @@ export default function RegisterPage() {
               <input
                   type="tel"
                   required
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="774 123 567"
                   className="h-12 w-full bg-transparent px-4 text-sm text-[#0B1C2C] focus:outline-none"
               />
@@ -153,7 +197,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-4 text-[#0F4C81] hover:text-[#0B1C2C] transition"
+                  className="absolute right-4 text-[#0F4C81] hover:text-[#0B1C2C] transition cursor-pointer"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -180,7 +224,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-4 text-[#0F4C81] hover:text-[#0B1C2C] transition"
+                  className="absolute right-4 text-[#0F4C81] hover:text-[#0B1C2C] transition cursor-pointer"
               >
                 {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -194,13 +238,17 @@ export default function RegisterPage() {
           {/* Submit Button */}
           <button
               type="submit"
-              className="mt-4 h-12 w-full rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md"
+              disabled={!canSignUp}
+              className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
           >
             Sign up
           </button>
-          <a href="/LoginPage" className="text-[#000000]/50 text-sm underline flex justify-end">
+          <Link
+              href="/LoginPage"
+              className="text-[#000000]/50 text-sm underline flex justify-end"
+          >
             Already have an account?
-          </a>
+          </Link>
         </form>
       </div>
   );
