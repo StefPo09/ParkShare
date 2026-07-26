@@ -2,10 +2,26 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const canLogIn = email.trim() !== "" && password.trim() !== "";
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!canLogIn) {
+      return;
+    }
+
+    router.push("/HomePage");
+  };
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center bg-white">
@@ -28,13 +44,15 @@ export default function LoginPage() {
           <h2 className="text-lg font-bold text-[#0B1C2C]">Welcome back!</h2>
           <p className="mt-1 text-center text-sm text-[#33475A]">Please enter your details</p>
 
-          <form className="mt-6 w-full space-y-3" action="#" onSubmit={(e) => e.preventDefault()}>
+          <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="sr-only">Email</label>
               <input
                 id="email"
                 name="email"
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
                 required
@@ -47,6 +65,8 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
                 className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
                 required
@@ -55,7 +75,7 @@ export default function LoginPage() {
                 type="button"
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0B1C2C]/60"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0B1C2C]/60 cursor-pointer"
               >
                 {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
               </button>
@@ -63,17 +83,18 @@ export default function LoginPage() {
 
             <div className="flex w-full items-center justify-between text-sm">
               <label className="flex items-center text-[#33475A]">
-                <input type="checkbox" className="h-4 w-4 mr-2 rounded border-white/40" />
+                <input type="checkbox" className="h-4 w-4 mr-2 rounded border-white/40 cursor-pointer" />
                 Remember me for 30 days
               </label>
-              <a href="#" className="text-[#0F4C81] underline">
-                Forgot password
-              </a>
+              <Link href="/ForgotPasswordPage" className="text-[#0F4C81] underline">
+                Forgot password?
+              </Link>
             </div>
 
             <button
               type="submit"
-              className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99]"
+              disabled={!canLogIn}
+              className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
             >
               Log in
             </button>
