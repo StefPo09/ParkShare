@@ -239,7 +239,7 @@ export default function RegisterPage() {
           <button
               type="submit"
               disabled={!canSignUp}
-              className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
+              className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
           >
             Sign up
           </button>
