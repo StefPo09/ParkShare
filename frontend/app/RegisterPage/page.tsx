@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Check, Eye, EyeOff, X } from 'lucide-react';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 
@@ -52,13 +52,36 @@ export default function RegisterPage() {
       !isFullNameFocused &&
       fullName.trim() !== '' &&
       !isFullNameValid;
+  const passwordRequirements = [
+    {
+      label: 'At least 8 characters',
+      isMet: password.length >= 8,
+    },
+    {
+      label: 'One uppercase letter',
+      isMet: /[A-Z]/.test(password),
+    },
+    {
+      label: 'One lowercase letter',
+      isMet: /[a-z]/.test(password),
+    },
+    {
+      label: 'One symbol',
+      isMet: /[^A-Za-z0-9]/.test(password),
+    },
+    {
+      label: 'One number',
+      isMet: /\d/.test(password),
+    },
+  ];
+  const isPasswordValid = passwordRequirements.every((requirement) => requirement.isMet);
 
   const canSignUp =
       isFullNameValid &&
       phoneNumber.trim() !== '' &&
       selectedCountry.trim() !== '' &&
       selectedCity.trim() !== '' &&
-      password.trim() !== '' &&
+      isPasswordValid &&
       confirmPassword.trim() !== '' &&
       password === confirmPassword;
 
@@ -204,6 +227,34 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+            <div className="mt-2 rounded-xl border border-white/50 bg-white/70 p-3 shadow-sm backdrop-blur-sm">
+              <p className="mb-2 text-xs font-semibold text-[#0B1C2C]">
+                Password must include
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {passwordRequirements.map((requirement) => (
+                    <div
+                        key={requirement.label}
+                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium transition ${
+                            requirement.isMet
+                                ? 'bg-green-50 text-green-700'
+                                : 'bg-red-50 text-red-600'
+                        }`}
+                    >
+                      <span
+                          className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                              requirement.isMet
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-red-100 text-red-600'
+                          }`}
+                      >
+                        {requirement.isMet ? <Check size={14} /> : <X size={14} />}
+                      </span>
+                      {requirement.label}
+                    </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Confirm Password */}
@@ -241,7 +292,7 @@ export default function RegisterPage() {
           <button
               type="submit"
               disabled={!canSignUp}
-              className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
+              className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
           >
             Sign up
           </button>
