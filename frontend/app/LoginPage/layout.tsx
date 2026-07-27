@@ -1,19 +1,18 @@
-import React from "react";
-import type { Metadata } from "next"
+"use client";
 
-export const metadata: Metadata = {
-  title: "ParkShare",
-  description: "Park | Share app",
-  icons: {
-    icon: '/Icon.svg',
-    apple: '/Icon.svg',
-  },
+import React from "react";
+import {ThemeProvider} from "../components/ThemeProvider";
+
+function ClientProviders({ children }: { children: React.ReactNode }) {
+    return (
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
+            {children}
+        </ThemeProvider>
+    );
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
+    return (
+        <ClientProviders>{children}</ClientProviders>
+    );
 }
