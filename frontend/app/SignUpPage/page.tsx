@@ -19,7 +19,7 @@ export default function SignUpScreen() {
     };
 
     return (
-        <div className="flex min-h-screen w-full flex-col items-center bg-white">
+        <div className="flex min-h-screen w-full flex-col items-center bg-white dark:bg-[#0B1C2C]">
             <div className="flex w-full max-w-sm flex-1 flex-col">
                 {/* Logo + wordmark */}
                 <div className="flex flex-col items-center pb-8 pt-16">
@@ -32,18 +32,15 @@ export default function SignUpScreen() {
                         priority
                     />
                     <h1 className="mt-4 text-3xl font-bold tracking-tight">
-                        <span className="text-[#0F4C81]">Park</span>
-                        <span className="mx-2 text-[#0F4C81]/60">|</span>
+                        <span className="text-[#0F4C81] dark:text-white">Park</span>
+                        <span className="mx-2 text-[#0F4C81]/60 dark:text-white/60">|</span>
                         <span className="text-[#04B697]">Share</span>
                     </h1>
                 </div>
 
                 {/* Bottom sheet */}
                 <div
-                    className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-8"
-                    style={{
-                        background: "linear-gradient(180deg, #B3E3DE 0%, #B6CDDA 100%)",
-                    }}
+                    className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-8 bg-gradient-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
                 >
                     <div className="mb-3 flex h-8 w-8 items-center justify-center">
                         <svg
@@ -53,6 +50,7 @@ export default function SignUpScreen() {
                             fill="none"
                             stroke="black"
                             strokeWidth="1.6"
+                            className="dark:stroke-white"
                         >
                             <circle cx="9" cy="7" r="3.2"/>
                             <path d="M3.5 20c0-3.6 2.5-6 5.5-6s5.5 2.4 5.5 6"/>
@@ -60,8 +58,8 @@ export default function SignUpScreen() {
                         </svg>
                     </div>
 
-                    <h2 className="text-lg font-bold text-[#0B1C2C]">Create an account</h2>
-                    <p className="mt-1 text-center text-sm text-[#33475A]">
+                    <h2 className="text-lg font-bold text-[#0B1C2C] dark:text-white">Create an account</h2>
+                    <p className="mt-1 text-center text-sm text-[#33475A] dark:text-white/80">
                         Enter your email to sign up for this app
                     </p>
 
@@ -71,7 +69,7 @@ export default function SignUpScreen() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="email@domain.com"
-                            className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                            className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40 dark:bg-[#1A2B3A] dark:text-white dark:border-white/20"
                         />
                         <button
                             type="submit"
@@ -80,15 +78,15 @@ export default function SignUpScreen() {
                         >
                             Continue
                         </button>
-                        <a href="/LoginPage" className="text-[#000000]/50 text-sm underline flex justify-end">
+                        <a href="/LoginPage" className="text-[#000000]/50 text-sm underline flex justify-end dark:text-white/80">
                             Already have an account?
                         </a>
                     </form>
 
                     <div className="my-5 flex w-full items-center gap-3">
-                        <span className="h-px flex-1 bg-[#5B6B6E]/50"/>
-                        <span className="text-xs text-[#5B6B6E]">or</span>
-                        <span className="h-px flex-1 bg-[#5B6B6E]/50"/>
+                        <span className="h-px flex-1 bg-[#5B6B6E]/50 dark:bg-white/30"/>
+                        <span className="text-xs text-[#5B6B6E] dark:text-white/60">or</span>
+                        <span className="h-px flex-1 bg-[#5B6B6E]/50 dark:bg-white/30"/>
                     </div>
 
                     <div className="w-full space-y-3">
@@ -106,13 +104,13 @@ export default function SignUpScreen() {
                         />
                     </div>
 
-                    <p className="mt-6 text-center text-[11px] leading-relaxed text-[#4A5A63]">
+                    <p className="mt-6 text-center text-[11px] leading-relaxed text-[#4A5A63] dark:text-white/80">
                         By clicking continue, you agree to our{" "}
-                        <a href="/TermsOfService" className="font-medium text-[#0B1C2C] underline">
+                        <a href="/TermsOfService" className="font-medium text-[#0B1C2C] underline dark:text-white">
                             Terms of Service
                         </a>{" "}
                         and{" "}
-                        <a href="/PrivacyPolicy" className="font-medium text-[#0B1C2C] underline">
+                        <a href="/PrivacyPolicy" className="font-medium text-[#0B1C2C] underline dark:text-white">
                             Privacy Policy
                         </a>
                     </p>
@@ -132,7 +130,7 @@ function SocialButton({
     return (
         <button
             type="button"
-            className="flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-[#EEEEEE] text-sm font-medium text-[#0B1C2C] transition hover:bg-[#E4E4E4] active:scale-[0.99]"
+            className="flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-[#EEEEEE] text-sm font-medium text-[#0B1C2C] transition hover:bg-[#E4E4E4] active:scale-[0.99] dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
         >
             {icon}
             <span>{label}</span>
@@ -165,7 +163,7 @@ function GoogleIcon() {
 
 function AppleIcon() {
     return (
-        <svg width="16" height="18" viewBox="0 0 16 18" fill="black">
+        <svg width="16" height="18" viewBox="0 0 16 18" className="fill-black dark:fill-white">
             <path
                 d="M13.1 9.6c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.5.8-3.1.8-.6 0-1.6-.8-2.7-.8-1.4 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.7-.7s1.6.7 2.7.6c1.1 0 1.8-1 2.5-2 .8-1.1 1.1-2.2 1.1-2.3-.1 0-2.3-.9-2.3-3.8zM10.9 3.4c.6-.7 1-1.7.9-2.7-.9.1-1.9.6-2.5 1.3-.6.6-1.1 1.6-.9 2.6 1 .1 1.9-.5 2.5-1.2z"/>
         </svg>

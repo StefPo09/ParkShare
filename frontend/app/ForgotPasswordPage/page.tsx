@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-white">
+    <div className="flex min-h-screen w-full flex-col items-center bg-white dark:bg-[#0B1C2C]">
       <div className="flex w-full max-w-sm flex-1 flex-col">
         {/* Logo + wordmark */}
         <div className="flex flex-col items-center pb-6 pt-12">
@@ -37,25 +37,24 @@ export default function ForgotPasswordPage() {
             priority
           />
           <h1 className="mt-3 text-2xl font-bold tracking-tight">
-            <span className="text-[#0F4C81]">Park</span>
-            <span className="mx-2 text-[#0F4C81]/60">|</span>
+            <span className="text-[#0F4C81] dark:text-white">Park</span>
+            <span className="mx-2 text-[#0F4C81]/60 dark:text-white/60">|</span>
             <span className="text-[#04B697]">Share</span>
           </h1>
         </div>
 
         {/* Bottom sheet */}
         <div
-          className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-7"
-          style={{ background: 'linear-gradient(180deg, #B3E3DE 0%, #B6CDDA 100%)' }}
+          className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-7 bg-gradient-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
         >
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/75 text-[#0F4C81] shadow-sm">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/75 text-[#0F4C81] shadow-sm dark:bg-white/10 dark:text-white">
             {isSubmitted ? <CheckCircle2 size={26} /> : <Mail size={26} />}
           </div>
 
-          <h2 className="text-lg font-bold text-[#0B1C2C]">
+          <h2 className="text-lg font-bold text-[#0B1C2C] dark:text-white">
             {isSubmitted ? 'Check your email' : 'Forgot password?'}
           </h2>
-          <p className="mt-1 max-w-xs text-center text-sm leading-5 text-[#33475A]">
+          <p className="mt-1 max-w-xs text-center text-sm leading-5 text-[#33475A] dark:text-white/80">
             {isSubmitted
               ? 'We sent password reset instructions to your email address.'
               : 'Enter your email and we will send you instructions to reset your password.'}
@@ -77,7 +76,7 @@ export default function ForgotPasswordPage() {
                 }}
                 onBlur={() => setHasEmailBlurred(true)}
                 placeholder="Enter your email"
-                className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 transition ${
+                className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 transition dark:bg-[#1A2B3A] dark:text-white dark:border-white/20 ${
                   showEmailWarning
                     ? 'border-red-500 focus:ring-red-500/40'
                     : 'border-white/40 focus:ring-[#0F4C81]/40'
@@ -101,7 +100,7 @@ export default function ForgotPasswordPage() {
 
           <Link
             href="/LoginPage"
-            className="mt-5 flex items-center gap-2 text-sm font-medium text-[#0F4C81] underline"
+            className="mt-5 flex items-center gap-2 text-sm font-medium text-[#0F4C81] underline dark:text-white"
           >
             <ArrowLeft size={16} />
             Back to login
