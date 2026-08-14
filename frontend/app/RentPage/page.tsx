@@ -1,5 +1,7 @@
 'use client';
 
+
+import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
@@ -12,6 +14,7 @@ import {
     Home,
     Car,
 } from 'lucide-react';
+import NavMenu from "../components/NavMenu";
 
 // Custom dark map style to match the dark UI theme
 const darkMapStyle: google.maps.MapTypeStyle[] = [
@@ -121,6 +124,7 @@ export default function ParkingRentPage() {
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     });
 
+
     // Detect browser/system theme preferences
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -141,21 +145,34 @@ export default function ParkingRentPage() {
         setMap(null);
     }, []);
 
+    const router = useRouter();
+
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     return (
         <div className="relative flex flex-col h-screen w-full max-w-md mx-auto overflow-hidden bg-white dark:bg-[#061512] text-slate-800 dark:text-slate-100 font-sans transition-colors duration-300">
 
             {/* --- Top Header Navigation --- */}
             <header className="flex items-center justify-between px-5 py-4 bg-[#B2F5EA] dark:bg-[#0d2a24] text-[#0d3b36] dark:text-[#a0ece0] transition-colors duration-300 z-10 shadow-sm">
-                <button aria-label="Open menu" className="p-1 hover:opacity-80 transition-opacity">
+                <button aria-label="Open menu"
+                        onClick={() => setIsMenuOpen(true)}
+                        className="p-1 hover:opacity-80 transition-opacity">
                     <Menu className="w-6 h-6" />
                 </button>
                 <h1 className="text-xl font-bold tracking-wide">Park Share</h1>
-                <button aria-label="User profile" className="p-1 hover:opacity-80 transition-opacity">
+                <button aria-label="User profile"
+                        onClick={() => router.push("/ProfilePage")}
+                        className="p-1 hover:opacity-80 transition-opacity">
                     <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center overflow-hidden">
                         <User className="w-6 h-6 text-slate-600 dark:text-slate-300 fill-current" />
                     </div>
                 </button>
             </header>
+
+            <NavMenu
+                isOpen={isMenuOpen}
+                onClose={() => setIsMenuOpen(false)}
+            />
 
             {/* --- Google Map Container --- */}
             <main className="relative flex-1 bg-slate-100 dark:bg-[#121c1a] overflow-hidden">
