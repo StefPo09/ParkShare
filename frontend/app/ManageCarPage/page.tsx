@@ -39,7 +39,7 @@ export default () => {
                 </h1>
                 <button
                     aria-label="Close page"
-                    className="p-1 text-slate-800 dark:text-slate-200 hover:opacity-70 transition-opacity"
+                    className="p-1 text-slate-800 dark:text-slate-200 hover:opacity-70 transition-opacity cursor-pointer"
                 >
                     <X className="w-6 h-6" />
                 </button>
@@ -60,6 +60,8 @@ export default () => {
                                         src={car.imageUrl}
                                         alt={car.name}
                                         fill
+                                        sizes="80px"
+                                        loading="eager"
                                         className="object-cover"
                                     />
                                 ) : (
@@ -82,7 +84,7 @@ export default () => {
                 {/* --- Add New Car Button --- */}
                 <button
                     onClick={() => console.log('Add new car clicked')}
-                    className="w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-2xl bg-[#83D8E9] dark:bg-[#073830] text-[#0A4B75] dark:text-[#a0ece0] font-semibold text-lg shadow-sm hover:opacity-90 active:scale-[0.99] transition-all border border-teal-400/20"
+                    className="w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-2xl bg-[#83D8E9] dark:bg-[#073830] text-[#0A4B75] dark:text-[#a0ece0] font-semibold text-lg shadow-sm hover:opacity-90 active:scale-[0.99] transition-all border border-teal-400/20 cursor-pointer"
                 >
                     <span>Add new car</span>
                     <Plus className="w-6 h-6" />
