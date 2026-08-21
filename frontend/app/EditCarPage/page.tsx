@@ -2,31 +2,6 @@
 
 import { CircleHelp, PencilLine, Search, Upload, X } from 'lucide-react';
 import { ChangeEvent, useRef, useState } from 'react';
-
-function CarIllustration() {
-  return (
-      <svg viewBox="0 0 330 170" className="h-[120px] w-[240px]" aria-label="Car illustration">
-        <g fill="none" fillRule="evenodd">
-          <path d="M40 108c8-23 23-40 45-49l24-10c16-7 36-9 54-8l56 4c18 1 37 8 52 19l30 20c12 8 17 20 16 34l-2 16H53c-9-2-17-10-17-21 0-4 1-8 4-15Z" fill="#1F1F1F" />
-          <path d="M77 83h73l31 18H77c-10 0-18-8-18-18 0-1 0-1 1-2l2 2h15Z" fill="#DCDCDC" opacity={0.8} />
-          <path d="M143 83h67l29 19h-94l-2-19Z" fill="#DCDCDC" opacity={0.8} />
-          <rect x="79" y="90" width="55" height="27" rx="8" fill="#DCDCDC" opacity={0.9} />
-          <rect x="141" y="90" width="62" height="27" rx="8" fill="#DCDCDC" opacity={0.9} />
-          <circle cx="95" cy="127" r="20" fill="#1F1F1F" />
-          <circle cx="95" cy="127" r="8" fill="#DCDCDC" />
-          <circle cx="235" cy="127" r="20" fill="#1F1F1F" />
-          <circle cx="235" cy="127" r="8" fill="#DCDCDC" />
-          <path d="M80 107h33l10-21H92l-12 21Z" fill="#1F1F1F" />
-          <path d="M196 111h40l12-16h-35c-10 0-17 8-17 16Z" fill="#1F1F1F" />
-          <path d="M145 58h55l18 20h-76l3-20Z" fill="#D7D7D7" opacity={0.8} />
-          <path d="M164 70h18l-3 13h-12l-3-13Z" fill="#1F1F1F" opacity={0.76} />
-          <path d="M187 70h23l4 13h-29l2-13Z" fill="#1F1F1F" opacity={0.76} />
-          <path d="M30 112h8v8h-8zm260 0h8v8h-8z" fill="#2D2D2D" />
-        </g>
-      </svg>
-  );
-}
-
 export default function EditCarPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
@@ -95,7 +70,7 @@ export default function EditCarPage() {
 
   return (
       <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
-        <div className="mx-auto flex h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.24),_transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.04),_transparent_36%)] dark:bg-[#011b1b] dark:text-white">
+        <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
           <header className="flex items-center justify-between px-5 pt-5">
             <div className="flex-1 text-center">
               <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">Your car</h1>
@@ -113,7 +88,7 @@ export default function EditCarPage() {
               <button
                   type="button"
                   onClick={handlePhotoAreaClick}
-                  className="group relative flex h-[190px] w-[190px] cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white/50 bg-[#e8e8e8] shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)] transition-transform duration-200 hover:scale-[1.01] dark:bg-[#d7d7d7]"
+                  className="group relative flex h-47.5 w-47.5 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white/50 bg-[#e8e8e8] shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)] transition-transform duration-200 hover:scale-[1.01] dark:bg-[#d7d7d7]"
                   aria-label="Car photo options"
               >
                 <input
@@ -282,7 +257,7 @@ export default function EditCarPage() {
         {/* Pop-up / Modal modern pentru opțiuni foto mașină */}
         {isPhotoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-              <div className="relative w-full max-w-[340px] rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
                 <button
                     type="button"
                     onClick={() => setIsPhotoModalOpen(false)}
@@ -322,7 +297,7 @@ export default function EditCarPage() {
         {/* Pop-up / Modal informativ pentru Legal Documents */}
         {isInfoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-              <div className="relative w-full max-w-[340px] rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
                 <button
                     type="button"
                     onClick={() => setIsInfoModalOpen(false)}
