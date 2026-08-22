@@ -1,8 +1,11 @@
 'use client';
 
+import React from 'react';
 import { CircleHelp, PencilLine, Search, Upload, X } from 'lucide-react';
 import { ChangeEvent, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 export default function EditCarPage() {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +80,7 @@ export default function EditCarPage() {
             </div>
             <button
                 aria-label="Close"
+                onClick={() => router.push('/ManageCarPage')}
                 className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
             >
               <X className="h-7 w-7" strokeWidth={2.2} />

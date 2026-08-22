@@ -1,4 +1,6 @@
 "use client";
+
+import React from "react";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -38,7 +40,7 @@ export default function LoginPage() {
 
         {/* Bottom sheet */}
         <div
-          className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-6 bg-gradient-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
+          className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-6 bg-linear-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
         >
           <h2 className="text-lg font-bold text-[#0B1C2C] dark:text-white">Welcome back!</h2>
           <p className="mt-1 text-center text-sm text-[#33475A] dark:text-white/80">Please enter your details</p>

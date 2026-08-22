@@ -73,7 +73,7 @@ export default function AddCarPage() {
 
   return (
       <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
-        <div className="mx-auto flex h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.24),_transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.04),_transparent_36%)] dark:bg-[#011b1b] dark:text-white">
+        <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
           <header className="flex items-center justify-between px-5 pt-5">
             <div className="flex-1 text-center">
               <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">Your car</h1>
@@ -93,7 +93,7 @@ export default function AddCarPage() {
               <button
                   type="button"
                   onClick={handlePhotoAreaClick}
-                  className="group relative flex h-[190px] w-[190px] cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white/50 bg-[#e8e8e8] shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)] transition-transform duration-200 hover:scale-[1.01] dark:bg-[#d7d7d7]"
+                  className="group relative flex h-47.5 w-47.5 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white/50 bg-[#e8e8e8] shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)] transition-transform duration-200 hover:scale-[1.01] dark:bg-[#d7d7d7]"
                   aria-label="Upload car photo options"
               >
                 <input
@@ -195,7 +195,7 @@ export default function AddCarPage() {
                     onChange={handleDocumentChange}
                 />
 
-                <div className="flex min-h-[50px] items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
+                <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
                   {form.document ? (
                       <>
                         <span className="truncate pr-2">{form.document}</span>
@@ -233,7 +233,7 @@ export default function AddCarPage() {
         {/* Pop-up / Modal modern pentru opțiuni foto mașină */}
         {isPhotoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-              <div className="relative w-full max-w-[340px] rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
                 <button
                     type="button"
                     onClick={() => setIsPhotoModalOpen(false)}
@@ -276,7 +276,7 @@ export default function AddCarPage() {
         {/* Pop-up / Modal explicativ pentru secțiunea Legal Documents */}
         {isHelpModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-              <div className="relative w-full max-w-[340px] rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
                 <button
                     type="button"
                     onClick={() => setIsHelpModalOpen(false)}
