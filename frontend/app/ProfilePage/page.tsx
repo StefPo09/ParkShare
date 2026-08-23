@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle } from 'lucide-react';
+import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle, Key, Home, Car } from 'lucide-react';
 
 interface UserProfile {
   firstName: string;
@@ -35,6 +35,7 @@ export default function ProfilePage() {
   const [isSaved, setIsSaved] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car' | null>(null);
 
   // Data curentă de referință în sistem (Anul 2026)
   const TODAY_STR = '2026-08-24';
@@ -219,7 +220,7 @@ export default function ProfilePage() {
             <div className="w-full space-y-4">
 
               {/* First Name */}
-              <div className="flex flex-col justify-center min-h-[72px] px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 backdrop-blur-xs">
+              <div className="flex flex-col justify-center min-h-18 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 backdrop-blur-xs">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex-1 pr-2">
                   <span className="block text-[11px] font-bold uppercase tracking-wider text-[#42565d] dark:text-[#9db0b6] mb-0.5">
@@ -261,7 +262,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Last Name */}
-              <div className="flex flex-col justify-center min-h-[72px] px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 backdrop-blur-xs">
+              <div className="flex flex-col justify-center min-h-18 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 backdrop-blur-xs">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex-1 pr-2">
                   <span className="block text-[11px] font-bold uppercase tracking-wider text-[#42565d] dark:text-[#9db0b6] mb-0.5">
@@ -303,7 +304,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Date of Birth */}
-              <div className="flex flex-col justify-center min-h-[72px] py-2 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 backdrop-blur-xs">
+              <div className="flex flex-col justify-center min-h-18 py-2 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 backdrop-blur-xs">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex-1 pr-2">
                   <span className="block text-[11px] font-bold uppercase tracking-wider text-[#42565d] dark:text-[#9db0b6] mb-0.5">
@@ -320,7 +321,7 @@ export default function ProfilePage() {
                                 onChange={(e) => setTempValue(e.target.value)}
                                 onKeyDown={(e) => handleKeyDown(e, 'birthDate')}
                                 autoFocus
-                                className="flex-1 h-9 px-3 text-sm rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-black/20 text-[#121212] dark:text-white focus:outline-none dark:[color-scheme:dark]"
+                                className="flex-1 h-9 px-3 text-sm rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-black/20 text-[#121212] dark:text-white focus:outline-none dark:scheme-dark"
                             />
                             <button
                                 disabled={isInvalidDate}
@@ -370,7 +371,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Location */}
-              <div className="flex flex-col justify-center h-[72px] px-4 rounded-2xl bg-white/20 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.02] opacity-75">
+              <div className="flex flex-col justify-center h-18 px-4 rounded-2xl bg-white/20 dark:bg-white/2 border border-black/3 dark:border-white/2 opacity-75">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-[#6f797d] dark:text-[#6f797d] mb-0.5">
                 Location
               </span>
@@ -380,7 +381,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Email */}
-              <div className="flex flex-col justify-center h-[72px] px-4 rounded-2xl bg-white/20 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.02] opacity-75 overflow-hidden">
+              <div className="flex flex-col justify-center h-18 px-4 rounded-2xl bg-white/20 dark:bg-white/2 border border-black/3 dark:border-white/2 opacity-75 overflow-hidden">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-[#6f797d] dark:text-[#6f797d] mb-0.5">
                 Email Address
               </span>
@@ -390,7 +391,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Phone Number */}
-              <div className="flex flex-col justify-center h-[72px] px-4 rounded-2xl bg-white/20 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.02] opacity-75">
+              <div className="flex flex-col justify-center h-18 px-4 rounded-2xl bg-white/20 dark:bg-white/2 border border-black/3 dark:border-white/2 opacity-75">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-[#6f797d] dark:text-[#6f797d] mb-0.5">
                 Phone Number
               </span>
@@ -400,7 +401,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Account Settings */}
-              <button onClick={() => router.push('/SettingsPage')} aria-label="Open account settings" className="w-full flex items-center justify-between h-[60px] px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
+              <button onClick={() => router.push('/SettingsPage')} aria-label="Open account settings" className="w-full flex items-center justify-between h-15 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
                 <span>Account Settings</span>
                 <ChevronRight className="w-5 h-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
               </button>
@@ -410,7 +411,7 @@ export default function ProfilePage() {
           {/* --- Pop-up Modal pentru Ștergere --- */}
           {showDeleteModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-                <div className="w-full max-w-[280px] rounded-[24px] bg-[#dfeef0] p-5 text-center shadow-xl dark:bg-[#0d2a24] border border-black/5 dark:border-white/10 animate-scale-in">
+                <div className="w-full max-w-70 rounded-3xl bg-[#dfeef0] p-5 text-center shadow-xl dark:bg-[#0d2a24] border border-black/5 dark:border-white/10 animate-scale-in">
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400">
                     <Trash2 className="h-6 w-6" strokeWidth={2.2} />
                   </div>
@@ -437,6 +438,36 @@ export default function ProfilePage() {
                 </div>
               </div>
           )}
+
+              {/* --- Bottom Navigation Bar --- */}
+              <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+                <button
+                  onClick={() => { setActiveTab('key'); router.push('/RentPage'); }}
+                  className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                    activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('home'); router.push('/HomePage'); }}
+                  className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                    activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('car'); router.push('/ManageCarPage'); }}
+                  className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                    activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+                </button>
+              </nav>
 
         </div>
       </div>
