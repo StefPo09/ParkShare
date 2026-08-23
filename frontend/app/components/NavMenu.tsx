@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import {
     X,
     Bell,
@@ -16,13 +17,14 @@ interface NavMenuProps {
 }
 
 export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
+    const router = useRouter();
     return (
         <>
             {/* --- Backdrop Overlay --- */}
             <div
                 onClick={onClose}
                 aria-hidden="true"
-                className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
+                className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-xs transition-opacity duration-300 ${
                     isOpen
                         ? 'opacity-100 pointer-events-auto'
                         : 'opacity-0 pointer-events-none'
@@ -31,74 +33,73 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
 
             {/* --- Side Drawer Menu --- */}
             <aside
-                className={`fixed top-0 left-0 bottom-0 z-50 w-3/4 max-w-xs flex flex-col justify-between py-6 px-5 transition-transform duration-300 ease-in-out shadow-2xl bg-[#D8F3ED] dark:bg-[#07211C] text-[#0d3b36] dark:text-[#a0ece0] ${
+                className={`fixed top-0 left-0 bottom-0 z-50 w-72 flex flex-col justify-between py-6 px-5 transition-transform duration-300 ease-in-out shadow-[5px_0_30px_rgba(15,32,35,0.15)] bg-[#dfeef0]/95 dark:bg-[#011b1b]/95 backdrop-blur-md text-[#121212] dark:text-white border-r border-black/5 dark:border-white/10 ${
                     isOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
                 {/* Top Header */}
                 <div>
-                    <div className="flex items-center justify-between pb-4 mb-6 border-b border-teal-800/20 dark:border-teal-700/30">
-                        <h2 className="text-xl font-bold tracking-wide text-slate-900 dark:text-white">
+                    <div className="flex items-center justify-between pb-6 border-b border-black/5 dark:border-white/10">
+                        <h2 className="text-[20px] font-bold tracking-tight text-[#121212] dark:text-white">
                             Park Share
                         </h2>
                         <button
                             onClick={onClose}
                             aria-label="Close menu"
-                            className="p-1 text-slate-700 dark:text-slate-200 hover:opacity-70 transition-opacity"
+                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
                         >
-                            <X className="w-6 h-6" />
+                            <X className="h-6 w-6" strokeWidth={2.2} />
                         </button>
                     </div>
 
-                    {/* Navigation Links Group 1 */}
-                    <nav className="space-y-5 text-sm font-medium">
+                    {/* Navigation Links Group */}
+                    <nav className="mt-6 space-y-2">
                         <button
                             onClick={() => console.log('Notifications clicked')}
-                            className="flex items-center space-x-3.5 w-full text-left text-slate-800 dark:text-slate-200 hover:opacity-80 transition-opacity"
+                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
                         >
-                            <Bell className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                            <span>Notifications</span>
+                            <Bell className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
+                            <span className="tracking-wide">Notifications</span>
                         </button>
 
                         <button
-                            onClick={() => console.log('Manage cars clicked')}
-                            className="flex items-center space-x-3.5 w-full text-left text-slate-800 dark:text-slate-200 hover:opacity-80 transition-opacity"
+                            onClick={() => { router.push('/ManageCarPage'); onClose(); }}
+                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
                         >
-                            <Car className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                            <span>Manage your cars</span>
+                            <Car className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
+                            <span className="tracking-wide">Manage your cars</span>
                         </button>
 
                         <button
-                            onClick={() => console.log('Settings clicked')}
-                            className="flex items-center space-x-3.5 w-full text-left text-slate-800 dark:text-slate-200 hover:opacity-80 transition-opacity"
+                            onClick={() => { router.push('/SettingsPage'); onClose(); }}
+                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
                         >
-                            <Settings className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                            <span>Settings</span>
+                            <Settings className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
+                            <span className="tracking-wide">Settings</span>
                         </button>
 
-                        <hr className="my-4 border-teal-800/20 dark:border-teal-700/30" />
+                        <hr className="my-4 border-black/5 dark:border-white/10" />
 
-                        {/* Navigation Links Group 2 */}
                         <button
                             onClick={() => console.log('News clicked')}
-                            className="flex items-center space-x-3.5 w-full text-left text-slate-800 dark:text-slate-200 hover:opacity-80 transition-opacity"
+                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
                         >
-                            <Newspaper className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                            <span>News & Updates</span>
+                            <Newspaper className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
+                            <span className="tracking-wide">News & Updates</span>
                         </button>
 
                         <button
                             onClick={() => console.log('Help clicked')}
-                            className="flex items-center space-x-3.5 w-full text-left text-slate-800 dark:text-slate-200 hover:opacity-80 transition-opacity"
+                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
                         >
-                            <HelpCircle className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                            <span>Help</span>
+                            <HelpCircle className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
+                            <span className="tracking-wide">Help</span>
                         </button>
                     </nav>
                 </div>
 
                 {/* Footer Brand Copyright */}
-                <footer className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                <footer className="px-4 text-[12px] text-[#42565d] dark:text-[#9db0b6] font-semibold uppercase tracking-wider">
                     © 2026 TripleDoubleEspresso
                 </footer>
             </aside>
