@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle } from 'lucide-react';
 
 interface UserProfile {
@@ -9,7 +10,7 @@ interface UserProfile {
   lastName: string;
   avatarUrl: string;
   username: string;
-  birthDate: string; // Stocăm data în format YYYY-MM-DD
+  birthDate: string;
   location: string;
   email: string;
   phone: string;
@@ -20,17 +21,14 @@ const DEFAULT_PROFILE: UserProfile = {
   lastName: 'Lastname',
   avatarUrl: '',
   username: 'Username_App',
-  birthDate: '2006-05-15', // Implicit setat să aibă ~20 de ani în 2026
+  birthDate: '2006-05-15',
   location: 'London, England',
   email: 'Firstname.business@gmail.com',
   phone: '1234567890',
 };
 
-interface ProfilePageProps {
-  onBack?: () => void;
-}
-
-export default function ProfilePage({ onBack }: ProfilePageProps) {
+export default function ProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [editingField, setEditingField] = useState<'firstName' | 'lastName' | 'birthDate' | null>(null);
   const [tempValue, setTempValue] = useState('');
@@ -38,12 +36,14 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Data curentă de referință în sistem (Anul 2026)
+  const TODAY_STR = '2026-08-24';
+
   useEffect(() => {
     const savedData = localStorage.getItem('parkshare_user_profile');
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        // Migrare automată în caz că existau date vechi pe cheia "age"
         if (!parsed.birthDate) {
           parsed.birthDate = '2006-05-15';
         }
@@ -54,10 +54,9 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
     }
   }, []);
 
-  // Funcție utilitară pentru a calcula vârsta nașterii relativ la data curentă (2026)
   const calculateAge = (dateString: string): number => {
     if (!dateString) return 0;
-    const today = new Date('2026-08-24'); // Ancorat în anul curent 2026
+    const today = new Date(TODAY_STR);
     const birthDate = new Date(dateString);
     let age = today.getFullYear() - birthDate.getFullYear();
     const m = today.getMonth() - birthDate.getMonth();
@@ -67,7 +66,18 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
     return age;
   };
 
-  const isUnderage = editingField === 'birthDate' && calculateAge(tempValue) < 18;
+  // Validări stări
+  const userAge = editingField === 'birthDate' ? calculateAge(tempValue) : 0;
+  const isUnderage = editingField === 'birthDate' && tempValue !== '' && userAge < 18;
+  const isTooOld = editingField === 'birthDate' && tempValue !== '' && userAge > 120;
+  const isInvalidDate = isUnderage || isTooOld;
+
+  // Calculăm dinamic data minimă acceptată în calendar (Astăzi minus 120 de ani)
+  const getMinDateAttribute = (): string => {
+    const d = new Date(TODAY_STR);
+    d.setFullYear(d.getFullYear() - 120);
+    return d.toISOString().split('T')[0];
+  };
 
   const saveProfileData = (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
@@ -82,8 +92,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
   };
 
   const handleSaveField = (field: 'firstName' | 'lastName' | 'birthDate') => {
-    if (field === 'birthDate' && calculateAge(tempValue) < 18) {
-      return; // Blocăm salvarea dacă e minor
+    if (field === 'birthDate' && (calculateAge(tempValue) < 18 || calculateAge(tempValue) > 120)) {
+      return;
     }
     const updated = { ...profile, [field]: tempValue };
     saveProfileData(updated);
@@ -92,7 +102,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'firstName' | 'lastName' | 'birthDate') => {
     if (e.key === 'Enter') {
-      if (field === 'birthDate' && isUnderage) return;
+      if (field === 'birthDate' && isInvalidDate) return;
       handleSaveField(field);
     }
   };
@@ -116,7 +126,6 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
     setShowDeleteModal(false);
   };
 
-  // Formatează afișarea datei într-un mod mai premium (ex: May 15, 2006)
   const formatDateDisplay = (dateString: string) => {
     if (!dateString) return '';
     try {
@@ -138,7 +147,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               Your Profile
             </h1>
             <button
-                onClick={onBack}
+                onClick={() => router.back()}
                 aria-label="Close profile"
                 className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
             >
@@ -293,7 +302,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 </div>
               </div>
 
-              {/* Date of Birth / Age Block */}
+              {/* Date of Birth */}
               <div className="flex flex-col justify-center min-h-[72px] py-2 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 backdrop-blur-xs">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex-1 pr-2">
@@ -306,16 +315,18 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                             <input
                                 type="date"
                                 value={tempValue}
+                                min={getMinDateAttribute()}
+                                max={TODAY_STR}
                                 onChange={(e) => setTempValue(e.target.value)}
                                 onKeyDown={(e) => handleKeyDown(e, 'birthDate')}
                                 autoFocus
                                 className="flex-1 h-9 px-3 text-sm rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-black/20 text-[#121212] dark:text-white focus:outline-none dark:[color-scheme:dark]"
                             />
                             <button
-                                disabled={isUnderage}
+                                disabled={isInvalidDate}
                                 onClick={() => handleSaveField('birthDate')}
                                 className={`flex h-9 w-9 items-center justify-center rounded-lg text-white transition ${
-                                    isUnderage
+                                    isInvalidDate
                                         ? 'bg-gray-300 dark:bg-zinc-700 cursor-not-allowed opacity-50'
                                         : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'
                                 }`}
@@ -324,11 +335,19 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                             </button>
                           </div>
 
-                          {/* Warning mesaj roșu dacă are sub 18 ani */}
+                          {/* Warning sub 18 ani */}
                           {isUnderage && (
                               <div className="flex items-center space-x-1 mt-2 text-red-500 dark:text-red-400 animate-fade-in">
                                 <AlertCircle className="w-3.5 h-3.5" />
                                 <span className="text-[11px] font-bold">You must be at least 18 years old to use ParkShare.</span>
+                              </div>
+                          )}
+
+                          {/* Warning peste 120 ani */}
+                          {isTooOld && (
+                              <div className="flex items-center space-x-1 mt-2 text-red-500 dark:text-red-400 animate-fade-in">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                <span className="text-[11px] font-bold">Please enter a valid birth date.</span>
                               </div>
                           )}
                         </div>
@@ -381,7 +400,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               </div>
 
               {/* Account Settings */}
-              <button className="w-full flex items-center justify-between h-[60px] px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
+              <button onClick={() => router.push('/SettingsPage')} aria-label="Open account settings" className="w-full flex items-center justify-between h-[60px] px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
                 <span>Account Settings</span>
                 <ChevronRight className="w-5 h-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
               </button>
