@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { X, ChevronRight, Plus, Car } from 'lucide-react';
+import { X, ChevronRight, Plus, Car, Key, Home } from 'lucide-react';
 
 interface CarItem {
     id: string;
@@ -28,6 +28,7 @@ const mockCars: CarItem[] = [
 
 export default function ManageCarsPage() {
     const router = useRouter();
+    const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative font-sans">
@@ -87,7 +88,7 @@ export default function ManageCarsPage() {
                 </main>
 
                 {/* --- Buton Add New Car --- */}
-                <div className="px-4 pb-6 pt-2">
+                <div className="px-4 pb-6 pt-2 mb-24">
                     <button
                         type="button"
                         onClick={() => router.push('/AddCarPage')}
@@ -97,6 +98,36 @@ export default function ManageCarsPage() {
                         <Plus className="h-5 w-5" strokeWidth={2.5} />
                     </button>
                 </div>
+
+                {/* --- Bottom Navigation Bar --- */}
+                <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+                    <button
+                        onClick={() => { setActiveTab('key'); router.push('/RentPage'); }}
+                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                            activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+                    </button>
+
+                    <button
+                        onClick={() => { setActiveTab('home'); router.push('/HomePage'); }}
+                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                            activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+                    </button>
+
+                    <button
+                        onClick={() => { setActiveTab('car'); router.push('/ManageCarPage'); }}
+                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                            activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+                    </button>
+                </nav>
             </div>
         </div>
     );

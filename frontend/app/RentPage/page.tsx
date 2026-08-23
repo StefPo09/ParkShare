@@ -114,7 +114,7 @@ const mockSpots: ParkingSpot[] = [
 
 export default function ParkingRentPage() {
     const [selectedSpot, setSelectedSpot] = useState<ParkingSpot>(mockSpots[0]);
-    const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
+    const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     // Load Google Maps SDK
@@ -122,7 +122,6 @@ export default function ParkingRentPage() {
         id: 'google-map-script',
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     });
-
 
     // Detect browser/system theme preferences
     useEffect(() => {
@@ -145,168 +144,170 @@ export default function ParkingRentPage() {
     }, []);
 
     const router = useRouter();
-
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <div className="relative flex flex-col h-screen w-full max-w-md mx-auto overflow-hidden bg-white dark:bg-[#061512] text-slate-800 dark:text-slate-100 font-sans transition-colors duration-300">
+        <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
+            <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
 
-            {/* --- Top Header Navigation --- */}
-            <header className="flex items-center justify-between px-5 py-4 bg-[#B2F5EA] dark:bg-[#0d2a24] text-[#0d3b36] dark:text-[#a0ece0] transition-colors duration-300 z-10 shadow-sm">
-                <button aria-label="Open menu"
+                {/* --- Top Header Navigation --- */}
+                <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10">
+                    <button
+                        aria-label="Open menu"
                         onClick={() => setIsMenuOpen(true)}
-                        className="p-1 hover:opacity-80 transition-opacity">
-                    <Menu className="w-6 h-6" />
-                </button>
-                <h1 className="text-xl font-bold tracking-wide">Park Share</h1>
-                <button aria-label="User profile"
-                        onClick={() => router.push("/ProfilePage")}
-                        className="p-1 hover:opacity-80 transition-opacity">
-                    <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center overflow-hidden">
-                        <User className="w-6 h-6 text-slate-600 dark:text-slate-300 fill-current" />
-                    </div>
-                </button>
-            </header>
-
-            <NavMenu
-                isOpen={isMenuOpen}
-                onClose={() => setIsMenuOpen(false)}
-            />
-
-            {/* --- Google Map Container --- */}
-            <main className="relative flex-1 bg-slate-100 dark:bg-[#121c1a] overflow-hidden">
-                {isLoaded ? (
-                    <GoogleMap
-                        mapContainerStyle={containerStyle}
-                        center={mapCenter}
-                        zoom={14}
-                        onLoad={onLoad}
-                        onUnmount={onUnmount}
-                        options={{
-                            disableDefaultUI: true, // Hides standard map controls for a clean UI
-                            zoomControl: false,
-                            styles: isDarkMode ? darkMapStyle : [],
-                        }}
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
                     >
-                        {mockSpots.map((spot) => {
-                            const isSelected = selectedSpot.id === spot.id;
-
-                            // Custom Marker Icons using SVG Data URLs
-                            const redPinSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="%23ef4444" stroke="%23dc2626" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>`;
-                            const greyPinSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="%2394a3b8" stroke="%2364748b" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>`;
-
-                            return (
-                                <MarkerF
-                                    key={spot.id}
-                                    position={{ lat: spot.lat, lng: spot.lng }}
-                                    onClick={() => setSelectedSpot(spot)}
-                                    label={{
-                                        text: `$${spot.price}/h`,
-                                        color: isSelected ? '#ffffff' : '#475569',
-                                        fontSize: '11px',
-                                        fontWeight: 'bold',
-                                        className: isSelected
-                                            ? 'bg-black px-2 py-0.5 rounded-full shadow'
-                                            : 'bg-white px-2 py-0.5 rounded-full shadow border border-slate-200',
-                                    }}
-                                    icon={{
-                                        url: isSelected ? redPinSvg : greyPinSvg,
-                                        anchor: isLoaded ? new window.google.maps.Point(18, 36) : undefined,
-                                    }}
-                                />
-                            );
-                        })}
-                    </GoogleMap>
-                ) : (
-                    <div className="flex items-center justify-center h-full text-slate-400">
-                        Loading Map...
-                    </div>
-                )}
-            </main>
-
-            {/* --- Bottom Drawer / Rental Details --- */}
-            <section className="bg-[#D8F3ED] dark:bg-[#07211C] rounded-t-3xl p-4 shadow-2xl transition-colors duration-300 z-20">
-                <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3" />
-
-                <div className="relative w-full h-44 rounded-2xl overflow-hidden mb-3 shadow-inner">
-                    <Image
-                        src={selectedSpot.image}
-                        alt={selectedSpot.address}
-                        fill
-                        className="object-cover"
-                    />
-                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1.5">
-                        <span className="w-2 h-2 rounded-full bg-white" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                    </div>
-                </div>
-
-                <h2 className="text-lg font-semibold text-[#114B43] dark:text-[#38bdf8] mb-1">
-                    {selectedSpot.address}
-                </h2>
-
-                <div className="flex items-center space-x-4 text-xs text-[#2D6A61] dark:text-[#2dd4bf] mb-4">
-                    <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{selectedSpot.availability}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                        <MapPin className="w-4 h-4" />
-                        <span>{selectedSpot.distance}</span>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-baseline space-x-1">
-            <span className="text-2xl font-bold text-[#114B43] dark:text-[#38bdf8]">
-              ${selectedSpot.price}
-            </span>
-                        <span className="text-xs text-[#2D6A61] dark:text-[#2dd4bf]">/ hour</span>
-                    </div>
-
-                    <button className="px-8 py-2.5 bg-[#0A4B75] hover:bg-[#083c5e] dark:bg-[#0284c7] dark:hover:bg-[#0369a1] text-white font-medium text-lg rounded-xl shadow-md transition-all active:scale-95">
-                        Rent
+                        <Menu className="w-6 h-6" strokeWidth={2.2} />
                     </button>
-                </div>
-            </section>
 
-            {/* --- Bottom Navigation Bar --- */}
-            <nav className="flex justify-around items-center py-3 bg-[#D8F3ED] dark:bg-[#07211C] border-t border-teal-200/30 dark:border-teal-900/40 z-20">
-                <button
-                    onClick={() => setActiveTab('key')}
-                    className={`p-2 transition-colors ${
-                        activeTab === 'key'
-                            ? 'text-black dark:text-white'
-                            : 'text-slate-700 dark:text-slate-400 hover:text-black dark:hover:text-white'
-                    }`}
-                >
-                    <Key className="w-6 h-6 transform -rotate-45" />
-                </button>
+                    <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
+                        Park Share
+                    </h1>
 
-                <button
-                    onClick={() => setActiveTab('home')}
-                    className={`p-2 transition-colors ${
-                        activeTab === 'home'
-                            ? 'text-black dark:text-white'
-                            : 'text-slate-700 dark:text-slate-400 hover:text-black dark:hover:text-white'
-                    }`}
-                >
-                    <Home className="w-6 h-6" />
-                </button>
+                    <button
+                        aria-label="User profile"
+                        onClick={() => router.push("/ProfilePage")}
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center overflow-hidden border border-black/10 dark:border-white/10">
+                            <User className="w-5 h-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2} />
+                        </div>
+                    </button>
+                </header>
 
-                <button
-                    onClick={() => setActiveTab('car')}
-                    className={`p-2 transition-colors ${
-                        activeTab === 'car'
-                            ? 'text-black dark:text-white'
-                            : 'text-slate-700 dark:text-slate-400 hover:text-black dark:hover:text-white'
-                    }`}
-                >
-                    <Car className="w-6 h-6" />
-                </button>
-            </nav>
+                <NavMenu
+                    isOpen={isMenuOpen}
+                    onClose={() => setIsMenuOpen(false)}
+                />
+
+                {/* --- Google Map Container --- */}
+                <main className="relative flex-1 bg-[#e8e8e8] dark:bg-[#121c1a] overflow-hidden">
+                    {isLoaded ? (
+                        <GoogleMap
+                            mapContainerStyle={containerStyle}
+                            center={mapCenter}
+                            zoom={14}
+                            onLoad={onLoad}
+                            onUnmount={onUnmount}
+                            options={{
+                                disableDefaultUI: true,
+                                zoomControl: false,
+                                styles: isDarkMode ? darkMapStyle : [],
+                            }}
+                        >
+                            {mockSpots.map((spot) => {
+                                const isSelected = selectedSpot.id === spot.id;
+
+                                const redPinSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="%23ef4444" stroke="%23dc2626" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>`;
+                                const greyPinSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="%2342565d" stroke="%2364748b" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>`;
+
+                                return (
+                                    <MarkerF
+                                        key={spot.id}
+                                        position={{ lat: spot.lat, lng: spot.lng }}
+                                        onClick={() => setSelectedSpot(spot)}
+                                        label={{
+                                            text: `$${spot.price}/h`,
+                                            color: isSelected ? '#ffffff' : '#121212',
+                                            fontSize: '11px',
+                                            fontWeight: 'bold',
+                                            className: isSelected
+                                                ? 'bg-black px-2 py-0.5 rounded-full shadow'
+                                                : 'bg-white px-2 py-0.5 rounded-full shadow border border-black/10',
+                                        }}
+                                        icon={{
+                                            url: isSelected ? redPinSvg : greyPinSvg,
+                                            anchor: isLoaded ? new window.google.maps.Point(18, 36) : undefined,
+                                        }}
+                                    />
+                                );
+                            })}
+                        </GoogleMap>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-[#6f797d] dark:text-[#9db0b6]">
+                            Loading Map...
+                        </div>
+                    )}
+                </main>
+
+                {/* --- Bottom Drawer / Rental Details --- */}
+                <section className="bg-white/40 dark:bg-[#011b1b]/95 border-t border-black/5 dark:border-white/10 backdrop-blur-md rounded-t-[32px] p-5 shadow-[0_-15px_30px_rgba(15,32,35,0.08)] transition-colors duration-300 z-20">
+                    <div className="w-12 h-1.5 bg-black/10 dark:bg-white/10 rounded-full mx-auto mb-4" />
+
+                    <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 shadow-[inset_0_2px_10px_rgba(15,23,42,0.08)] border border-black/5 dark:border-white/5">
+                        <Image
+                            src={selectedSpot.image}
+                            alt={selectedSpot.address}
+                            fill
+                            className="object-cover"
+                        />
+                        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-1.5 bg-black/20 px-2 py-1 rounded-full backdrop-blur-xs">
+                            <span className="w-2 h-2 rounded-full bg-white" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                        </div>
+                    </div>
+
+                    <h2 className="text-[20px] font-bold tracking-tight text-[#121212] dark:text-white mb-1">
+                        {selectedSpot.address}
+                    </h2>
+
+                    <div className="flex items-center space-x-4 text-[13px] font-medium text-[#42565d] dark:text-[#d6e7ea] mb-5">
+                        <div className="flex items-center space-x-1.5">
+                            <Clock className="w-4 h-4 text-[#6f797d] dark:text-[#9db0b6]" strokeWidth={2} />
+                            <span>{selectedSpot.availability}</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                            <MapPin className="w-4 h-4 text-[#6f797d] dark:text-[#9db0b6]" strokeWidth={2} />
+                            <span>{selectedSpot.distance}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 pb-20">
+                        <div className="flex items-baseline space-x-0.5">
+                            <span className="text-[26px] font-extrabold tracking-tight text-[#121212] dark:text-white">
+                                ${selectedSpot.price}
+                            </span>
+                            <span className="text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">/ hour</span>
+                        </div>
+
+                        <button className="px-8 py-3.5 cursor-pointer bg-[#0f4c81] hover:bg-[#0c3e67] text-white font-semibold text-base rounded-2xl shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition-all active:scale-95">
+                            Rent
+                        </button>
+                    </div>
+                </section>
+
+                {/* --- Bottom Navigation Bar --- */}
+                <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+                    <button
+                        onClick={() => { setActiveTab('key'); router.push('/RentPage'); }}
+                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                            activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+                    </button>
+
+                    <button
+                        onClick={() => { setActiveTab('home'); router.push('/HomePage'); }}
+                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                            activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+                    </button>
+
+                    <button
+                        onClick={() => { setActiveTab('car'); router.push('/ManageCarPage'); }}
+                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                            activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+                    </button>
+                </nav>
+            </div>
         </div>
     );
 }
