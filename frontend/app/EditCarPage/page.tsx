@@ -1,24 +1,37 @@
 'use client';
 
-import React from 'react';
-import { CircleHelp, PencilLine, Search, Upload, X } from 'lucide-react';
-import { ChangeEvent, useRef, useState } from 'react';
+import React, { useState, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  X,
+  PencilLine,
+  Upload,
+  CircleHelp,
+  Key,
+  Home,
+  Car,
+  ChevronDown
+} from 'lucide-react';
+
 export default function EditCarPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
+  // Stări pentru modul de editare și valorile mașinii[cite: 4]
   const [carImage, setCarImage] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [editingField, setEditingField] = useState<'name' | 'plate' | 'model' | 'document' | null>(null);
+
   const [values, setValues] = useState({
     name: 'Personal car name 2',
     plate: 'DT 123 RAL',
-    model: 'CarModel_a83',
+    model: 'sedan', // Aliniat cu optiunile din select
     document: 'Document.pdf',
   });
+
+  // Stare pentru bara de navigare de jos
+  const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -55,28 +68,27 @@ export default function EditCarPage() {
     }
 
     setValues((current) => ({ ...current, document: file.name }));
-    setEditingField(null);
   };
 
-  const startEditing = (key: 'name' | 'plate' | 'model' | 'document') => setEditingField(key);
-  const finishEditing = () => setEditingField(null);
-
-  const updateValue = (key: 'name' | 'plate' | 'model' | 'document', value: string) => {
+  const updateValue = (key: 'name' | 'plate' | 'model', value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
   };
 
-  const textFieldItems = [
-    { key: 'name', label: 'Name', value: values.name },
-    { key: 'plate', label: 'Registration plate', value: values.plate },
-    { key: 'model', label: 'Car model', value: values.model },
-  ] as const;
+  const handleRemoveDocument = () => {
+    setValues((current) => ({ ...current, document: '' }));
+    if (documentInputRef.current) documentInputRef.current.value = '';
+  };
 
   return (
       <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
         <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
+
+          {/* --- Header --- */}
           <header className="flex items-center justify-between px-5 pt-5">
             <div className="flex-1 text-center">
-              <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">Your car</h1>
+              <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
+                Your car
+              </h1>
             </div>
             <button
                 aria-label="Close"
@@ -87,7 +99,10 @@ export default function EditCarPage() {
             </button>
           </header>
 
-          <main className="flex-1 px-4 pt-4">
+          {/* --- Main Content Area --- */}
+          <main className="flex-1 px-4 pt-4 overflow-y-auto space-y-4 pb-24">
+
+            {/* Zona Foto Cerc */}
             <div className="mb-4 flex justify-center">
               <button
                   type="button"
@@ -116,149 +131,162 @@ export default function EditCarPage() {
               </button>
             </div>
 
-            <div className="px-2">
-              {editingField === 'name' ? (
+            {/* --- SECȚIUNEA FORMULAR (Stil Payment/AddCar) --- */}
+            <div className="space-y-4 px-2">
+              <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
+                Car specifications:
+              </h3>
+
+              {/* Câmp Car Name */}
+              <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                <label htmlFor="car-name" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                  Car Name
+                </label>
+                <input
+                    id="car-name"
+                    type="text"
+                    value={values.name}
+                    onChange={(e) => updateValue('name', e.target.value)}
+                    placeholder="Personal car name"
+                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                />
+              </div>
+
+              {/* Câmp Registration Plate */}
+              <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                <label htmlFor="car-plate" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                  Registration plate
+                </label>
+                <input
+                    id="car-plate"
+                    type="text"
+                    value={values.plate}
+                    onChange={(e) => updateValue('plate', e.target.value)}
+                    placeholder="B 123 ABC"
+                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                />
+              </div>
+
+              {/* Select Car Model */}
+              <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                <label htmlFor="car-model" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                  Car model
+                </label>
+                <div className="relative w-full">
+                  <select
+                      id="car-model"
+                      value={values.model}
+                      onChange={(e) => updateValue('model', e.target.value)}
+                      className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none appearance-none cursor-pointer dark:border-white/10 dark:bg-[#011b1b] dark:text-white"
+                  >
+                    <option value="" disabled hidden className="bg-white text-slate-400 dark:bg-[#011b1b] dark:text-slate-500">Car model...</option>
+                    <option value="sedan" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">Sedan</option>
+                    <option value="suv" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">SUV</option>
+                    <option value="hatchback" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">Hatchback</option>
+                  </select>
+                  <ChevronDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-[#42565d] dark:text-[#9db0b6] pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Câmp Legal Documents (PDF Upload) */}
+              <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                    Legal documents
+                  </label>
+
                   <div className="flex items-center gap-2">
-                    <input
-                        autoFocus
-                        value={values.name}
-                        onChange={(event) => updateValue('name', event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') finishEditing();
-                        }}
-                        className="w-full rounded-2xl border border-black/10 bg-white/40 px-3 py-2 text-[28px] font-bold tracking-tight text-[#111827] outline-none placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                    />
                     <button
                         type="button"
-                        onClick={finishEditing}
-                        className="rounded-full border border-black/10 bg-white/60 px-3 py-2 text-sm font-semibold text-[#111827] transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        onClick={() => setIsInfoModalOpen(true)}
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#42565d] shadow-sm transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-[#d6e7ea] dark:hover:bg-white/10"
                     >
-                      Save
+                      <CircleHelp className="h-4 w-4" strokeWidth={2.2} />
                     </button>
-                  </div>
-              ) : (
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-[28px] font-bold tracking-tight text-[#111827] dark:text-white">{values.name}</h2>
+
                     <button
                         type="button"
-                        aria-label="Edit car name"
-                        onClick={() => startEditing('name')}
-                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#1f2937] shadow-sm transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                        onClick={() => documentInputRef.current?.click()}
+                        className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                     >
-                      <PencilLine className="h-4 w-4" strokeWidth={2.2} />
+                      <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
+                      <span>Upload PDF</span>
                     </button>
                   </div>
-              )}
-            </div>
-
-            <div className="mt-5 space-y-4 px-2 pb-8">
-              {textFieldItems.map(({ key, label, value }) => (
-                  <div key={key} className="flex items-center justify-between gap-3 rounded-2xl border border-transparent px-1 py-1.5 transition-colors hover:border-black/5 dark:hover:border-white/5">
-                    <div className="flex min-w-0 flex-1 items-center gap-2 text-[19px] leading-snug text-[#121212] dark:text-white">
-                      {editingField === key ? (
-                          <div className="flex w-full items-center gap-2">
-                            <input
-                                autoFocus
-                                value={value}
-                                onChange={(event) => updateValue(key, event.target.value)}
-                                onKeyDown={(event) => {
-                                  if (event.key === 'Enter') finishEditing();
-                                }}
-                                className="w-full rounded-xl border border-black/10 bg-white/60 px-2 py-1.5 text-[18px] text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white"
-                            />
-                            <button
-                                type="button"
-                                onClick={finishEditing}
-                                className="rounded-full border border-black/10 bg-white/60 px-2.5 py-1.5 text-xs font-semibold text-[#111827] dark:border-white/10 dark:bg-white/5 dark:text-white"
-                            >
-                              Save
-                            </button>
-                          </div>
-                      ) : (
-                          <>
-                            <span className="shrink-0 font-medium">{label}:</span>
-                            <span className="truncate font-normal">{value}</span>
-                          </>
-                      )}
-                    </div>
-
-                    {!editingField && (
-                        <button
-                            type="button"
-                            aria-label={`Edit ${label}`}
-                            onClick={() => startEditing(key)}
-                            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#1f2937] shadow-sm transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                        >
-                          <PencilLine className="h-4 w-4" strokeWidth={2.2} />
-                        </button>
-                    )}
-                  </div>
-              ))}
-
-              <div className="flex items-center justify-between gap-3 rounded-2xl border border-transparent px-1 py-1.5 transition-colors hover:border-black/5 dark:hover:border-white/5">
-                <div className="flex min-w-0 flex-1 items-center gap-2 text-[19px] leading-snug text-[#121212] dark:text-white">
-                  <span className="shrink-0 font-medium">Legal documents:</span>
-                  {editingField === 'document' ? (
-                      <div className="flex w-full items-center gap-2">
-                        {/* Butonul Upload - Aliniat stilistic la restul butoanelor tip pastilă (border, bg, hover effect) */}
-                        <button
-                            type="button"
-                            onClick={() => documentInputRef.current?.click()}
-                            className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                        >
-                          <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
-                          <span>Upload PDF</span>
-                        </button>
-                        <input
-                            ref={documentInputRef}
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            className="hidden"
-                            onChange={handleDocumentFileChange}
-                        />
-                        {/* Butonul Save - Aliniat stilistic */}
-                        <button
-                            type="button"
-                            onClick={finishEditing}
-                            className="flex h-8 items-center rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] font-medium text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                        >
-                          Save
-                        </button>
-                      </div>
-                  ) : (
-                      <div className="flex min-w-0 items-center gap-2 rounded-xl border border-[#111827]/20 bg-white/50 px-2 py-1 shadow-sm dark:border-white/10 dark:bg-white/5">
-                        <span className="truncate text-[15px]">{values.document}</span>
-                        <Search className="h-4 w-4 shrink-0 text-[#121212] dark:text-white" strokeWidth={2.2} />
-                      </div>
-                  )}
                 </div>
 
-                {!editingField && (
-                    <div className="flex items-center gap-2">
-                      <button
-                          type="button"
-                          onClick={() => setIsInfoModalOpen(true)}
-                          aria-label="Open document info"
-                          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#121212]/20 bg-white/40 text-[#121212] shadow-sm transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                      >
-                        <CircleHelp className="h-4 w-4" strokeWidth={2.2} />
-                      </button>
-                      <button
-                          type="button"
-                          aria-label="Edit legal documents"
-                          onClick={() => startEditing('document')}
-                          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#1f2937] shadow-sm transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                      >
-                        <PencilLine className="h-4 w-4" strokeWidth={2.2} />
-                      </button>
-                    </div>
-                )}
+                <input
+                    ref={documentInputRef}
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={handleDocumentFileChange}
+                />
+
+                <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
+                  {values.document ? (
+                      <>
+                        <span className="truncate pr-2 font-medium">{values.document}</span>
+                        <button
+                            type="button"
+                            onClick={handleRemoveDocument}
+                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white active:scale-95"
+                        >
+                          <X className="h-4 w-4" strokeWidth={2.5} />
+                        </button>
+                      </>
+                  ) : (
+                      <span className="truncate text-[#6f797d] dark:text-[#9db0b6]">No PDF document uploaded</span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* --- Buton Salvare Date --- */}
+            <div className="px-2 pt-4">
+              <button
+                  type="button"
+                  onClick={() => alert('Changes saved successfully!')}
+                  className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67]"
+              >
+                Save Changes
+              </button>
+            </div>
           </main>
+
+          {/* --- Bottom Navigation Bar --- */}
+          <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+            <button
+                onClick={() => { setActiveTab('key'); router.push('/RentPage'); }}
+                className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                    activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                }`}
+            >
+              <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+            </button>
+
+            <button
+                onClick={() => { setActiveTab('home'); router.push('/HomePage'); }}
+                className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                    activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                }`}
+            >
+              <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+            </button>
+
+            <button
+                onClick={() => { setActiveTab('car'); router.push('/EditCarPage'); }}
+                className={`p-1.5 transition-all cursor-pointer rounded-full ${
+                    activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+                }`}
+            >
+              <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+            </button>
+          </nav>
+
         </div>
 
-        {/* Pop-up / Modal modern pentru opțiuni foto mașină */}
+        {/* Pop-up modern pentru opțiuni foto mașină[cite: 4] */}
         {isPhotoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
               <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -298,7 +326,7 @@ export default function EditCarPage() {
             </div>
         )}
 
-        {/* Pop-up / Modal informativ pentru Legal Documents */}
+        {/* Pop-up informativ pentru Legal Documents[cite: 4] */}
         {isInfoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
               <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -311,7 +339,7 @@ export default function EditCarPage() {
                   <X className="h-4 w-4" strokeWidth={2.5} />
                 </button>
 
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#111827]/5 text-[#111827] dark:bg-white/10 dark:text-white mb-3">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-white/10 dark:text-white mb-3">
                   <CircleHelp className="h-6 w-6" strokeWidth={2.2} />
                 </div>
 
@@ -326,7 +354,7 @@ export default function EditCarPage() {
                   <button
                       type="button"
                       onClick={() => setIsInfoModalOpen(false)}
-                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#111827] text-white text-sm font-bold shadow-sm hover:bg-black transition active:scale-[0.98] dark:bg-white dark:text-[#011b1b] dark:hover:bg-slate-100"
+                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#0f4c81] text-white text-sm font-bold shadow-sm hover:bg-[#0c3e67] transition active:scale-[0.98]"
                   >
                     Understood
                   </button>
