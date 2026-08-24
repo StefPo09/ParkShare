@@ -1,8 +1,0 @@
-This is where the pages of the website will be stored.
-You can organize your frontend code here, including components, styles, and any other frontend-related files.
-Every page will have its "page.tsx" and "layout.tsx" files, which will be used to define the structure and layout of each page.
-Every page will be in it's own directory, which will help keep the code organized and maintainable.
-Make sure that the name of each directory matches the name of the page it contains, and that the "page.tsx" and "layout.tsx" files are named accordingly.
-Make sure to follow best practices for structuring your frontend code to ensure maintainability and scalability.
-
-This file will be deleted once we have added the pages to the directory.
