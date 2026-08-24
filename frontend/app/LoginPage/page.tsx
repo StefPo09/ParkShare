@@ -23,6 +23,7 @@ export default function LoginPage() {
       return;
     }
 
+    document.cookie = 'session=authenticated; path=/; SameSite=Lax';
     router.push(ROUTES.HOME);
   };
 
