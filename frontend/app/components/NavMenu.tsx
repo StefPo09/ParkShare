@@ -55,7 +55,7 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
                     {/* Navigation Links Group */}
                     <nav className="mt-6 space-y-2">
                         <button
-                            onClick={() => console.log('Notifications clicked')}
+                            onClick={() => { router.push('/NotificationsPage'); onClose(); }}
                             className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
                         >
                             <Bell className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
@@ -81,7 +81,7 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
                         <hr className="my-4 border-black/5 dark:border-white/10" />
 
                         <button
-                            onClick={() => console.log('News clicked')}
+                            onClick={() => { router.push('/News&UpdatesPage'); onClose(); }}
                             className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
                         >
                             <Newspaper className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
@@ -89,7 +89,7 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
                         </button>
 
                         <button
-                            onClick={() => console.log('Help clicked')}
+                            onClick={() => { router.push('/HelpPage'); onClose(); }}
                             className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
                         >
                             <HelpCircle className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
