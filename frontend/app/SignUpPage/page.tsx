@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '../../constants/routes';
 import React from "react";
 
 export default function SignUpScreen() {
@@ -16,7 +17,7 @@ export default function SignUpScreen() {
             return;
         }
 
-        router.push('/RegisterPage');
+        router.push(ROUTES.REGISTER);
     };
 
     return (
@@ -41,7 +42,7 @@ export default function SignUpScreen() {
 
                 {/* Bottom sheet */}
                 <div
-                    className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-8 bg-gradient-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
+                    className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-8 bg-linear-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
                 >
                     <div className="mb-3 flex h-8 w-8 items-center justify-center">
                         <svg
@@ -79,7 +80,7 @@ export default function SignUpScreen() {
                         >
                             Continue
                         </button>
-                        <a href="/LoginPage" className="text-[#000000]/50 text-sm underline flex justify-end dark:text-white/80">
+                        <a href={ROUTES.LOGIN} className="text-[#000000]/50 text-sm underline flex justify-end dark:text-white/80">
                             Already have an account?
                         </a>
                     </form>
@@ -107,11 +108,11 @@ export default function SignUpScreen() {
 
                     <p className="mt-6 text-center text-[11px] leading-relaxed text-[#4A5A63] dark:text-white/80">
                         By clicking continue, you agree to our{" "}
-                        <a href="/TermsOfService" className="font-medium text-[#0B1C2C] underline dark:text-white">
+                        <a href={ROUTES.TERMS_OF_SERVICE} className="font-medium text-[#0B1C2C] underline dark:text-white">
                             Terms of Service
                         </a>{" "}
                         and{" "}
-                        <a href="/PrivacyPolicy" className="font-medium text-[#0B1C2C] underline dark:text-white">
+                        <a href={ROUTES.PRIVACY_POLICY} className="font-medium text-[#0B1C2C] underline dark:text-white">
                             Privacy Policy
                         </a>
                     </p>

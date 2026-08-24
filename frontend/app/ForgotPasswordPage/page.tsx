@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, Mail } from 'lucide-react';
+import { ROUTES } from '../../constants/routes';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -100,7 +101,7 @@ export default function ForgotPasswordPage() {
           </form>
 
           <Link
-            href="/LoginPage"
+            href={ROUTES.LOGIN}
             className="mt-5 flex items-center gap-2 text-sm font-medium text-[#0F4C81] underline dark:text-white"
           >
             <ArrowLeft size={16} />

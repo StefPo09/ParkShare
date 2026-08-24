@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from "next/navigation";
+import { ROUTES } from '../../constants/routes';
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
@@ -273,7 +274,7 @@ export default function ParkingRentPage() {
                 {/* --- Bottom Navigation Bar --- */}
                 <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
                     <button
-                        onClick={() => { setActiveTab('key'); router.push('/RentPage'); }}
+                        onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
@@ -282,7 +283,7 @@ export default function ParkingRentPage() {
                     </button>
 
                     <button
-                        onClick={() => { setActiveTab('home'); router.push('/HomePage'); }}
+                        onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
@@ -291,7 +292,7 @@ export default function ParkingRentPage() {
                     </button>
 
                     <button
-                        onClick={() => { setActiveTab('car'); router.push('/ManageCarPage'); }}
+                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}

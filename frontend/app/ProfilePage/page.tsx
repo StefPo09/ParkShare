@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '../../constants/routes';
 import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle, Key, Home, Car } from 'lucide-react';
 
 interface UserProfile {
@@ -401,7 +402,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Account Settings */}
-              <button onClick={() => router.push('/SettingsPage')} aria-label="Open account settings" className="w-full flex items-center justify-between h-15 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
+              <button onClick={() => router.push(ROUTES.SETTINGS)} aria-label="Open account settings" className="w-full flex items-center justify-between h-15 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
                 <span>Account Settings</span>
                 <ChevronRight className="w-5 h-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
               </button>
@@ -442,7 +443,7 @@ export default function ProfilePage() {
               {/* --- Bottom Navigation Bar --- */}
               <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
                 <button
-                  onClick={() => { setActiveTab('key'); router.push('/RentPage'); }}
+                  onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
                   className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                   }`}
@@ -451,7 +452,7 @@ export default function ProfilePage() {
                 </button>
 
                 <button
-                  onClick={() => { setActiveTab('home'); router.push('/HomePage'); }}
+                  onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
                   className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                   }`}
@@ -460,7 +461,7 @@ export default function ProfilePage() {
                 </button>
 
                 <button
-                  onClick={() => { setActiveTab('car'); router.push('/ManageCarPage'); }}
+                  onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                   className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                   }`}

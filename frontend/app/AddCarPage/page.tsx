@@ -4,6 +4,7 @@ import React from 'react';
 import { Upload, X, CircleHelp, Key, Home, Car } from 'lucide-react';
 import { ChangeEvent, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '../../constants/routes';
 
 export default function AddCarPage() {
   const router = useRouter();
@@ -82,7 +83,7 @@ export default function AddCarPage() {
             {/* Adăugat cursor-pointer pe butonul "X" din dreapta sus a paginii */}
             <button
                 aria-label="Close"
-                onClick={() => router.push('/ManageCarPage')}
+                onClick={() => router.push(ROUTES.MANAGE_CAR)}
                 className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
             >
               <X className="h-7 w-7" strokeWidth={2.2} />
@@ -222,7 +223,7 @@ export default function AddCarPage() {
                 type="button"
                 disabled={!canSubmit}
                 onClick={() => {
-                  if (canSubmit) router.push('/ManageCarPage');
+                  if (canSubmit) router.push(ROUTES.MANAGE_CAR);
                 }}
                 className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67] disabled:cursor-not-allowed disabled:bg-[#0f4c81]/45 disabled:shadow-none"
             >
@@ -233,7 +234,7 @@ export default function AddCarPage() {
                 {/* --- Bottom Navigation Bar --- */}
                 <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
                     <button
-                        onClick={() => { setActiveTab('key'); router.push('/RentPage'); }}
+                        onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
@@ -242,7 +243,7 @@ export default function AddCarPage() {
                     </button>
 
                     <button
-                        onClick={() => { setActiveTab('home'); router.push('/HomePage'); }}
+                        onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
@@ -251,7 +252,7 @@ export default function AddCarPage() {
                     </button>
 
                     <button
-                        onClick={() => { setActiveTab('car'); router.push('/ManageCarPage'); }}
+                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}

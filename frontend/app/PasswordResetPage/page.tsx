@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '../../constants/routes';
 import { Check, Eye, EyeOff, LockKeyhole, X } from 'lucide-react';
 
 export default function PasswordResetPage() {
@@ -51,7 +52,7 @@ export default function PasswordResetPage() {
       return;
     }
 
-    router.push('/LoginPage');
+    router.push(ROUTES.LOGIN);
   };
 
   return (
@@ -76,7 +77,7 @@ export default function PasswordResetPage() {
 
         {/* Bottom sheet */}
         <div
-          className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-7 bg-gradient-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
+          className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-7 bg-linear-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
         >
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/75 text-[#0F4C81] shadow-sm dark:bg-white/10 dark:text-white">
             <LockKeyhole size={26} />
@@ -180,7 +181,7 @@ export default function PasswordResetPage() {
           </form>
 
           <Link
-            href="/LoginPage"
+            href={ROUTES.LOGIN}
             className="mt-5 text-sm font-medium text-[#0F4C81] underline dark:text-white"
           >
             Back to login
