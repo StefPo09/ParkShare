@@ -223,7 +223,7 @@ export default function ParkingRentPage() {
                 </main>
 
                 {/* --- Bottom Drawer / Rental Details --- */}
-                <section className="bg-white/40 dark:bg-[#011b1b]/95 border-t border-black/5 dark:border-white/10 backdrop-blur-md rounded-t-[32px] p-5 shadow-[0_-15px_30px_rgba(15,32,35,0.08)] transition-colors duration-300 z-20">
+                <section className="bg-white/40 dark:bg-[#011b1b]/95 border-t border-black/5 dark:border-white/10 backdrop-blur-md rounded-t-4xl p-5 shadow-[0_-15px_30px_rgba(15,32,35,0.08)] transition-colors duration-300 z-20">
                     <div className="w-12 h-1.5 bg-black/10 dark:bg-white/10 rounded-full mx-auto mb-4" />
 
                     <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 shadow-[inset_0_2px_10px_rgba(15,23,42,0.08)] border border-black/5 dark:border-white/5">

@@ -82,7 +82,7 @@ export default function ProfileMenu() {
 
       {showSignOutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-xs">
-          <div className="w-full max-w-[320px] rounded-[24px] bg-white p-5 text-center shadow-[0_18px_40px_rgba(15,23,42,0.18)] dark:bg-[#111111] dark:text-white">
+          <div className="w-full max-w-[320px] rounded-3xl bg-white p-5 text-center shadow-[0_18px_40px_rgba(15,23,42,0.18)] dark:bg-[#111111] dark:text-white">
             <h3 className="text-[18px] font-bold tracking-tight text-[#121212] dark:text-white">
               Are you sure?
             </h3>
