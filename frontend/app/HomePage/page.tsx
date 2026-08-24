@@ -67,7 +67,7 @@ export default function HomePage() {
         <main className="flex-1 overflow-y-auto px-4 pb-24 pt-2">
           <button
             type="button"
-            onClick={() => router.push(ROUTES.RENT)}
+            onClick={() => router.push(ROUTES.MANAGE_SPOT)}
             className="mb-5 flex w-full cursor-pointer items-center justify-between rounded-[28px] bg-[#9ccdff] px-4 py-4 shadow-[0_8px_18px_rgba(15,76,129,0.18)] transition hover:brightness-[0.98] dark:bg-[#244f86]"
           >
             <div className="flex items-center gap-3">

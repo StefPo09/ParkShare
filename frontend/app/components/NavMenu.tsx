@@ -7,6 +7,7 @@ import {
     X,
     Bell,
     Car,
+    MapPin,
     Settings,
     Newspaper,
     HelpCircle,
@@ -69,6 +70,14 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
                         >
                             <Car className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
                             <span className="tracking-wide">Manage your cars</span>
+                        </button>
+
+                        <button
+                            onClick={() => { router.push(ROUTES.MANAGE_SPOT || '/manage-spots'); onClose(); }}
+                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 dark:text-white dark:hover:border-white/5 dark:hover:bg-white/5 active:scale-[0.99]"
+                        >
+                            <MapPin className="h-5 w-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.2} />
+                            <span className="tracking-wide">Manage your spots</span>
                         </button>
 
                         <button

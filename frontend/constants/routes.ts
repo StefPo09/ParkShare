@@ -18,4 +18,6 @@ export const ROUTES = {
   PAYMENT: '/PaymentPage',
   TERMS_OF_SERVICE: '/TermsOfService',
   PRIVACY_POLICY: '/PrivacyPolicy',
+  EDIT_SPOT: '/EditSpotPage',
+  MANAGE_SPOT: '/ManageSpotsPage',
 } as const;
