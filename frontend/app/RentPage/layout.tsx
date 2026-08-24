@@ -1,5 +1,5 @@
 import React from "react";
-import type { Metadata } from "next"
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "ParkShare",
@@ -8,8 +8,8 @@ export const metadata: Metadata = {
     icon: '/Icon.svg',
     apple: '/Icon.svg',
   },
-}
+};
 
-export default function RegisterPageLayout({children}: {children: React.ReactNode}) {
+export default function RentPageLayout({children}: {children: React.ReactNode}) {
   return <>{children}</>;
 }

@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 import {
     Menu,
-    User,
     MapPin,
     Clock,
     Key,
@@ -14,6 +13,7 @@ import {
     Car,
 } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
+import ProfileMenu from "../components/ProfileMenu";
 
 // Custom dark map style to match the dark UI theme
 const darkMapStyle: google.maps.MapTypeStyle[] = [
@@ -164,15 +164,7 @@ export default function ParkingRentPage() {
                         Park Share
                     </h1>
 
-                    <button
-                        aria-label="User profile"
-                        onClick={() => router.push("/ProfilePage")}
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
-                    >
-                        <div className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center overflow-hidden border border-black/10 dark:border-white/10">
-                            <User className="w-5 h-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2} />
-                        </div>
-                    </button>
+                    <ProfileMenu />
                 </header>
 
                 <NavMenu
@@ -231,7 +223,7 @@ export default function ParkingRentPage() {
                 </main>
 
                 {/* --- Bottom Drawer / Rental Details --- */}
-                <section className="bg-white/40 dark:bg-[#011b1b]/95 border-t border-black/5 dark:border-white/10 backdrop-blur-md rounded-t-[32px] p-5 shadow-[0_-15px_30px_rgba(15,32,35,0.08)] transition-colors duration-300 z-20">
+                <section className="bg-white/40 dark:bg-[#011b1b]/95 border-t border-black/5 dark:border-white/10 backdrop-blur-md rounded-t-4xl p-5 shadow-[0_-15px_30px_rgba(15,32,35,0.08)] transition-colors duration-300 z-20">
                     <div className="w-12 h-1.5 bg-black/10 dark:bg-white/10 rounded-full mx-auto mb-4" />
 
                     <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 shadow-[inset_0_2px_10px_rgba(15,23,42,0.08)] border border-black/5 dark:border-white/5">
