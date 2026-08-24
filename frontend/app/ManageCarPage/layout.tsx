@@ -1,6 +1,6 @@
 import React from "react"
 
-export default function ForgotPasswordLayout({ children }: { children: React.ReactNode }) {
+export default function ManageCarLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import {
   X,
-  PencilLine,
   Upload,
   CircleHelp,
   Key,

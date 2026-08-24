@@ -42,7 +42,7 @@ export default function SignUpScreen() {
 
                 {/* Bottom sheet */}
                 <div
-                    className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-8 bg-gradient-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
+                    className="flex flex-1 flex-col items-center rounded-t-4xl px-6 pb-10 pt-8 bg-linear-to-b from-[#B3E3DE] to-[#B6CDDA] dark:from-[#1A2B3A] dark:to-[#0F1C2D]"
                 >
                     <div className="mb-3 flex h-8 w-8 items-center justify-center">
                         <svg
