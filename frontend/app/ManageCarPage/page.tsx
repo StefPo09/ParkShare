@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { X, ChevronRight, Plus, Car, Key, Home } from 'lucide-react';
+import { Menu, ChevronRight, Plus, Car, Key, Home } from 'lucide-react';
+import NavMenu from "../components/NavMenu";
+import ProfileMenu from "../components/ProfileMenu";
 
 interface CarItem {
     id: string;
@@ -29,25 +31,33 @@ const mockCars: CarItem[] = [
 export default function ManageCarsPage() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative font-sans">
             <div className="mx-auto flex h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
 
                 {/* --- Header Navigation --- */}
-                <header className="flex items-center justify-between px-5 pt-5 z-10">
-                    <div className="w-9" />
-                    <h1 className="text-[24px] font-bold tracking-tight text-[#121212] dark:text-white">
-                        Manage your cars
-                    </h1>
+                <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10">
                     <button
-                        aria-label="Close page"
-                        onClick={() => router.push('/')}
+                        aria-label="Open menu"
+                        onClick={() => setIsMenuOpen(true)}
                         className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
                     >
-                        <X className="h-7 w-7" strokeWidth={2.2} />
+                        <Menu className="w-6 h-6" strokeWidth={2.2} />
                     </button>
+
+                    <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
+                        Manage your cars
+                    </h1>
+
+                    <ProfileMenu />
                 </header>
+
+                <NavMenu
+                    isOpen={isMenuOpen}
+                    onClose={() => setIsMenuOpen(false)}
+                />
 
                 {/* --- Lista de mașini --- */}
                 <main className="flex-1 px-4 pt-6 pb-8 overflow-y-auto space-y-4">
