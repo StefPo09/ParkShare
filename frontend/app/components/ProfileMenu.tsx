@@ -32,9 +32,11 @@ export default function ProfileMenu() {
     setShowSignOutModal(true);
   };
 
-  const handleConfirmSignOut = () => {
+  const handleConfirmSignOut = async () => {
+    await fetch('/api/logout', {method: 'POST'});
     setShowSignOutModal(false);
     router.push(ROUTES.LOGIN);
+    router.refresh();
   };
 
   return (
