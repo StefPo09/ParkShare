@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '../../constants/routes';
 import React from "react";
 
 export default function SignUpScreen() {
@@ -16,7 +17,7 @@ export default function SignUpScreen() {
             return;
         }
 
-        router.push('/RegisterPage');
+        router.push(ROUTES.REGISTER);
     };
 
     return (
@@ -79,7 +80,7 @@ export default function SignUpScreen() {
                         >
                             Continue
                         </button>
-                        <a href="/LoginPage" className="text-[#000000]/50 text-sm underline flex justify-end dark:text-white/80">
+                        <a href={ROUTES.LOGIN} className="text-[#000000]/50 text-sm underline flex justify-end dark:text-white/80">
                             Already have an account?
                         </a>
                     </form>
@@ -107,11 +108,11 @@ export default function SignUpScreen() {
 
                     <p className="mt-6 text-center text-[11px] leading-relaxed text-[#4A5A63] dark:text-white/80">
                         By clicking continue, you agree to our{" "}
-                        <a href="/TermsOfService" className="font-medium text-[#0B1C2C] underline dark:text-white">
+                        <a href={ROUTES.TERMS_OF_SERVICE} className="font-medium text-[#0B1C2C] underline dark:text-white">
                             Terms of Service
                         </a>{" "}
                         and{" "}
-                        <a href="/PrivacyPolicy" className="font-medium text-[#0B1C2C] underline dark:text-white">
+                        <a href={ROUTES.PRIVACY_POLICY} className="font-medium text-[#0B1C2C] underline dark:text-white">
                             Privacy Policy
                         </a>
                     </p>

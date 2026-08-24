@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '../../constants/routes';
 import { Check, Eye, EyeOff, LockKeyhole, X } from 'lucide-react';
 
 export default function PasswordResetPage() {
@@ -51,7 +52,7 @@ export default function PasswordResetPage() {
       return;
     }
 
-    router.push('/LoginPage');
+    router.push(ROUTES.LOGIN);
   };
 
   return (
@@ -180,7 +181,7 @@ export default function PasswordResetPage() {
           </form>
 
           <Link
-            href="/LoginPage"
+            href={ROUTES.LOGIN}
             className="mt-5 text-sm font-medium text-[#0F4C81] underline dark:text-white"
           >
             Back to login

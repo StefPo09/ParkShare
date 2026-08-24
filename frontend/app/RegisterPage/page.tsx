@@ -1,8 +1,9 @@
-'use client'
+'use client';
 
 import React from 'react';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { ROUTES } from '../../constants/routes';
 
 // Country-to-cities dictionary
 const CITIES_BY_COUNTRY: Record<string, string[]> = {
@@ -199,7 +200,7 @@ export default function RegisterPage() {
                 >
                     Sign up
                 </button>
-                <a href="/LoginPage" className="text-[#000000]/50 text-sm underline flex justify-end">
+                <a href={ROUTES.LOGIN} className="text-[#000000]/50 text-sm underline flex justify-end">
                     Already have an account?
                 </a>
             </form>

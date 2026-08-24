@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { ROUTES } from '../../constants/routes';
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function LoginPage() {
@@ -22,7 +23,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/HomePage");
+    router.push(ROUTES.HOME);
   };
 
   return (
@@ -87,7 +88,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="h-4 w-4 mr-2 rounded border-white/40 cursor-pointer" />
                 Remember me for 30 days
               </label>
-              <Link href="/ForgotPasswordPage" className="text-[#0F4C81] underline dark:text-white">
+              <Link href={ROUTES.FORGOT_PASSWORD} className="text-[#0F4C81] underline dark:text-white">
                 Forgot password?
               </Link>
             </div>
@@ -109,7 +110,7 @@ export default function LoginPage() {
 
           <p className="mt-3 text-center text-sm text-[#4A5A63] dark:text-white/80">
             Don't have an account?{' '}
-            <Link href="/SignUpPage" className="font-medium text-[#0F4C81] underline dark:text-white">
+            <Link href={ROUTES.SIGN_UP} className="font-medium text-[#0F4C81] underline dark:text-white">
               Sign up
             </Link>
           </p>

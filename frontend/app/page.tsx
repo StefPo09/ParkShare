@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '../constants/routes';
 
 export default function StartPage() {
   const router = useRouter();
@@ -28,13 +29,13 @@ export default function StartPage() {
 
         <div className="mt-12 w-full space-y-4">
           <button
-            onClick={() => router.push('/LoginPage')}
+            onClick={() => router.push(ROUTES.LOGIN)}
             className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99]"
           >
             Log in
           </button>
           <button
-            onClick={() => router.push('/SignUpPage')}
+            onClick={() => router.push(ROUTES.SIGN_UP)}
             className="h-12 w-full rounded-xl bg-gray-200 text-sm font-semibold text-[#0B1C2C] transition hover:bg-gray-300 active:scale-[0.99] dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
           >
             Sign up

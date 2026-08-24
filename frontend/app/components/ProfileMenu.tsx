@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronRight, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '../../constants/routes';
 
 export default function ProfileMenu() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function ProfileMenu() {
 
   const handleViewProfile = () => {
     setIsOpen(false);
-    router.push('/ProfilePage');
+    router.push(ROUTES.PROFILE);
   };
 
   const handleSignOutClick = () => {
@@ -33,7 +34,7 @@ export default function ProfileMenu() {
 
   const handleConfirmSignOut = () => {
     setShowSignOutModal(false);
-    router.push('/LoginPage');
+    router.push(ROUTES.LOGIN);
   };
 
   return (
