@@ -45,7 +45,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
-      <div className="mx-auto flex h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[#011b1b] dark:text-white">
+      <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[#011b1b] dark:text-white">
         <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10 bg-[#dfeef0] dark:bg-[#011b1b]">
           <button
             aria-label="Open menu"
@@ -75,7 +75,7 @@ export default function HomePage() {
                 1
               </span>
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0d4bb5] text-[82px] font-bold leading-none text-white shadow-inner">
-                <span className="translate-y-[-2px]">P</span>
+                <span className="-translate-y-0.5">P</span>
               </div>
             </div>
 
@@ -99,7 +99,7 @@ export default function HomePage() {
                 1
               </span>
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#f6f6f6] text-[82px] font-bold leading-none text-[#121212] shadow-inner">
-                <Car className="h-[52px] w-[52px] text-[#0f4c81] dark:text-[#0f4c81]" strokeWidth={2.4} />
+                <Car className="h-13 w-13 text-[#0f4c81] dark:text-[#0f4c81]" strokeWidth={2.4} />
               </div>
             </div>
 
@@ -113,7 +113,7 @@ export default function HomePage() {
             <ChevronRight className="ml-2 h-12 w-12 text-[#121212] dark:text-white" strokeWidth={2.5} />
           </button>
 
-          <div className="mb-5 flex h-[74px] items-center rounded-[30px] border-[3px] border-[#121212] bg-transparent px-4 text-[#121212] dark:border-[#dfeaf0] dark:text-white">
+          <div className="mb-5 flex h-18.5 items-center rounded-[30px] border-[3px] border-[#121212] bg-transparent px-4 text-[#121212] dark:border-[#dfeaf0] dark:text-white">
             <span className="flex-1 text-[28px] font-normal tracking-[-0.04em] text-[#121212] dark:text-white">
               Search spot offers
             </span>
@@ -128,7 +128,7 @@ export default function HomePage() {
           <div className="grid grid-cols-3 gap-3">
             {parkingListings.map((spot) => (
               <div key={spot.id} className="min-w-0">
-                <div className="relative h-[170px] overflow-hidden rounded-[24px] bg-[#d9d9d9]">
+                <div className="relative h-42.5 overflow-hidden rounded-3xl bg-[#d9d9d9]">
                   <Image
                     src={spot.image}
                     alt={spot.title}
