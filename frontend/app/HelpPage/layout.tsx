@@ -6,10 +6,6 @@ export const metadata: Metadata = {
   description: "Starter Next.js app"
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
+export default function HelpPageLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
