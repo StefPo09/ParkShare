@@ -1,6 +1,0 @@
-This is where the backend files will be stored.
-You can organize your backend code here, including server configurations, API routes, database connections, and any other backend-related files. Make sure to follow best practices for structuring your backend code to ensure maintainability and scalability.
-The backend will be in Python, so you can create a virtual environment and install necessary packages using pip.
-You may also want to include a requirements.txt file to list all dependencies for easy installation. Additionally, consider using a framework like Flask or Django to streamline the development process and provide built-in features for routing, authentication, and database management.
-
-This file will be deleted after the backend is set up.
