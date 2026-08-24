@@ -173,7 +173,7 @@ export default function ParkingRentPage() {
                     onClose={() => setIsMenuOpen(false)}
                 />
 
-                {/* --- Google Map Container --- */}
+                {/* --- Google Maps Container --- */}
                 <main className="relative flex-1 bg-[#e8e8e8] dark:bg-[#121c1a] overflow-hidden">
                     {isLoaded ? (
                         <GoogleMap
