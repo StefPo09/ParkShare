@@ -123,7 +123,7 @@ export default function EditSpotPage() {
                     </div>
                     <button
                         aria-label="Close"
-                        onClick={() => router.push(ROUTES.MANAGE_CAR)}
+                        onClick={() => router.push(ROUTES.MANAGE_SPOT)}
                         className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
                     >
                         <X className="h-7 w-7" strokeWidth={2.2} />
