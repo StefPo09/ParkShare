@@ -135,11 +135,11 @@ export default function EditSpotPage() {
 
                     {/* Zona Foto */}
                     <div className="relative flex flex-col items-center justify-center mb-2">
-                        <div className="relative group w-full max-w-[280px] h-[220px]">
+                        <div className="relative group w-full max-w-70 h-55">
                             <button
                                 type="button"
                                 onClick={handlePhotoAreaClick}
-                                className="relative h-full w-full cursor-pointer overflow-hidden rounded-[32px] border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-[#032a2a]"
+                                className="relative h-full w-full cursor-pointer overflow-hidden rounded-4xl border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-[#032a2a]"
                                 aria-label="Spot photo options"
                             >
                                 <input
@@ -218,7 +218,7 @@ export default function EditSpotPage() {
                                         type="time"
                                         value={values.startHour}
                                         onChange={(e) => updateValue('startHour', e.target.value)}
-                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
+                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white scheme-light dark:scheme-dark"
                                     />
                                 </div>
                                 <div>
@@ -228,7 +228,7 @@ export default function EditSpotPage() {
                                         type="time"
                                         value={values.endHour}
                                         onChange={(e) => updateValue('endHour', e.target.value)}
-                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
+                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white scheme-light dark:scheme-dark"
                                     />
                                 </div>
                             </div>
