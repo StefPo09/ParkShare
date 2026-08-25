@@ -10,10 +10,7 @@ import {
     Key,
     Home,
     Car,
-    Pencil,
-    Search,
-    Check,
-    ChevronDown
+    CheckCircle2
 } from 'lucide-react';
 
 export default function EditSpotPage() {
@@ -21,28 +18,28 @@ export default function EditSpotPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const documentInputRef = useRef<HTMLInputElement>(null);
 
-    // Default parking spot image from public placeholder or uploaded state
+    // Stare imagine
     const [spotImage, setSpotImage] = useState<string | null>(
         'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=600&q=80'
     );
-
     const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-    const [editingField, setEditingField] = useState<string | null>(null);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false); // Stare pentru noul modal de succes
 
-    // Spot specifications state
+    // Stările obiectului "values"
     const [values, setValues] = useState({
         name: 'Custom spot name',
         address: 'Parking spot address',
-        timeAvailable: '14:00 - 18:00',
+        startHour: '14:00',
+        endHour: '18:00',
         extraInfo: 'None',
-        rentalPrice: '4$/h',
-        sellingInfo: 'Not for sale',
+        rentalPriceAmount: '4.00',
+        rentalPriceCurrency: '$',
+        sellingInfo: 'Not on sale',
         document: 'ParkDoc3.pdf',
     });
 
-    // Active bottom navigation tab
-    const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
+    const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -81,36 +78,63 @@ export default function EditSpotPage() {
         setValues((current) => ({ ...current, [key]: value }));
     };
 
+    const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+            updateValue('rentalPriceAmount', val);
+        }
+    };
+
+    const handlePriceBlur = () => {
+        const numericValue = parseFloat(values.rentalPriceAmount);
+        if (!isNaN(numericValue)) {
+            updateValue('rentalPriceAmount', numericValue.toFixed(2));
+        } else {
+            updateValue('rentalPriceAmount', '0.00');
+        }
+    };
+
     const handleRemoveDocument = () => {
         setValues((current) => ({ ...current, document: '' }));
         if (documentInputRef.current) documentInputRef.current.value = '';
     };
 
+    // Funcție apelată la apăsarea butonului "Rent"
+    const handleRentSubmit = () => {
+        setIsSuccessModalOpen(true);
+    };
+
+    // Închide modalul și navighează înapoi
+    const handleCloseSuccessModal = () => {
+        setIsSuccessModalOpen(false);
+        router.push(ROUTES.MANAGE_SPOT);
+    };
+
     return (
-        <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative font-sans">
+        <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
             <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
 
-                {/* --- Header --- */}
-                <header className="flex items-center justify-between px-5 pt-5 relative">
+                {/* Header */}
+                <header className="flex items-center justify-between px-5 pt-5">
                     <div className="flex-1 text-center">
-                        <h1 className="text-[26px] font-bold tracking-tight text-[#121212] dark:text-white">
+                        <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
                             Your spot
                         </h1>
                     </div>
                     <button
                         aria-label="Close"
                         onClick={() => router.push(ROUTES.MANAGE_SPOT)}
-                        className="absolute right-5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
                     >
                         <X className="h-7 w-7" strokeWidth={2.2} />
                     </button>
                 </header>
 
-                {/* --- Main Content Area --- */}
-                <main className="flex-1 px-5 pt-3 overflow-y-auto space-y-4 pb-24 no-scrollbar">
+                {/* Main Content */}
+                <main className="flex-1 px-4 pt-4 overflow-y-auto space-y-4 pb-24 no-scrollbar">
 
-                    {/* Zona Foto Parking Spot */}
-                    <div className="relative flex flex-col items-center justify-center">
+                    {/* Zona Foto */}
+                    <div className="relative flex flex-col items-center justify-center mb-2">
                         <div className="relative group w-full max-w-[280px] h-[220px]">
                             <button
                                 type="button"
@@ -135,7 +159,6 @@ export default function EditSpotPage() {
                                     </div>
                                 )}
 
-                                {/* Dots indicator inside image */}
                                 <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
                                     <span className="h-2 w-2 rounded-full bg-white opacity-90 shadow-sm"></span>
                                     <span className="h-2 w-2 rounded-full bg-white/50 shadow-sm"></span>
@@ -143,223 +166,166 @@ export default function EditSpotPage() {
                                     <span className="h-2 w-2 rounded-full bg-white/50 shadow-sm"></span>
                                 </div>
                             </button>
-
-                            {/* Edit pencil icon overlayed on bottom right of photo */}
-                            <button
-                                type="button"
-                                onClick={handlePhotoAreaClick}
-                                className="absolute -right-2 -bottom-1 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-800 shadow-md transition hover:scale-110 dark:bg-slate-800 dark:text-white"
-                                aria-label="Edit photo"
-                            >
-                                <Pencil className="h-4 w-4 stroke-[2]" />
-                            </button>
                         </div>
-
-                        {/* Main spot title */}
-                        <h2 className="mt-4 text-center text-[22px] font-bold text-[#121212] dark:text-white tracking-tight">
-                            {values.name}
-                        </h2>
                     </div>
 
-                    {/* --- SECȚIUNEA DETALII LOC DE PARCARE --- */}
-                    <div className="space-y-3 pt-1">
+                    {/* Formular */}
+                    <div className="space-y-4 px-2">
+                        <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
+                            Spot specifications:
+                        </h3>
 
                         {/* Name */}
-                        <div className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/5">
-                            <div className="flex-1 pr-2">
-                                {editingField === 'name' ? (
-                                    <input
-                                        type="text"
-                                        value={values.name}
-                                        onChange={(e) => updateValue('name', e.target.value)}
-                                        onBlur={() => setEditingField(null)}
-                                        autoFocus
-                                        className="w-full bg-white/60 dark:bg-white/10 px-2 py-1 rounded-lg text-[16px] text-[#0f4c81] dark:text-[#2dd4bf] outline-none font-medium"
-                                    />
-                                ) : (
-                                    <p className="text-[16px] text-[#0f4c81] dark:text-[#88d9d0]">
-                                        <span className="font-semibold text-[#0a355a] dark:text-[#2dd4bf]">Name:</span> {values.name}
-                                    </p>
-                                )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setEditingField(editingField === 'name' ? null : 'name')}
-                                className="p-1 text-[#0f4c81] dark:text-white/80 hover:opacity-75 transition"
-                            >
-                                {editingField === 'name' ? <Check className="h-5 w-5" /> : <Pencil className="h-4 w-4" />}
-                            </button>
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                            <label htmlFor="spot-name" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                Spot Name
+                            </label>
+                            <input
+                                id="spot-name"
+                                type="text"
+                                value={values.name}
+                                onChange={(e) => updateValue('name', e.target.value)}
+                                placeholder="Custom spot name"
+                                className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                            />
                         </div>
 
                         {/* Address */}
-                        <div className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/5">
-                            <div className="flex-1 pr-2">
-                                {editingField === 'address' ? (
-                                    <input
-                                        type="text"
-                                        value={values.address}
-                                        onChange={(e) => updateValue('address', e.target.value)}
-                                        onBlur={() => setEditingField(null)}
-                                        autoFocus
-                                        className="w-full bg-white/60 dark:bg-white/10 px-2 py-1 rounded-lg text-[16px] text-[#0f4c81] dark:text-[#2dd4bf] outline-none font-medium"
-                                    />
-                                ) : (
-                                    <p className="text-[16px] text-[#0f4c81] dark:text-[#88d9d0]">
-                                        <span className="font-semibold text-[#0a355a] dark:text-[#2dd4bf]">Adress:</span> {values.address}
-                                    </p>
-                                )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setEditingField(editingField === 'address' ? null : 'address')}
-                                className="p-1 text-[#0f4c81] dark:text-white/80 hover:opacity-75 transition"
-                            >
-                                {editingField === 'address' ? <Check className="h-5 w-5" /> : <Pencil className="h-4 w-4" />}
-                            </button>
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                            <label htmlFor="spot-address" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                Address
+                            </label>
+                            <input
+                                id="spot-address"
+                                type="text"
+                                value={values.address}
+                                onChange={(e) => updateValue('address', e.target.value)}
+                                placeholder="Parking spot address"
+                                className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                            />
                         </div>
 
-                        {/* Time available */}
-                        <div className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/5">
-                            <div className="flex-1 pr-2">
-                                {editingField === 'timeAvailable' ? (
+                        {/* Time Available */}
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+              <span className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                Time available
+              </span>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label htmlFor="start-hour" className="sr-only">Starting hour</label>
                                     <input
-                                        type="text"
-                                        value={values.timeAvailable}
-                                        onChange={(e) => updateValue('timeAvailable', e.target.value)}
-                                        onBlur={() => setEditingField(null)}
-                                        autoFocus
-                                        className="w-full bg-white/60 dark:bg-white/10 px-2 py-1 rounded-lg text-[16px] text-[#0f4c81] dark:text-[#2dd4bf] outline-none font-medium"
+                                        id="start-hour"
+                                        type="time"
+                                        value={values.startHour}
+                                        onChange={(e) => updateValue('startHour', e.target.value)}
+                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
                                     />
-                                ) : (
-                                    <p className="text-[16px] text-[#0f4c81] dark:text-[#88d9d0]">
-                                        <span className="font-semibold text-[#0a355a] dark:text-[#2dd4bf]">Time available:</span> {values.timeAvailable}
-                                    </p>
-                                )}
+                                </div>
+                                <div>
+                                    <label htmlFor="end-hour" className="sr-only">End hour</label>
+                                    <input
+                                        id="end-hour"
+                                        type="time"
+                                        value={values.endHour}
+                                        onChange={(e) => updateValue('endHour', e.target.value)}
+                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
+                                    />
+                                </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setEditingField(editingField === 'timeAvailable' ? null : 'timeAvailable')}
-                                className="p-1 text-[#0f4c81] dark:text-white/80 hover:opacity-75 transition"
-                            >
-                                {editingField === 'timeAvailable' ? <Check className="h-5 w-5" /> : <Pencil className="h-4 w-4" />}
-                            </button>
                         </div>
 
-                        {/* Extra info */}
-                        <div className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/5">
-                            <div className="flex-1 pr-2">
-                                {editingField === 'extraInfo' ? (
-                                    <input
-                                        type="text"
-                                        value={values.extraInfo}
-                                        onChange={(e) => updateValue('extraInfo', e.target.value)}
-                                        onBlur={() => setEditingField(null)}
-                                        autoFocus
-                                        className="w-full bg-white/60 dark:bg-white/10 px-2 py-1 rounded-lg text-[16px] text-[#0f4c81] dark:text-[#2dd4bf] outline-none font-medium"
-                                    />
-                                ) : (
-                                    <p className="text-[16px] text-[#0f4c81] dark:text-[#88d9d0]">
-                                        <span className="font-semibold text-[#0a355a] dark:text-[#2dd4bf]">Extra info:</span> {values.extraInfo}
-                                    </p>
-                                )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setEditingField(editingField === 'extraInfo' ? null : 'extraInfo')}
-                                className="p-1 text-[#0f4c81] dark:text-white/80 hover:opacity-75 transition"
-                            >
-                                {editingField === 'extraInfo' ? <Check className="h-5 w-5" /> : <Pencil className="h-4 w-4" />}
-                            </button>
+                        {/* Extra Info */}
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                            <label htmlFor="spot-extra" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                Extra info
+                            </label>
+                            <input
+                                id="spot-extra"
+                                type="text"
+                                value={values.extraInfo}
+                                onChange={(e) => updateValue('extraInfo', e.target.value)}
+                                placeholder="None"
+                                className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                            />
                         </div>
 
-                        {/* Rental price */}
-                        <div className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/5">
-                            <div className="flex-1 pr-2">
-                                {editingField === 'rentalPrice' ? (
-                                    <input
-                                        type="text"
-                                        value={values.rentalPrice}
-                                        onChange={(e) => updateValue('rentalPrice', e.target.value)}
-                                        onBlur={() => setEditingField(null)}
-                                        autoFocus
-                                        className="w-full bg-white/60 dark:bg-white/10 px-2 py-1 rounded-lg text-[16px] text-[#0f4c81] dark:text-[#2dd4bf] outline-none font-medium"
-                                    />
-                                ) : (
-                                    <p className="text-[16px] text-[#0f4c81] dark:text-[#88d9d0]">
-                                        <span className="font-semibold text-[#0a355a] dark:text-[#2dd4bf]">Rental price:</span> {values.rentalPrice}
-                                    </p>
-                                )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setEditingField(editingField === 'rentalPrice' ? null : 'rentalPrice')}
-                                className="p-1 text-[#0f4c81] dark:text-white/80 hover:opacity-75 transition"
-                            >
-                                {editingField === 'rentalPrice' ? <Check className="h-5 w-5" /> : <Pencil className="h-4 w-4" />}
-                            </button>
-                        </div>
-
-                        {/* Selling info */}
-                        <div className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/5">
-                            <div className="flex-1 pr-2">
-                                {editingField === 'sellingInfo' ? (
-                                    <input
-                                        type="text"
-                                        value={values.sellingInfo}
-                                        onChange={(e) => updateValue('sellingInfo', e.target.value)}
-                                        onBlur={() => setEditingField(null)}
-                                        autoFocus
-                                        className="w-full bg-white/60 dark:bg-white/10 px-2 py-1 rounded-lg text-[16px] text-[#0f4c81] dark:text-[#2dd4bf] outline-none font-medium"
-                                    />
-                                ) : (
-                                    <p className="text-[16px] text-[#0f4c81] dark:text-[#88d9d0]">
-                                        <span className="font-semibold text-[#0a355a] dark:text-[#2dd4bf]">Selling info:</span> {values.sellingInfo}
-                                    </p>
-                                )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setEditingField(editingField === 'sellingInfo' ? null : 'sellingInfo')}
-                                className="p-1 text-[#0f4c81] dark:text-white/80 hover:opacity-75 transition"
-                            >
-                                {editingField === 'sellingInfo' ? <Check className="h-5 w-5" /> : <Pencil className="h-4 w-4" />}
-                            </button>
-                        </div>
-
-                        {/* Legal documents */}
-                        <div className="flex items-center justify-between py-1">
-                            <div className="flex items-center gap-1.5 overflow-hidden pr-1">
-                <span className="font-semibold text-[#0a355a] dark:text-[#2dd4bf] text-[16px] shrink-0">
-                  Legal documents:
-                </span>
-
-                                {values.document ? (
-                                    <div className="inline-flex items-center gap-1 rounded-full border border-black/20 dark:border-white/20 bg-white/40 dark:bg-white/5 px-2.5 py-0.5 text-sm text-[#121212] dark:text-white shadow-sm max-w-[170px]">
-                                        <span className="truncate font-medium text-[14px]">{values.document}</span>
-                                        <Search className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300 shrink-0" />
-                                    </div>
-                                ) : (
-                                    <span className="text-sm text-slate-500 dark:text-slate-400">No doc</span>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={() => setIsInfoModalOpen(true)}
-                                    className="p-1 text-[#0f4c81] dark:text-white/80 hover:opacity-75 transition"
-                                    aria-label="Document info"
+                        {/* Rental Price */}
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                            <label htmlFor="spot-price" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                Rental price
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    id="spot-price"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={values.rentalPriceAmount}
+                                    onChange={handlePriceChange}
+                                    onBlur={handlePriceBlur}
+                                    placeholder="4.00"
+                                    className="w-full flex-1 rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                                />
+                                <select
+                                    aria-label="Currency"
+                                    value={values.rentalPriceCurrency}
+                                    onChange={(e) => updateValue('rentalPriceCurrency', e.target.value)}
+                                    className="rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white cursor-pointer"
                                 >
-                                    <CircleHelp className="h-4 w-4" strokeWidth={2.2} />
-                                </button>
+                                    <option value="RON" className="text-black bg-white">RON</option>
+                                    <option value="$" className="text-black bg-white">$</option>
+                                    <option value="€" className="text-black bg-white">€</option>
+                                </select>
+                                <span className="text-[18px] font-semibold text-[#42565d] dark:text-[#d6e7ea] pr-2 select-none">
+                  /h
+                </span>
                             </div>
+                        </div>
 
-                            <button
-                                type="button"
-                                onClick={() => documentInputRef.current?.click()}
-                                className="p-1 text-[#0f4c81] dark:text-white/80 hover:opacity-75 transition shrink-0"
+                        {/* Selling Info */}
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                            <label htmlFor="spot-selling" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                Selling info
+                            </label>
+                            <select
+                                id="spot-selling"
+                                value={values.sellingInfo}
+                                onChange={(e) => updateValue('sellingInfo', e.target.value)}
+                                className={`w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium outline-none dark:border-white/10 dark:bg-white/5 cursor-pointer transition-colors duration-200 ${
+                                    values.sellingInfo === 'On sale'
+                                        ? 'text-emerald-500 dark:text-emerald-400'
+                                        : 'text-red-500 dark:text-red-400'
+                                }`}
                             >
-                                <Pencil className="h-4 w-4" />
-                            </button>
+                                <option value="On sale" className="text-emerald-500 bg-white dark:bg-[#032a2a]">On sale</option>
+                                <option value="Not on sale" className="text-red-500 bg-white dark:bg-[#032a2a]">Not on sale</option>
+                            </select>
+                        </div>
 
+                        {/* Legal Documents */}
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                                <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                    Legal documents
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsInfoModalOpen(true)}
+                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#42565d] shadow-sm transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-[#d6e7ea] dark:hover:bg-white/10"
+                                    >
+                                        <CircleHelp className="h-4 w-4" strokeWidth={2.2} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => documentInputRef.current?.click()}
+                                        className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                                    >
+                                        <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
+                                        <span>Upload PDF</span>
+                                    </button>
+                                </div>
+                            </div>
                             <input
                                 ref={documentInputRef}
                                 type="file"
@@ -367,24 +333,38 @@ export default function EditSpotPage() {
                                 className="hidden"
                                 onChange={handleDocumentFileChange}
                             />
+                            <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
+                                {values.document ? (
+                                    <>
+                                        <span className="truncate pr-2 font-medium">{values.document}</span>
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveDocument}
+                                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white active:scale-95"
+                                        >
+                                            <X className="h-4 w-4" strokeWidth={2.5} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <span className="truncate text-[#6f797d] dark:text-[#9db0b6]">No PDF document uploaded</span>
+                                )}
+                            </div>
                         </div>
-
                     </div>
 
-                    {/* --- Buton Actiune (Rent / Save) --- */}
-                    <div className="pt-4 flex justify-center">
+                    {/* Rent Button */}
+                    <div className="px-2 pt-4">
                         <button
                             type="button"
-                            onClick={() => alert('Spot updated successfully!')}
-                            className="w-36 cursor-pointer rounded-xl bg-[#0f4c81] py-2.5 text-center text-lg font-bold text-white shadow-md transition hover:bg-[#0c3e67] active:scale-[0.98]"
+                            onClick={handleRentSubmit}
+                            className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67] hover:scale-[1.01] active:scale-[0.99]"
                         >
                             Rent
                         </button>
                     </div>
-
                 </main>
 
-                {/* --- Bottom Navigation Bar --- */}
+                {/* Bottom Navigation */}
                 <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
                     <button
                         onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
@@ -405,7 +385,7 @@ export default function EditSpotPage() {
                     </button>
 
                     <button
-                        onClick={() => { setActiveTab('car'); router.push(ROUTES.EDIT_SPOT); }}
+                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_SPOT); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
@@ -416,7 +396,37 @@ export default function EditSpotPage() {
 
             </div>
 
-            {/* Pop-up modern pentru opțiuni foto loc de parcare */}
+            {/* NEW Custom Success Pop-up Modal */}
+            {isSuccessModalOpen && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 animate-fadeIn">
+                    <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center transform scale-100 transition-transform duration-300">
+
+                        {/* Animăluț/Iconiță de succes mult mai eye-catching */}
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400 mb-4 animate-bounce">
+                            <CheckCircle2 className="h-10 w-10 stroke-[2.2]" />
+                        </div>
+
+                        <h3 className="text-2xl font-bold tracking-tight text-[#121212] dark:text-white">
+                            Success!
+                        </h3>
+                        <p className="mt-2 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-medium">
+                            Spot updated successfully!
+                        </p>
+
+                        <div className="mt-6">
+                            <button
+                                type="button"
+                                onClick={handleCloseSuccessModal}
+                                className="w-full py-3.5 px-4 cursor-pointer rounded-2xl bg-emerald-500 text-white text-base font-bold shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-600 transition active:scale-[0.98]"
+                            >
+                                Awesome
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Photo Options Modal */}
             {isPhotoModalOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -456,7 +466,7 @@ export default function EditSpotPage() {
                 </div>
             )}
 
-            {/* Pop-up informativ pentru Legal Documents */}
+            {/* PDF Info Modal */}
             {isInfoModalOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -492,7 +502,6 @@ export default function EditSpotPage() {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }
