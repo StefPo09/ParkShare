@@ -136,7 +136,7 @@ export default function AddSpotPage() {
             </div>
             <button
                 aria-label="Close"
-                onClick={() => router.push(ROUTES.MANAGE_CAR)}
+                onClick={() => router.push(ROUTES.MANAGE_SPOT)}
                 className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
             >
               <X className="h-7 w-7" strokeWidth={2.2} />
@@ -148,11 +148,11 @@ export default function AddSpotPage() {
 
             {/* Zona Foto Dreptunghiulară adaptată */}
             <div className="relative flex flex-col items-center justify-center mb-2">
-              <div className="relative group w-full max-w-[280px] h-[220px]">
+              <div className="relative group w-full max-w-70 h-55">
                 <button
                     type="button"
                     onClick={handlePhotoAreaClick}
-                    className="relative h-full w-full cursor-pointer overflow-hidden rounded-[32px] border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-[#032a2a]"
+                    className="relative h-full w-full cursor-pointer overflow-hidden rounded-4xl border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-[#032a2a]"
                     aria-label="Spot photo options"
                 >
                   <input
