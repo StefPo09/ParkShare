@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
-import { Menu, ChevronRight, Plus, Key, Home, MapPin } from 'lucide-react';
+import { Menu, ChevronRight, Plus, Key, Home, MapPin, Car } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
 
@@ -131,12 +131,12 @@ export default function ManageSpotsPage() {
                     </button>
 
                     <button
-                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_SPOT); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
                     >
-                        <MapPin className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+                        <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
                     </button>
                 </nav>
             </div>
