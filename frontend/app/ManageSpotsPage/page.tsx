@@ -131,7 +131,7 @@ export default function ManageSpotsPage() {
                     </button>
 
                     <button
-                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_SPOT); }}
+                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}

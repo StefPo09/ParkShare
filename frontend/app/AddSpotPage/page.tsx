@@ -37,7 +37,7 @@ export default function AddSpotPage() {
     document: '',
   });
 
-  const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
+  const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
 
   // Validare dinamică buton (stilul canSubmit din AddCarPage)
   const canSubmit =
@@ -120,7 +120,7 @@ export default function AddSpotPage() {
 
   const handleCloseSuccessModal = () => {
     setIsSuccessModalOpen(false);
-    router.push(ROUTES.MANAGE_SPOT);
+      router.push(ROUTES.MANAGE_CAR);
   };
 
   return (
@@ -136,7 +136,7 @@ export default function AddSpotPage() {
             </div>
             <button
                 aria-label="Close"
-                onClick={() => router.push(ROUTES.MANAGE_SPOT)}
+                onClick={() => router.push(ROUTES.MANAGE_CAR)}
                 className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
             >
               <X className="h-7 w-7" strokeWidth={2.2} />
@@ -392,7 +392,7 @@ export default function AddSpotPage() {
             </button>
 
             <button
-                onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_SPOT); }}
+                onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                 className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                 }`}
