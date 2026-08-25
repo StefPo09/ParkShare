@@ -20,4 +20,5 @@ export const ROUTES = {
   PRIVACY_POLICY: '/PrivacyPolicy',
   EDIT_SPOT: '/EditSpotPage',
   MANAGE_SPOT: '/ManageSpotsPage',
+  ADD_SPOT: '/AddSpotPage',
 } as const;

@@ -102,7 +102,7 @@ export default function ManageSpotsPage() {
                 <div className="px-4 pb-6 pt-2 mb-24">
                     <button
                         type="button"
-                        //onClick={() => router.push(ROUTES.ADD_SPOT || '/add-spot')}
+                        onClick={() => router.push(ROUTES.ADD_SPOT)}
                         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67] active:scale-[0.99]"
                     >
                         <span>Add new spot</span>
@@ -131,7 +131,7 @@ export default function ManageSpotsPage() {
                     </button>
 
                     <button
-                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_SPOT); }}
+                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
