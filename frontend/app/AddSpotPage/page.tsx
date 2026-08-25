@@ -148,11 +148,11 @@ export default function AddSpotPage() {
 
             {/* Zona Foto Dreptunghiulară adaptată */}
             <div className="relative flex flex-col items-center justify-center mb-2">
-              <div className="relative group w-full max-w-[280px] h-[220px]">
+              <div className="relative group w-full max-w-70 h-55">
                 <button
                     type="button"
                     onClick={handlePhotoAreaClick}
-                    className="relative h-full w-full cursor-pointer overflow-hidden rounded-[32px] border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-[#032a2a]"
+                    className="relative h-full w-full cursor-pointer overflow-hidden rounded-4xl border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-[#032a2a]"
                     aria-label="Spot photo options"
                 >
                   <input
