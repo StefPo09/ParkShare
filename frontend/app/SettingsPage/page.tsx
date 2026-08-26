@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import {
@@ -21,10 +22,16 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { theme: appTheme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
 
+  const selectedTheme: 'light' | 'dark' | 'device' = appTheme === 'dark' ? 'dark' : appTheme === 'light' ? 'light' : 'device';
+
+  const handleThemeChange = (nextTheme: 'light' | 'dark' | 'device') => {
+    setTheme(nextTheme === 'device' ? 'system' : nextTheme);
+  };
+
   // State pentru preferințe
-  const [theme, setTheme] = useState<'light' | 'dark' | 'device'>('device');
   const [language, setLanguage] = useState<'en' | 'ro' | 'de' | 'fr' | 'es'>('en');
 
   // State pentru notificări sistem
@@ -76,9 +83,9 @@ export default function SettingsPage() {
               <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-white/40 p-1 dark:bg-black/20">
                 <button
                     type="button"
-                    onClick={() => setTheme('light')}
+                    onClick={() => handleThemeChange('light')}
                     className={`flex flex-col items-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        theme === 'light'
+                        selectedTheme === 'light'
                             ? 'bg-[#0f4c81] text-white shadow-sm dark:bg-[#2dd4bf] dark:text-[#011b1b]'
                             : 'text-[#42565d] dark:text-[#9db0b6] hover:bg-white/30 dark:hover:bg-white/5'
                     }`}
@@ -89,9 +96,9 @@ export default function SettingsPage() {
 
                 <button
                     type="button"
-                    onClick={() => setTheme('dark')}
+                    onClick={() => handleThemeChange('dark')}
                     className={`flex flex-col items-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        theme === 'dark'
+                        selectedTheme === 'dark'
                             ? 'bg-[#0f4c81] text-white shadow-sm dark:bg-[#2dd4bf] dark:text-[#011b1b]'
                             : 'text-[#42565d] dark:text-[#9db0b6] hover:bg-white/30 dark:hover:bg-white/5'
                     }`}
@@ -102,9 +109,9 @@ export default function SettingsPage() {
 
                 <button
                     type="button"
-                    onClick={() => setTheme('device')}
+                    onClick={() => handleThemeChange('device')}
                     className={`flex flex-col items-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        theme === 'device'
+                        selectedTheme === 'device'
                             ? 'bg-[#0f4c81] text-white shadow-sm dark:bg-[#2dd4bf] dark:text-[#011b1b]'
                             : 'text-[#42565d] dark:text-[#9db0b6] hover:bg-white/30 dark:hover:bg-white/5'
                     }`}
