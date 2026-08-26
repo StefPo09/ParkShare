@@ -248,6 +248,7 @@ export default function SettingsPage() {
 
                 <button
                     type="button"
+                    onClick={() => router.push(ROUTES.HELP)}
                     className="w-full flex items-center justify-between px-3 py-3 transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5 text-left"
                 >
                   <div className="flex items-center gap-2">
