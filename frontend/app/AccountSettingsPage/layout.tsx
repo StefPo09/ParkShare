@@ -10,6 +10,6 @@ export const metadata: Metadata = {
   },
 }
 
-export default function SettingsPageLayout({ children }: { children: React.ReactNode }) {
+export default function AccountSettingsPageLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
