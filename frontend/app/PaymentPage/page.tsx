@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { useLanguage } from '../components/LanguageProvider';
 import {
     X,
     ChevronRight,
@@ -16,6 +17,7 @@ import {
 
 export default function PaymentPage() {
     const router = useRouter();
+    const { t } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Stări pentru navigare (tab-uri active)
@@ -115,7 +117,7 @@ export default function PaymentPage() {
                 <header className="flex items-center justify-between px-5 pt-5">
                     <div className="flex-1 text-center">
                         <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                            Rent parking spot
+                            {t('rentParkingSpot')}
                         </h1>
                     </div>
                     <button
@@ -130,10 +132,10 @@ export default function PaymentPage() {
                 {/* Info Text Sub Header */}
                 <div className="px-6 pt-2 text-center">
                     <p className="text-xs font-medium text-[#42565d] dark:text-[#d6e7ea]">
-                        Renting spot at: Parking spot address
+                        {t('rentingSpotAt')} Parking spot address
                     </p>
                     <button className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[#0f4c81] dark:text-[#2dd4bf] hover:underline cursor-pointer">
-                        View details
+                        {t('viewDetails')}
                         <ChevronRight className="w-3 h-3" />
                     </button>
                 </div>
@@ -144,13 +146,13 @@ export default function PaymentPage() {
                     {/* --- SECȚIUNEA 1: CAR INFO --- */}
                     <div className="space-y-4 px-2">
                         <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
-                            Car info:
+                            {t('carInfo')}
                         </h3>
 
                         {/* Input Număr Înmatriculare */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="car-plate" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                                Registration plate
+                                {t('registrationPlate')}
                             </label>
                             <input
                                 id="car-plate"
@@ -165,7 +167,7 @@ export default function PaymentPage() {
                         {/* Select Model Mașină */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="car-model" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                                Car model
+                                {t('carModel')}
                             </label>
                             <div className="relative w-full">
                                 <select
@@ -174,7 +176,7 @@ export default function PaymentPage() {
                                     onChange={(e) => setCarModel(e.target.value)}
                                     className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none appearance-none cursor-pointer dark:border-white/10 dark:bg-white/5 dark:text-white"
                                 >
-                                    <option value="" disabled hidden className="bg-white dark:bg-[#022525] text-slate-500">Car model...</option>
+                                    <option value="" disabled hidden className="bg-white dark:bg-[#022525] text-slate-500">{t('carModel')}...</option>
                                     <option value="sedan" className="bg-white dark:bg-[#022525] text-slate-900 dark:text-white">Sedan</option>
                                     <option value="suv" className="bg-white dark:bg-[#022525] text-slate-900 dark:text-white">SUV</option>
                                     <option value="hatchback" className="bg-white dark:bg-[#022525] text-slate-900 dark:text-white">Hatchback</option>
@@ -187,7 +189,7 @@ export default function PaymentPage() {
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <div className="mb-2 flex items-center justify-between gap-2">
                                 <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                                    Legal documents
+                                    {t('legalDocuments')}
                                 </label>
 
                                 <div className="flex items-center gap-2">
@@ -205,7 +207,7 @@ export default function PaymentPage() {
                                         className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                                     >
                                         <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
-                                        <span>Upload PDF</span>
+                                        <span>{t('uploadPdf')}</span>
                                     </button>
                                 </div>
                             </div>

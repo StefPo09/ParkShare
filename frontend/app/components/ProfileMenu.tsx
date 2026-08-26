@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronRight, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { useLanguage } from './LanguageProvider';
 
 export default function ProfileMenu() {
   const router = useRouter();
+  const { t } = useLanguage();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -59,7 +61,7 @@ export default function ProfileMenu() {
             onClick={handleViewProfile}
             className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left text-[15px] font-semibold text-[#121212] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
           >
-            <span>View Profile</span>
+            <span>{t('viewProfile')}</span>
             <ChevronRight className="h-4 w-4 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
           </button>
 
@@ -67,7 +69,7 @@ export default function ProfileMenu() {
             type="button"
             className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left text-[15px] font-semibold text-[#121212] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
           >
-            <span>Switch Account</span>
+            <span>{t('switchAccount')}</span>
             <ChevronRight className="h-4 w-4 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
           </button>
 
@@ -77,7 +79,7 @@ export default function ProfileMenu() {
               onClick={handleSignOutClick}
               className="flex w-full cursor-pointer items-center justify-start px-4 py-3 text-left text-[15px] font-semibold text-red-500 transition hover:bg-red-50 dark:hover:bg-red-950/20"
             >
-              Sign out
+              {t('signOut')}
             </button>
           </div>
         </div>
@@ -87,10 +89,10 @@ export default function ProfileMenu() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-xs">
           <div className="w-full max-w-[320px] rounded-3xl bg-white p-5 text-center shadow-[0_18px_40px_rgba(15,23,42,0.18)] dark:bg-[#111111] dark:text-white">
             <h3 className="text-[18px] font-bold tracking-tight text-[#121212] dark:text-white">
-              Are you sure?
+              {t('areYouSure')}
             </h3>
             <p className="mt-2 text-sm text-[#42565d] dark:text-[#9db0b6]">
-              You will be signed out of your account.
+              {t('signedOutMessage')}
             </p>
 
             <div className="mt-5 flex gap-3">
@@ -99,14 +101,14 @@ export default function ProfileMenu() {
                 onClick={() => setShowSignOutModal(false)}
                 className="flex-1 cursor-pointer rounded-xl bg-[#121212] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#2a2a2a] dark:bg-white dark:text-[#121212] dark:hover:bg-[#eaeaea]"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmSignOut}
                 className="flex-1 cursor-pointer rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-50 dark:border-red-900 dark:bg-black dark:text-red-400 dark:hover:bg-red-950/30"
               >
-                Sign out
+                {t('signOut')}
               </button>
             </div>
           </div>

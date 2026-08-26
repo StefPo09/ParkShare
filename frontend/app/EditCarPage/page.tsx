@@ -3,6 +3,7 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { useLanguage } from '../components/LanguageProvider';
 import {
   X,
   Upload,
@@ -15,6 +16,7 @@ import {
 
 export default function EditCarPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
@@ -87,7 +89,7 @@ export default function EditCarPage() {
           <header className="flex items-center justify-between px-5 pt-5">
             <div className="flex-1 text-center">
               <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                Your car
+                {t('yourCar')}
               </h1>
             </div>
             <button
@@ -125,7 +127,7 @@ export default function EditCarPage() {
                   <span className="flex h-14 w-14 items-center justify-center rounded-full border border-[#404b51]/30 bg-white/15 shadow-sm dark:border-[#1f2b2e]/30">
                     <Upload className="h-6 w-6" strokeWidth={2.2} />
                   </span>
-                      <span className="text-sm font-medium tracking-wide">Add photo</span>
+                      <span className="text-sm font-medium tracking-wide">{t('addPhoto')}</span>
                     </div>
                 )}
               </button>
@@ -134,13 +136,13 @@ export default function EditCarPage() {
             {/* --- SECȚIUNEA FORMULAR (Stil Payment/AddCar) --- */}
             <div className="space-y-4 px-2">
               <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
-                Car specifications:
+                {t('carSpecifications')}
               </h3>
 
               {/* Câmp Car Name */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="car-name" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                  Car Name
+                  {t('carName')}
                 </label>
                 <input
                     id="car-name"
@@ -155,7 +157,7 @@ export default function EditCarPage() {
               {/* Câmp Registration Plate */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="car-plate" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                  Registration plate
+                  {t('registrationPlate')}
                 </label>
                 <input
                     id="car-plate"
@@ -170,7 +172,7 @@ export default function EditCarPage() {
               {/* Select Car Model */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="car-model" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                  Car model
+                  {t('carModel')}
                 </label>
                 <div className="relative w-full">
                   <select
@@ -179,7 +181,7 @@ export default function EditCarPage() {
                       onChange={(e) => updateValue('model', e.target.value)}
                       className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none appearance-none cursor-pointer dark:border-white/10 dark:bg-[#011b1b] dark:text-white"
                   >
-                    <option value="" disabled hidden className="bg-white text-slate-400 dark:bg-[#011b1b] dark:text-slate-500">Car model...</option>
+                    <option value="" disabled hidden className="bg-white text-slate-400 dark:bg-[#011b1b] dark:text-slate-500">{t('carModel')}...</option>
                     <option value="sedan" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">Sedan</option>
                     <option value="suv" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">SUV</option>
                     <option value="hatchback" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">Hatchback</option>
@@ -192,7 +194,7 @@ export default function EditCarPage() {
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                    Legal documents
+                    {t('legalDocuments')}
                   </label>
 
                   <div className="flex items-center gap-2">
@@ -210,7 +212,7 @@ export default function EditCarPage() {
                         className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                     >
                       <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
-                      <span>Upload PDF</span>
+                      <span>{t('uploadPdf')}</span>
                     </button>
                   </div>
                 </div>
@@ -236,7 +238,7 @@ export default function EditCarPage() {
                         </button>
                       </>
                   ) : (
-                      <span className="truncate text-[#6f797d] dark:text-[#9db0b6]">No PDF document uploaded</span>
+                      <span className="truncate text-[#6f797d] dark:text-[#9db0b6]">{t('noPdf')}</span>
                   )}
                 </div>
               </div>
@@ -246,10 +248,10 @@ export default function EditCarPage() {
             <div className="px-2 pt-4">
               <button
                   type="button"
-                  onClick={() => alert('Changes saved successfully!')}
+                  onClick={() => alert(t('success'))}
                   className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67]"
               >
-                Save Changes
+                {t('saveChanges')}
               </button>
             </div>
           </main>
@@ -300,10 +302,10 @@ export default function EditCarPage() {
                 </button>
 
                 <h3 className="mt-2 text-xl font-bold tracking-tight text-[#121212] dark:text-white">
-                  Edit car photo
+                  {t('editCarPhoto')}
                 </h3>
                 <p className="mt-1 text-sm text-[#404b51] dark:text-slate-400">
-                  What would you like to do?
+                  {t('whatWouldYouLikeToDo')}
                 </p>
 
                 <div className="mt-5 space-y-3">
@@ -312,14 +314,14 @@ export default function EditCarPage() {
                       onClick={() => fileInputRef.current?.click()}
                       className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[0.98] dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/15"
                   >
-                    Change photo
+                    {t('changePhoto')}
                   </button>
                   <button
                       type="button"
                       onClick={handleDeletePhoto}
                       className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98] dark:bg-red-600/80 dark:hover:bg-red-600"
                   >
-                    Delete photo
+                    {t('deletePhoto')}
                   </button>
                 </div>
               </div>
@@ -344,10 +346,10 @@ export default function EditCarPage() {
                 </div>
 
                 <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
-                  Legal documents
+                  {t('legalDocuments')}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-normal">
-                  Please upload a PDF document representing the <span className="font-semibold text-black dark:text-white">proof of ownership of the car</span>.
+                  {t('proofOfOwnershipCar')}
                 </p>
 
                 <div className="mt-5">
@@ -356,7 +358,7 @@ export default function EditCarPage() {
                       onClick={() => setIsInfoModalOpen(false)}
                       className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#0f4c81] text-white text-sm font-bold shadow-sm hover:bg-[#0c3e67] transition active:scale-[0.98]"
                   >
-                    Understood
+                    {t('understood')}
                   </button>
                 </div>
               </div>

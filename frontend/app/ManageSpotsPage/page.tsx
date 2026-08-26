@@ -7,6 +7,7 @@ import { ROUTES } from '../../constants/routes';
 import { Menu, ChevronRight, Plus, Key, Home, MapPin, Car } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
+import { useLanguage } from '../components/LanguageProvider';
 
 interface SpotItem {
     id: string;
@@ -31,6 +32,7 @@ const mockSpots: SpotItem[] = [
 
 export default function ManageSpotsPage() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -49,7 +51,7 @@ export default function ManageSpotsPage() {
                     </button>
 
                     <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                        Manage your spots
+                        {t('manageYourSpots')}
                     </h1>
 
                     <ProfileMenu />
@@ -105,7 +107,7 @@ export default function ManageSpotsPage() {
                         onClick={() => router.push(ROUTES.ADD_SPOT)}
                         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67] active:scale-[0.99]"
                     >
-                        <span>Add new spot</span>
+                        <span>{t('addNewSpot')}</span>
                         <Plus className="h-5 w-5" strokeWidth={2.5} />
                     </button>
                 </div>
