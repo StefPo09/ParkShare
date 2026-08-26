@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
+import { useLanguage } from '../components/LanguageProvider';
 
 // Custom dark map style to match the dark UI theme
 const darkMapStyle: google.maps.MapTypeStyle[] = [
@@ -114,6 +115,7 @@ const mockSpots: ParkingSpot[] = [
 ];
 
 export default function ParkingRentPage() {
+    const { t } = useLanguage();
     const [selectedSpot, setSelectedSpot] = useState<ParkingSpot>(mockSpots[0]);
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
     const [isDarkMode, setIsDarkMode] = useState(false);
@@ -162,7 +164,7 @@ export default function ParkingRentPage() {
                     </button>
 
                     <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                        Park Share
+                        {t('parkShare')}
                     </h1>
 
                     <ProfileMenu />
@@ -218,7 +220,7 @@ export default function ParkingRentPage() {
                         </GoogleMap>
                     ) : (
                         <div className="flex items-center justify-center h-full text-[#6f797d] dark:text-[#9db0b6]">
-                            Loading Map...
+                            {t('loadingMap')}
                         </div>
                     )}
                 </main>

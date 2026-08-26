@@ -3,6 +3,7 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { useLanguage } from '../components/LanguageProvider';
 import {
   X,
   Upload,
@@ -15,6 +16,7 @@ import {
 
 export default function AddSpotPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,7 +133,7 @@ export default function AddSpotPage() {
           <header className="flex items-center justify-between px-5 pt-5">
             <div className="flex-1 text-center">
               <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                Add spot
+                {t('addSpotTitle')}
               </h1>
             </div>
             <button
@@ -168,7 +170,7 @@ export default function AddSpotPage() {
                   ) : (
                       <div className="flex flex-col items-center justify-center h-full gap-2 text-[#404b51] dark:text-[#8ba2a6]">
                         <Upload className="h-8 w-8 stroke-[1.8]" />
-                        <span className="text-sm font-medium">Add spot photo</span>
+                        <span className="text-sm font-medium">{t('spotPhoto')}</span>
                       </div>
                   )}
                 </button>
@@ -178,13 +180,13 @@ export default function AddSpotPage() {
             {/* Formular Specificații */}
             <div className="space-y-4 px-2">
               <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
-                Spot specifications:
+                {t('spotSpecifications')}
               </h3>
 
               {/* Name */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="spot-name" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                  Spot Name
+                  {t('spotName')}
                 </label>
                 <input
                     id="spot-name"
@@ -199,7 +201,7 @@ export default function AddSpotPage() {
               {/* Address */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="spot-address" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                  Address
+                  {t('address')}
                 </label>
                 <input
                     id="spot-address"
@@ -214,11 +216,11 @@ export default function AddSpotPage() {
               {/* Time Available */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
               <span className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                Time available
+                {t('timeAvailable')}
               </span>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label htmlFor="start-hour" className="sr-only">Starting hour</label>
+                    <label htmlFor="start-hour" className="sr-only">{t('startHourLabel')}</label>
                     <input
                         id="start-hour"
                         type="time"
@@ -228,7 +230,7 @@ export default function AddSpotPage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="end-hour" className="sr-only">End hour</label>
+                    <label htmlFor="end-hour" className="sr-only">{t('endHourLabel')}</label>
                     <input
                         id="end-hour"
                         type="time"
@@ -243,7 +245,7 @@ export default function AddSpotPage() {
               {/* Extra Info */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="spot-extra" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                  Extra info (Optional)
+                  {t('extraInfoOptional')}
                 </label>
                 <input
                     id="spot-extra"
@@ -258,7 +260,7 @@ export default function AddSpotPage() {
               {/* Rental Price */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="spot-price" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                  Rental price
+                  {t('rentalPrice')}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -312,7 +314,7 @@ export default function AddSpotPage() {
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                    Legal documents
+                    {t('legalDocuments')}
                   </label>
                   <div className="flex items-center gap-2">
                     <button
@@ -328,7 +330,7 @@ export default function AddSpotPage() {
                         className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                     >
                       <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
-                      <span>Upload PDF</span>
+                      <span>{t('uploadPdf')}</span>
                     </button>
                   </div>
                 </div>
@@ -352,7 +354,7 @@ export default function AddSpotPage() {
                         </button>
                       </>
                   ) : (
-                      <span className="truncate text-[#6f797d] dark:text-[#9db0b6]">Select PDF document</span>
+                      <span className="truncate text-[#6f797d] dark:text-[#9db0b6]">{t('selectPdf')}</span>
                   )}
                 </div>
               </div>
@@ -366,7 +368,7 @@ export default function AddSpotPage() {
                   onClick={handleAddSpotSubmit}
                   className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67] disabled:cursor-not-allowed disabled:bg-[#0f4c81]/45 disabled:shadow-none hover:scale-[1.01] active:scale-[0.99]"
               >
-                Add Spot
+                {t('addSpot')}
               </button>
             </div>
           </main>
@@ -411,10 +413,10 @@ export default function AddSpotPage() {
                 </div>
 
                 <h3 className="text-2xl font-bold tracking-tight text-[#121212] dark:text-white">
-                  Success!
+                  {t('success')}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-medium">
-                  Spot added successfully!
+                  {t('addSpot')} {t('success').toLowerCase()}
                 </p>
 
                 <div className="mt-6">
@@ -444,10 +446,10 @@ export default function AddSpotPage() {
                 </button>
 
                 <h3 className="mt-2 text-xl font-bold tracking-tight text-[#121212] dark:text-white">
-                  Edit spot photo
+                  {t('spotPhoto')}
                 </h3>
                 <p className="mt-1 text-sm text-[#404b51] dark:text-slate-400">
-                  What would you like to do?
+                  {t('whatWouldYouLikeToDo')}
                 </p>
 
                 <div className="mt-5 space-y-3">
@@ -459,14 +461,14 @@ export default function AddSpotPage() {
                       }}
                       className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[0.98] dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/15"
                   >
-                    Change photo
+                    {t('changePhoto')}
                   </button>
                   <button
                       type="button"
                       onClick={handleDeletePhoto}
                       className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98] dark:bg-red-600/80 dark:hover:bg-red-600"
                   >
-                    Delete photo
+                    {t('deletePhoto')}
                   </button>
                 </div>
               </div>
@@ -491,10 +493,10 @@ export default function AddSpotPage() {
                 </div>
 
                 <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
-                  Legal documents
+                  {t('legalDocuments')}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-normal">
-                  Please upload a PDF document representing the <span className="font-semibold text-black dark:text-white">proof of ownership or property title for the parking spot</span>.
+                  {t('documentHelp')} {t('proofOfOwnershipSpot')}
                 </p>
 
                 <div className="mt-5">
@@ -503,7 +505,7 @@ export default function AddSpotPage() {
                       onClick={() => setIsInfoModalOpen(false)}
                       className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#0f4c81] text-white text-sm font-bold shadow-sm hover:bg-[#0c3e67] transition active:scale-[0.98]"
                   >
-                    Understood
+                    {t('understood')}
                   </button>
                 </div>
               </div>

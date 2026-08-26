@@ -7,6 +7,7 @@ import { ROUTES } from '../../constants/routes';
 import { Menu, Search, ChevronRight, Car, Home, Key } from 'lucide-react';
 import ProfileMenu from '../components/ProfileMenu';
 import NavMenu from '../components/NavMenu';
+import { useLanguage } from '../components/LanguageProvider';
 
 const parkingListings = [
   {
@@ -40,6 +41,7 @@ const parkingListings = [
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -56,7 +58,7 @@ export default function HomePage() {
           </button>
 
           <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-            Park Share
+            {t('parkShare')}
           </h1>
 
           <ProfileMenu />
@@ -81,8 +83,8 @@ export default function HomePage() {
 
             <div className="flex flex-1 items-center justify-end">
               <span className="mr-2 text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                Manage parking
-                <span className="block">spots</span>
+                {t('manageParking')}
+                <span className="block">{t('manageParkingSpots')}</span>
               </span>
             </div>
 
@@ -105,8 +107,7 @@ export default function HomePage() {
 
             <div className="flex flex-1 items-center justify-end">
               <span className="mr-2 text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                Manage your
-                <span className="block">cars</span>
+                {t('manageYourCars')}
               </span>
             </div>
 
@@ -115,13 +116,13 @@ export default function HomePage() {
 
           <div className="mb-5 flex h-18.5 items-center rounded-[30px] border-[3px] border-[#121212] bg-transparent px-4 text-[#121212] dark:border-[#dfeaf0] dark:text-white">
             <span className="flex-1 text-[28px] font-normal tracking-[-0.04em] text-[#121212] dark:text-white">
-              Search spot offers
+              {t('searchSpotOffers')}
             </span>
             <Search className="h-9 w-9 text-[#121212] dark:text-white" strokeWidth={2.2} />
           </div>
 
           <div className="mb-4 flex items-center justify-between text-[#121212] dark:text-white">
-            <span className="text-[28px] font-bold tracking-tight">Spots in city, country</span>
+            <span className="text-[28px] font-bold tracking-tight">{t('spotsInCity')}</span>
             <ChevronRight className="h-8 w-8" strokeWidth={2.5} />
           </div>
 
