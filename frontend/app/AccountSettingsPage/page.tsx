@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import {
-  Camera,
   Car,
+  Check,
+  CheckCircle2,
   ChevronRight,
   Globe,
   Home,
@@ -20,54 +21,228 @@ import {
   X,
 } from 'lucide-react';
 
-const initialProfile = {
+import { countryOptions, countryFlags } from '../../data/address/countries';
+import { phoneCountryOptions } from '../../data/address/phonePrefixes';
+import { cityGroups } from '../../data/address/cities';
+
+type FieldKey = 'email' | 'phone' | 'country' | 'city' | 'firstName' | 'lastName';
+type ProfileState = Record<FieldKey, string>;
+
+type CountryPhoneEntry = {
+  country: string;
+  flag: string;
+  code: string;
+  minLength: number;
+  maxLength: number;
+};
+
+const initialProfile: ProfileState = {
   email: 'johndoe@gmail.com',
-  phone: '+1 (555) 123-4567',
+  phone: '+1 5551234567',
   country: 'United States',
   city: 'Boston',
   firstName: 'John',
   lastName: 'Doe',
-  password: '••••••••••',
 };
 
-type InfoRowProps = {
-  label: string;
-  value: string;
-  Icon: typeof Mail;
-  accent?: string;
+const fieldLabels: Record<FieldKey, string> = {
+  email: 'Email',
+  phone: 'Phone',
+  country: 'Country',
+  city: 'City',
+  firstName: 'First name',
+  lastName: 'Last name',
 };
 
-function InfoRow({ label, value, Icon, accent = 'text-[#0f4c81]' }: InfoRowProps) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/20 px-3 py-3 shadow-[0_1px_0_rgba(0,0,0,0.02)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf3f7] ${accent} dark:bg-[#062a2d]`}>
-          <Icon className="h-4 w-4" strokeWidth={2.2} />
-        </div>
+const fieldIcons: Record<FieldKey, typeof Mail> = {
+  email: Mail,
+  phone: Phone,
+  country: Globe,
+  city: MapPin,
+  firstName: UserRound,
+  lastName: UserRound,
+};
 
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#42565d] dark:text-[#dfeef0]/75">
-            {label}
-          </p>
-          <p className="truncate text-[16px] font-semibold text-[#121212] dark:text-white">{value}</p>
-        </div>
-      </div>
+const avatarGradients = [
+  'from-[#0f4c81] via-[#3d7cb3] to-[#9ad7db]',
+  'from-[#0f7c67] via-[#2fb38d] to-[#b9eedb]',
+  'from-[#b63636] via-[#e06b6b] to-[#fecaca]',
+  'from-[#d98c1d] via-[#f5b939] to-[#fef3c7]',
+  'from-[#c85d29] via-[#ef8e4f] to-[#fed7aa]',
+  'from-[#6939b6] via-[#9063d7] to-[#ddd6fe]',
+  'from-[#d84f8f] via-[#ec7abb] to-[#fbcfe8]',
+] as const;
 
-      <button
-        type="button"
-        className="inline-flex items-center gap-1.5 rounded-full border border-[#0f4c81]/20 bg-[#0f4c81]/5 px-2.5 py-1.5 text-[12px] font-semibold text-[#0f4c81] transition hover:bg-[#0f4c81]/10 dark:border-[#7dd3fc]/30 dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]"
-      >
-        <PencilLine className="h-3.5 w-3.5" strokeWidth={2.3} />
-        Change
-      </button>
-    </div>
-  );
-}
+/* Country / flags / phone prefixes / city groups moved to separate files in the same folder.
+   Files:
+     - ./countries
+     - ./phonePrefixes
+     - ./cities
+*/
+
+
+const getAvatarGradient = (firstName: string, lastName: string) => {
+  const source = `${firstName}${lastName}`.toLowerCase();
+  let hash = 0;
+
+  for (let i = 0; i < source.length; i += 1) {
+    hash = source.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return avatarGradients[Math.abs(hash) % avatarGradients.length];
+};
+
+const isValidEmail = (value: string) => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\.[a-zA-Z]{2,})?$/.test(value.trim());
+const isValidName = (value: string) => /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(value.trim());
+const getCountryFlag = (country: string) => countryFlags[country] ?? '🌍';
+const getCountryCityOptions = (country: string) => cityGroups[country] ?? ['No cities available'];
+const getPhoneMeta = (code: string) => phoneCountryOptions.find((entry) => entry.code === code) ?? phoneCountryOptions[0];
 
 export default function AccountSettingsPage() {
   const router = useRouter();
-  const [profile] = useState(initialProfile);
+  const [savedProfile, setSavedProfile] = useState<ProfileState>(initialProfile);
+  const [draftProfile, setDraftProfile] = useState<ProfileState>(initialProfile);
+  const [editingField, setEditingField] = useState<FieldKey | null>(null);
+  const [tempValue, setTempValue] = useState('');
+  const [phonePrefix, setPhonePrefix] = useState('+1');
+  const [phoneDigits, setPhoneDigits] = useState('5551234567');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
+  const [changedFields, setChangedFields] = useState<Record<FieldKey, boolean>>({
+    email: false,
+    phone: false,
+    country: false,
+    city: false,
+    firstName: false,
+    lastName: false,
+  });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
+
+  const avatarGradient = useMemo(
+    () => getAvatarGradient(draftProfile.firstName, draftProfile.lastName),
+    [draftProfile.firstName, draftProfile.lastName],
+  );
+
+  const initials = `${draftProfile.firstName?.[0] ?? ''}${draftProfile.lastName?.[0] ?? ''}`.toUpperCase();
+  const hasUnsavedChanges = Object.values(changedFields).some(Boolean);
+
+  const beginEditing = (field: FieldKey) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+    setEditingField(field);
+
+    if (field === 'phone') {
+      const foundPrefix = phoneCountryOptions.find((entry) => draftProfile.phone.startsWith(entry.code));
+      const selectedPrefix = foundPrefix?.code ?? '+1';
+      const selectedNumber = draftProfile.phone.replace(selectedPrefix, '').replace(/\D/g, '');
+      setPhonePrefix(selectedPrefix);
+      setPhoneDigits(selectedNumber);
+      return;
+    }
+
+    setTempValue(draftProfile[field]);
+  };
+
+  const resetPhoneEditing = () => {
+    const previousPrefix = phoneCountryOptions.find((entry) => draftProfile.phone.startsWith(entry.code))?.code ?? '+1';
+    setPhonePrefix(previousPrefix);
+    setPhoneDigits(draftProfile.phone.replace(previousPrefix, '').replace(/\D/g, ''));
+  };
+
+  const commitEdit = (field: FieldKey) => {
+    const previousValue = savedProfile[field];
+    let nextValue = tempValue.trim();
+
+    if (field === 'email') {
+      if (!isValidEmail(nextValue)) {
+        setFieldErrors((prev) => ({ ...prev, email: 'Please enter a valid email address.' }));
+        return;
+      }
+    }
+
+    if (field === 'phone') {
+      const selectedMeta = getPhoneMeta(phonePrefix);
+      const sanitized = phoneDigits.replace(/\D/g, '');
+      const candidateValue = `${phonePrefix} ${sanitized}`;
+
+      if (sanitized.length < selectedMeta.minLength || sanitized.length > selectedMeta.maxLength) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          phone: `This phone number must contain between ${selectedMeta.minLength} and ${selectedMeta.maxLength} digits for ${selectedMeta.country}.`,
+        }));
+        return;
+      }
+
+      nextValue = candidateValue;
+    }
+
+    if (field === 'country') {
+      if (!countryOptions.includes(nextValue)) {
+        setFieldErrors((prev) => ({ ...prev, country: 'Please choose a valid country.' }));
+        return;
+      }
+      const cities = getCountryCityOptions(nextValue);
+      if (cities[0] && !cities.includes(draftProfile.city)) {
+        setDraftProfile((prev) => ({ ...prev, city: cities[0] }));
+      }
+    }
+
+    if (field === 'city') {
+      const cities = getCountryCityOptions(draftProfile.country);
+      if (!cities.includes(nextValue)) {
+        setFieldErrors((prev) => ({ ...prev, city: 'Please choose a valid city for the selected country.' }));
+        return;
+      }
+    }
+
+    if (field === 'firstName' || field === 'lastName') {
+      if (!isValidName(nextValue)) {
+        const fieldName = field === 'firstName' ? 'first name' : 'last name';
+        setFieldErrors((prev) => ({ ...prev, [field]: `Please enter a valid ${fieldName} with letters only.` }));
+        return;
+      }
+    }
+
+    const isActualChange = nextValue !== previousValue;
+
+    setDraftProfile((prev) => ({ ...prev, [field]: nextValue }));
+    setChangedFields((prev) => ({ ...prev, [field]: isActualChange }));
+
+    setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+    setEditingField(null);
+    setTempValue('');
+    resetPhoneEditing();
+  };
+
+  const handleSaveChanges = () => {
+    if (!hasUnsavedChanges) return;
+
+    const updatedProfile = { ...savedProfile } as ProfileState;
+
+    (Object.keys(changedFields) as FieldKey[]).forEach((field) => {
+      if (changedFields[field]) {
+        updatedProfile[field] = draftProfile[field];
+      }
+    });
+
+    setSavedProfile(updatedProfile);
+    setDraftProfile(updatedProfile);
+    setChangedFields({
+      email: false,
+      phone: false,
+      country: false,
+      city: false,
+      firstName: false,
+      lastName: false,
+    });
+    setFieldErrors({});
+    setShowSuccessModal(true);
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+  };
+
+  const visibleCityOptions = getCountryCityOptions(draftProfile.country);
 
   return (
     <div className="relative min-h-screen bg-[#dfeef0] px-0 py-0 text-[#121212] dark:bg-[#011b1b] dark:text-white">
@@ -79,6 +254,7 @@ export default function AccountSettingsPage() {
             </h1>
           </div>
           <button
+            type="button"
             aria-label="Close"
             onClick={() => router.back()}
             className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
@@ -88,48 +264,148 @@ export default function AccountSettingsPage() {
         </header>
 
         <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-6 no-scrollbar">
-          <div className="rounded-[22px] border border-black/5 bg-white/20 p-4 dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#0f4c81] via-[#3d7cb3] to-[#9ad7db] text-lg font-bold tracking-[0.1em] text-white shadow-lg shadow-[#0f4c81]/20">
-                  JD
-                </div>
-                <button
-                  type="button"
-                  aria-label="Change profile picture"
-                  className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border border-white bg-[#0f4c81] text-white shadow-md transition hover:scale-105 dark:border-[#011b1b]"
-                >
-                  <Camera className="h-4 w-4" strokeWidth={2.2} />
-                </button>
+          <div className="flex flex-col items-center pt-2">
+            <div className="relative mb-4">
+              <div className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-white/50 shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)] bg-gradient-to-br ${avatarGradient} text-white`}>
+                <span className="text-2xl font-bold tracking-[0.12em] text-white">{initials}</span>
               </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[22px] font-bold text-[#121212] dark:text-white">
-                  {profile.firstName} {profile.lastName}
-                </p>
-                <p className="text-[13px] font-medium text-[#42565d] dark:text-[#dfeef0]/70">
-                  Personal details
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/60 px-2.5 py-1.5 text-[12px] font-semibold text-[#121212] transition hover:bg-white/80 dark:border-white/10 dark:bg-white/10 dark:text-white"
-              >
-                <Camera className="h-3.5 w-3.5" strokeWidth={2.2} />
-                Change
-              </button>
             </div>
+
+            <h2 className="text-[24px] font-bold tracking-tight text-[#121212] dark:text-white text-center leading-tight">
+              {draftProfile.firstName} {draftProfile.lastName}
+            </h2>
           </div>
 
           <div className="space-y-2.5">
-            <InfoRow label="Email" value={profile.email} Icon={Mail} />
-            <InfoRow label="Phone" value={profile.phone} Icon={Phone} />
-            <InfoRow label="Country" value={profile.country} Icon={Globe} />
-            <InfoRow label="City" value={profile.city} Icon={MapPin} />
-            <InfoRow label="First name" value={profile.firstName} Icon={UserRound} />
-            <InfoRow label="Last name" value={profile.lastName} Icon={UserRound} />
-            <InfoRow label="Password" value={profile.password} Icon={Lock} />
+            {(Object.keys(fieldLabels) as FieldKey[]).map((field) => {
+              const Icon = fieldIcons[field];
+              const isEditing = editingField === field;
+              const value = draftProfile[field];
+              const errorText = fieldErrors[field];
+
+              return (
+                <div
+                  key={field}
+                  className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/20 px-3 py-3 shadow-[0_1px_0_rgba(0,0,0,0.02)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf3f7] text-[#0f4c81] dark:bg-[#062a2d] dark:text-[#7dd3fc]">
+                      <Icon className="h-4 w-4" strokeWidth={2.2} />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#42565d] dark:text-[#dfeef0]/75">
+                        {fieldLabels[field]}
+                      </p>
+
+                      {isEditing ? (
+                        <div className="mt-1 w-full">
+                          {field === 'phone' ? (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-[38%_62%] gap-2">
+                                <select
+                                  value={phonePrefix}
+                                  onChange={(e) => setPhonePrefix(e.target.value)}
+                                  className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
+                                >
+                                  {phoneCountryOptions.map((entry) => (
+                                    <option key={`${entry.code}-${entry.country}`} value={entry.code}>
+                                      {entry.flag} {entry.country} ({entry.code})
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={phoneDigits}
+                                  onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, '').slice(0, getPhoneMeta(phonePrefix).maxLength))}
+                                  className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
+                                  placeholder="Phone number"
+                                />
+                              </div>
+                              {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
+                            </div>
+                          ) : field === 'country' ? (
+                            <div className="space-y-2">
+                              <select
+                                value={tempValue}
+                                onChange={(e) => setTempValue(e.target.value)}
+                                className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
+                              >
+                                {countryOptions.map((country) => (
+                                  <option key={country} value={country}>
+                                    {getCountryFlag(country)} {country}
+                                  </option>
+                                ))}
+                              </select>
+                              {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
+                            </div>
+                          ) : field === 'city' ? (
+                            <div className="space-y-2">
+                              <select
+                                value={tempValue}
+                                onChange={(e) => setTempValue(e.target.value)}
+                                className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
+                              >
+                                {visibleCityOptions.map((city) => (
+                                  <option key={city} value={city}>{city}</option>
+                                ))}
+                              </select>
+                              {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                value={tempValue}
+                                onChange={(e) => {
+                                  const next = e.target.value;
+                                  if (field === 'email') {
+                                    setTempValue(next);
+                                  } else if (field === 'firstName' || field === 'lastName') {
+                                    setTempValue(next.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ' -]/g, ''));
+                                  } else {
+                                    setTempValue(next);
+                                  }
+                                }}
+                                className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
+                                autoFocus
+                              />
+                              {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="truncate text-[16px] font-semibold text-[#121212] dark:text-white">
+                          {value}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {isEditing ? (
+                    <button
+                      type="button"
+                      onClick={() => commitEdit(field)}
+                      className="ml-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#0f4c81] text-white transition hover:bg-[#0d3d68]"
+                      aria-label={`Save ${fieldLabels[field]}`}
+                    >
+                      <Check className="h-4 w-4" strokeWidth={2.5} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => beginEditing(field)}
+                      className="ml-2 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#0f4c81]/20 bg-[#0f4c81]/5 px-2.5 py-1.5 text-[12px] font-semibold text-[#0f4c81] transition hover:bg-[#0f4c81]/10 dark:border-[#7dd3fc]/30 dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]"
+                    >
+                      <PencilLine className="h-3.5 w-3.5" strokeWidth={2.3} />
+                      Change
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div className="rounded-[22px] border border-black/5 bg-white/20 p-3 dark:border-white/10 dark:bg-white/5">
@@ -142,7 +418,7 @@ export default function AccountSettingsPage() {
 
             <button
               type="button"
-              className="group flex w-full items-center justify-between rounded-2xl border border-black/10 bg-white/50 px-3 py-3 text-left transition hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/5"
+              className="group flex w-full cursor-pointer items-center justify-between rounded-2xl border border-black/10 bg-white/50 px-3 py-3 text-left transition hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/5"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eaf3f7] text-[#0f4c81] dark:bg-[#062a2d] dark:text-[#7dd3fc]">
@@ -157,12 +433,15 @@ export default function AccountSettingsPage() {
             </button>
           </div>
 
-          <button
-            type="button"
-            className="w-full rounded-2xl bg-[#0f4c81] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition active:scale-[0.99]"
-          >
-            Save changes
-          </button>
+          {hasUnsavedChanges && (
+            <button
+              type="button"
+              onClick={handleSaveChanges}
+              className="w-full cursor-pointer rounded-2xl bg-[#0f4c81] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition active:scale-[0.99]"
+            >
+              Save changes
+            </button>
+          )}
         </main>
 
         <nav className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-black/5 bg-[#dfeef0] py-4 dark:border-white/10 dark:bg-[#011b1b]">
@@ -206,6 +485,27 @@ export default function AccountSettingsPage() {
           </button>
         </nav>
       </div>
+
+      {showSuccessModal && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-70 rounded-2xl border border-black/5 bg-white/90 p-6 text-center shadow-xl dark:border-white/10 dark:bg-[#0a1d1d]">
+            <div className="mb-3 flex justify-center">
+              <CheckCircle2 className="h-12 w-12 text-[#0f4c81]" strokeWidth={2} />
+            </div>
+
+            <h3 className="mb-1 text-lg font-bold text-[#121212] dark:text-white">Success</h3>
+            <p className="mb-5 text-[14px] text-[#42565d] dark:text-[#dfeef0]/80">Changes have been saved.</p>
+
+            <button
+              type="button"
+              onClick={handleCloseSuccessModal}
+              className="w-full cursor-pointer rounded-xl bg-[#0f4c81] px-2.5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.98]"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
