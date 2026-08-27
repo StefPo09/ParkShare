@@ -1,10 +1,11 @@
 export const countryOptions = [
-  'United States', 'Canada', 'United Kingdom', 'France', 'Germany', 'Spain', 'Italy', 'Romania',
-  'Poland', 'Netherlands', 'Belgium', 'Switzerland', 'Austria', 'Portugal', 'Sweden', 'Norway',
-  'Finland', 'Denmark', 'Greece', 'Turkey', 'Brazil', 'Argentina', 'Mexico', 'Chile', 'Australia',
-  'New Zealand', 'Japan', 'South Korea', 'China', 'India', 'Pakistan', 'United Arab Emirates', 'Saudi Arabia',
-  'Israel', 'South Africa', 'Nigeria', 'Egypt', 'Morocco', 'Algeria', 'Tunisia', 'Ukraine', 'Czech Republic',
-  'Hungary', 'Slovakia', 'Bulgaria', 'Croatia', 'Serbia', 'Ireland', 'Iceland', 'Luxembourg', 'Slovenia',
+  'Algeria', 'Argentina', 'Australia', 'Austria', 'Belgium', 'Brazil', 'Bulgaria', 'Canada',
+  'Chile', 'China', 'Croatia', 'Czech Republic', 'Denmark', 'Egypt', 'Finland', 'France', 'Germany',
+  'Greece', 'Hungary', 'Iceland', 'India', 'Ireland', 'Israel', 'Italy', 'Japan', 'Luxembourg',
+  'Mexico', 'Morocco', 'Netherlands', 'New Zealand', 'Nigeria', 'Norway', 'Pakistan', 'Poland',
+  'Portugal', 'Romania', 'Saudi Arabia', 'Serbia', 'Slovakia', 'Slovenia', 'South Africa',
+  'South Korea', 'Spain', 'Sweden', 'Switzerland', 'Tunisia', 'Turkey', 'Ukraine', 'United Arab Emirates',
+  'United Kingdom', 'United States',
 ];
 
 export const countryFlags: Record<string, string> = {
