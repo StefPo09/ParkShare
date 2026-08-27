@@ -12,6 +12,7 @@ export const ROUTES = {
   ADD_CAR: '/AddCarPage',
   PROFILE: '/ProfilePage',
   SETTINGS: '/SettingsPage',
+  ACCOUNT_SETTINGS: '/AccountSettingsPage',
   NOTIFICATIONS: '/NotificationsPage',
   NEWS_UPDATES: '/News&UpdatesPage',
   HELP: '/HelpPage',
