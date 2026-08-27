@@ -95,7 +95,10 @@ const getAvatarGradient = (firstName: string, lastName: string) => {
 const isValidEmail = (value: string) => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\.[a-zA-Z]{2,})?$/.test(value.trim());
 const isValidName = (value: string) => /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(value.trim());
 const getCountryFlag = (country: string) => countryFlags[country] ?? '🌍';
-const getCountryCityOptions = (country: string) => cityGroups[country] ?? ['No cities available'];
+const getCountryCityOptions = (country: string) => {
+  const list = cityGroups[country] ?? [];
+  return list.length ? list.slice().sort((a, b) => a.localeCompare(b)) : ['No cities available'];
+};
 const getPhoneMeta = (code: string) => phoneCountryOptions.find((entry) => entry.code === code) ?? phoneCountryOptions[0];
 
 export default function AccountSettingsPage() {
@@ -136,6 +139,13 @@ export default function AccountSettingsPage() {
       const selectedNumber = draftProfile.phone.replace(selectedPrefix, '').replace(/\D/g, '');
       setPhonePrefix(selectedPrefix);
       setPhoneDigits(selectedNumber);
+      return;
+    }
+
+    if (field === 'city') {
+      const availableCities = getCountryCityOptions(draftProfile.country);
+      const safeCity = availableCities.includes(draftProfile.city) ? draftProfile.city : (availableCities[0] ?? '');
+      setTempValue(safeCity);
       return;
     }
 
@@ -181,8 +191,12 @@ export default function AccountSettingsPage() {
         return;
       }
       const cities = getCountryCityOptions(nextValue);
-      if (cities[0] && !cities.includes(draftProfile.city)) {
-        setDraftProfile((prev) => ({ ...prev, city: cities[0] }));
+      if (cities[0]) {
+        setDraftProfile((prev) => ({
+          ...prev,
+          country: nextValue,
+          city: cities.includes(prev.city) ? prev.city : cities[0],
+        }));
       }
     }
 
@@ -330,7 +344,17 @@ export default function AccountSettingsPage() {
                             <div className="space-y-2">
                               <select
                                 value={tempValue}
-                                onChange={(e) => setTempValue(e.target.value)}
+                                onChange={(e) => {
+                                  const nextCountry = e.target.value;
+                                  setTempValue(nextCountry);
+
+                                  const cities = getCountryCityOptions(nextCountry);
+                                  setDraftProfile((prev) => ({
+                                    ...prev,
+                                    country: nextCountry,
+                                    city: cities.includes(prev.city) ? prev.city : cities[0] ?? prev.city,
+                                  }));
+                                }}
                                 className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
                               >
                                 {countryOptions.map((country) => (
