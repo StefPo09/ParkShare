@@ -4,26 +4,42 @@
 
 :root {
   color-scheme: light;
-  background-color: #dfeef0;
-  color: #121212;
+  --page-bg: #dfeef0;
+  --panel: rgba(255, 255, 255, 0.2);
+  --panel-soft: rgba(255, 255, 255, 0.5);
+  --panel-alt: rgba(255, 255, 255, 0.08);
+  --text: #121212;
+  --muted: #42565d;
+  --muted-alt: #6f797d;
+  --border: rgba(15, 32, 35, 0.08);
+  background-color: var(--page-bg);
+  color: var(--text);
 }
 
 html {
-  background-color: #dfeef0;
+  background-color: var(--page-bg);
 }
 
 html.dark {
   color-scheme: dark;
-  background-color: #011b1b;
+  --page-bg: #011b1b;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel-soft: rgba(255, 255, 255, 0.1);
+  --panel-alt: rgba(255, 255, 255, 0.04);
+  --text: #ffffff;
+  --muted: #dfeef0;
+  --muted-alt: #dfeef0;
+  --border: rgba(255, 255, 255, 0.12);
+  background-color: var(--page-bg);
 }
 
 body {
   min-height: 100vh;
-  background-color: #dfeef0;
-  color: #121212;
+  background-color: var(--page-bg);
+  color: var(--text);
 }
 
 html.dark body {
-  background-color: #011b1b;
-  color: #ffffff;
+  background-color: var(--page-bg);
+  color: var(--text);
 }
