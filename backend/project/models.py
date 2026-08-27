@@ -1,11 +1,17 @@
+from functools import wraps
+
+from flask import flash, redirect, url_for
+from flask_login import UserMixin, current_user
+
 from . import db
-from flask_login import UserMixin
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True) # primary keys are required by SQLAlchemy
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
     name = db.Column(db.String(1000))
+    reset_token = db.Column(db.String(128), unique=True, nullable=True)
+    reset_token_expires = db.Column(db.DateTime(timezone=True), nullable=True)
 
     role = db.Column(db.String(20), default='user')
     

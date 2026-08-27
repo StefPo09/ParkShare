@@ -13,18 +13,42 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canLogIn = email.trim() !== "" && password.trim() !== "";
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!canLogIn) {
+    if (!canLogIn || isSubmitting) {
       return;
     }
 
-    document.cookie = 'session=authenticated; path=/; SameSite=Lax';
-    router.push(ROUTES.HOME);
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password, remember }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Unable to log in.');
+      }
+
+      router.push(ROUTES.HOME);
+      router.refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to connect to the backend.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -86,7 +110,12 @@ export default function LoginPage() {
 
             <div className="flex w-full items-center justify-between text-sm">
               <label className="flex items-center text-[#33475A] dark:text-white/80">
-                <input type="checkbox" className="h-4 w-4 mr-2 rounded border-white/40 cursor-pointer" />
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-4 w-4 mr-2 rounded border-white/40 cursor-pointer"
+                />
                 Remember me for 30 days
               </label>
               <Link href={ROUTES.FORGOT_PASSWORD} className="text-[#0F4C81] underline dark:text-white">
@@ -94,12 +123,18 @@ export default function LoginPage() {
               </Link>
             </div>
 
+            {error && (
+              <p role="alert" className="text-center text-sm text-red-600 dark:text-red-300">
+                {error}
+              </p>
+            )}
+
             <button
               type="submit"
-              disabled={!canLogIn}
+              disabled={!canLogIn || isSubmitting}
               className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45"
             >
-              Log in
+              {isSubmitting ? 'Logging in...' : 'Log in'}
             </button>
           </form>
 

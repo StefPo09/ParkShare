@@ -17,6 +17,7 @@ export default function SignUpScreen() {
             return;
         }
 
+        sessionStorage.setItem('signupEmail', email.trim().toLowerCase());
         router.push(ROUTES.REGISTER);
     };
 
