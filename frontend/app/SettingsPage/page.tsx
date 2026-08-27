@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -27,9 +27,18 @@ export default function SettingsPage() {
   const { theme: appTheme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const selectedTheme: 'light' | 'dark' | 'device' =
-    appTheme === 'dark' ? 'dark' : appTheme === 'light' ? 'light' : 'device';
+    mounted && appTheme === 'dark'
+      ? 'dark'
+      : mounted && appTheme === 'light'
+        ? 'light'
+        : 'device';
 
   const handleThemeChange = (nextTheme: 'light' | 'dark' | 'device') => {
     setTheme(nextTheme === 'device' ? 'system' : nextTheme);
