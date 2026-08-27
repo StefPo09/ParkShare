@@ -118,6 +118,8 @@ export default function AccountSettingsPage() {
     firstName: false,
     lastName: false,
   });
+  const [countrySearch, setCountrySearch] = useState('');
+  const [citySearch, setCitySearch] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
 
@@ -128,10 +130,18 @@ export default function AccountSettingsPage() {
 
   const initials = `${draftProfile.firstName?.[0] ?? ''}${draftProfile.lastName?.[0] ?? ''}`.toUpperCase();
   const hasUnsavedChanges = Object.values(changedFields).some(Boolean);
+  const filteredCountryOptions = countryOptions.filter((country) =>
+    country.toLowerCase().includes(countrySearch.toLowerCase()),
+  );
+  const filteredCityOptions = getCountryCityOptions(draftProfile.country).filter((city) =>
+    city.toLowerCase().includes(citySearch.toLowerCase()),
+  );
 
   const beginEditing = (field: FieldKey) => {
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     setEditingField(field);
+    setCountrySearch('');
+    setCitySearch('');
 
     if (field === 'phone') {
       const foundPrefix = phoneCountryOptions.find((entry) => draftProfile.phone.startsWith(entry.code));
@@ -256,8 +266,6 @@ export default function AccountSettingsPage() {
     setShowSuccessModal(false);
   };
 
-  const visibleCityOptions = getCountryCityOptions(draftProfile.country);
-
   return (
     <div className="relative min-h-screen bg-[#dfeef0] px-0 py-0 text-[#121212] dark:bg-[#011b1b] dark:text-white">
       <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
@@ -342,40 +350,96 @@ export default function AccountSettingsPage() {
                             </div>
                           ) : field === 'country' ? (
                             <div className="space-y-2">
-                              <select
-                                value={tempValue}
-                                onChange={(e) => {
-                                  const nextCountry = e.target.value;
-                                  setTempValue(nextCountry);
+                              <div className="overflow-hidden rounded-lg border border-black/10 bg-white/80 shadow-inner dark:border-white/10 dark:bg-[#021a1b]">
+                                <div className="border-b border-black/5 bg-white/60 p-1.5 dark:border-white/10 dark:bg-[#031d1d]">
+                                  <input
+                                    type="text"
+                                    value={countrySearch}
+                                    onChange={(e) => setCountrySearch(e.target.value)}
+                                    placeholder="Search country"
+                                    className="w-full rounded-md bg-transparent px-2.5 py-2 text-[15px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:text-white"
+                                  />
+                                </div>
+                                <div className="max-h-52 overflow-y-auto p-1">
+                                  {filteredCountryOptions.length > 0 ? (
+                                    filteredCountryOptions.map((country) => (
+                                      <button
+                                        key={country}
+                                        type="button"
+                                        onClick={() => {
+                                          const cities = getCountryCityOptions(country);
+                                          const nextCity = cities.includes(draftProfile.city) ? draftProfile.city : cities[0] ?? draftProfile.city;
 
-                                  const cities = getCountryCityOptions(nextCountry);
-                                  setDraftProfile((prev) => ({
-                                    ...prev,
-                                    country: nextCountry,
-                                    city: cities.includes(prev.city) ? prev.city : cities[0] ?? prev.city,
-                                  }));
-                                }}
-                                className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
-                              >
-                                {countryOptions.map((country) => (
-                                  <option key={country} value={country}>
-                                    {getCountryFlag(country)} {country}
-                                  </option>
-                                ))}
-                              </select>
+                                          setTempValue(country);
+                                          setDraftProfile((prev) => ({
+                                            ...prev,
+                                            country,
+                                            city: nextCity,
+                                          }));
+                                          setChangedFields((prev) => ({ ...prev, country: country !== savedProfile.country, city: nextCity !== savedProfile.city || prev.city }));
+                                          setEditingField(null);
+                                          setCountrySearch('');
+                                        }}
+                                        className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium transition ${
+                                          tempValue === country
+                                            ? 'bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]'
+                                            : 'text-[#121212] hover:bg-[#0f4c81]/5 dark:text-white dark:hover:bg-white/5'
+                                        }`}
+                                      >
+                                        <span className="flex items-center gap-2">
+                                          <span>{getCountryFlag(country)}</span>
+                                          <span>{country}</span>
+                                        </span>
+                                        {tempValue === country && <span className="text-xs font-bold">✓</span>}
+                                      </button>
+                                    ))
+                                  ) : (
+                                    <div className="px-2.5 py-3 text-sm text-slate-400">No countries found</div>
+                                  )}
+                                </div>
+                              </div>
                               {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
                             </div>
                           ) : field === 'city' ? (
                             <div className="space-y-2">
-                              <select
-                                value={tempValue}
-                                onChange={(e) => setTempValue(e.target.value)}
-                                className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
-                              >
-                                {visibleCityOptions.map((city) => (
-                                  <option key={city} value={city}>{city}</option>
-                                ))}
-                              </select>
+                              <div className="overflow-hidden rounded-lg border border-black/10 bg-white/80 shadow-inner dark:border-white/10 dark:bg-[#021a1b]">
+                                <div className="border-b border-black/5 bg-white/60 p-1.5 dark:border-white/10 dark:bg-[#031d1d]">
+                                  <input
+                                    type="text"
+                                    value={citySearch}
+                                    onChange={(e) => setCitySearch(e.target.value)}
+                                    placeholder="Search city"
+                                    className="w-full rounded-md bg-transparent px-2.5 py-2 text-[15px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:text-white"
+                                  />
+                                </div>
+                                <div className="max-h-52 overflow-y-auto p-1">
+                                  {filteredCityOptions.length > 0 ? (
+                                    filteredCityOptions.map((city) => (
+                                      <button
+                                        key={city}
+                                        type="button"
+                                        onClick={() => {
+                                          setTempValue(city);
+                                          setDraftProfile((prev) => ({ ...prev, city }));
+                                          setChangedFields((prev) => ({ ...prev, city: city !== savedProfile.city }));
+                                          setEditingField(null);
+                                          setCitySearch('');
+                                        }}
+                                        className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium transition ${
+                                          tempValue === city
+                                            ? 'bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]'
+                                            : 'text-[#121212] hover:bg-[#0f4c81]/5 dark:text-white dark:hover:bg-white/5'
+                                        }`}
+                                      >
+                                        <span>{city}</span>
+                                        {tempValue === city && <span className="text-xs font-bold">✓</span>}
+                                      </button>
+                                    ))
+                                  ) : (
+                                    <div className="px-2.5 py-3 text-sm text-slate-400">No cities found</div>
+                                  )}
+                                </div>
+                              </div>
                               {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
                             </div>
                           ) : (
@@ -408,7 +472,7 @@ export default function AccountSettingsPage() {
                     </div>
                   </div>
 
-                  {isEditing ? (
+                  {isEditing && field !== 'country' && field !== 'city' ? (
                     <button
                       type="button"
                       onClick={() => commitEdit(field)}
@@ -417,6 +481,17 @@ export default function AccountSettingsPage() {
                     >
                       <Check className="h-4 w-4" strokeWidth={2.5} />
                     </button>
+                  ) : field === 'country' || field === 'city' ? (
+                    isEditing ? null : (
+                      <button
+                        type="button"
+                        onClick={() => beginEditing(field)}
+                        className="ml-2 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#0f4c81]/20 bg-[#0f4c81]/5 px-2.5 py-1.5 text-[12px] font-semibold text-[#0f4c81] transition hover:bg-[#0f4c81]/10 dark:border-[#7dd3fc]/30 dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]"
+                      >
+                        <PencilLine className="h-3.5 w-3.5" strokeWidth={2.3} />
+                        Change
+                      </button>
+                    )
                   ) : (
                     <button
                       type="button"
