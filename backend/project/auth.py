@@ -15,6 +15,10 @@ def user_response(user):
         'email': user.email,
         'name': user.name,
         'role': user.role,
+        'phone_country_code': user.phone_country_code,
+        'phone': user.phone,
+        'country': user.country,
+        'city': user.city,
     }
 
 
@@ -28,6 +32,13 @@ def api_register():
     if not email or not name or not password:
         return jsonify({'error': 'Email, name, and password are required.'}), 400
 
+    phone_country_code = data.get('phone_country_code', '').strip()
+    phone = data.get('phone', '').strip()
+    country = data.get('country', '').strip()
+    city = data.get('city', '').strip()
+    if not phone_country_code or not phone or not country or not city:
+        return jsonify({'error': 'Phone, country, and city are required.'}), 400
+
     if len(password) < 8:
         return jsonify({'error': 'Password must be at least 8 characters.'}), 400
 
@@ -38,6 +49,10 @@ def api_register():
         email=email,
         name=name,
         password=generate_password_hash(password),
+        phone_country_code=phone_country_code,
+        phone=phone,
+        country=country,
+        city=city,
     )
     db.session.add(user)
     db.session.commit()

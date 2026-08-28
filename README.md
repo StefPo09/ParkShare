@@ -46,7 +46,13 @@ That behavior was removed. The page now sends the email, password, and remember-
 
 The signup flow is also connected. The email entered on the first signup screen is carried to the registration screen, which sends the completed name, email, and password form to Flask. Successful registration returns the user to login; duplicate emails, short passwords, and connection errors are shown in the form.
 
-### Step 4: Add Git Ignore Rules
+### Step 4: Save Registration Profile Data
+
+The registration form now sends the phone country code, phone number, country, and city along with the name, email, and password. Flask validates these fields and saves them in the `User` table. The API also returns them in its user response.
+
+The existing SQLite database is upgraded automatically with the new columns, so existing local users are preserved.
+
+### Step 5: Add Git Ignore Rules
 
 The root `.gitignore` excludes generated and local-only files such as `node_modules`, Next.js build output, Python virtual environments, Python caches, SQLite databases, `.env` secrets, logs, and machine-specific editor files. Dependency lockfiles such as `frontend/package-lock.json` remain tracked.
 
@@ -58,7 +64,7 @@ The local SQLite database is stored at:
 backend/instance/db.sqlite
 ```
 
-It currently contains the `User` table with email, password hash, name, role, and password-reset fields. It does not yet contain cars, parking spots, rentals, or payments.
+It currently contains the `User` table with email, password hash, name, phone, country, city, role, and password-reset fields. It does not yet contain cars, parking spots, rentals, or payments.
 
 ## What Each Application Does
 
@@ -71,6 +77,37 @@ The intended relationship is:
 ```text
 Next.js login form -> Flask API -> SQLite User table
 ```
+
+## Quick Start
+
+Start the backend and frontend in two separate terminals. Start Flask first because the frontend login and registration forms send requests to it.
+
+### Terminal 1: Flask Backend
+
+From Git Bash:
+
+```bash
+cd /c/Users/cezara.dumitrescu/Documents/ParkShare/backend
+source .venv/Scripts/activate
+pip install -r requirements.txt
+python run.py
+```
+
+The backend will be available at `http://127.0.0.1:5000`.
+
+### Terminal 2: Next.js Frontend
+
+From Git Bash:
+
+```bash
+cd /c/Users/cezara.dumitrescu/Documents/ParkShare/frontend
+npm install
+npm run dev
+```
+
+The frontend will be available at `http://localhost:3000`.
+
+Open `http://localhost:3000/SignUpPage` to create an account, or open `http://localhost:3000/LoginPage` to log in.
 
 ## Authentication API
 
@@ -161,4 +198,4 @@ The Next.js production build also completed successfully, including its TypeScri
 
 ## Next Development Step
 
-Authentication is now connected for login and registration. The next step is to add persistent models and API endpoints for cars and parking spots, then connect the corresponding frontend management pages.
+Authentication and registration profile data are now connected. The next step is to add persistent models and API endpoints for cars and parking spots, then connect the corresponding frontend management pages.

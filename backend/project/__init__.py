@@ -42,6 +42,14 @@ def create_app():
             db.session.execute(text('ALTER TABLE user ADD COLUMN reset_token_expires DATETIME'))
         if 'role' not in user_columns:
             db.session.execute(text("ALTER TABLE user ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
+        if 'phone_country_code' not in user_columns:
+            db.session.execute(text('ALTER TABLE user ADD COLUMN phone_country_code VARCHAR(8)'))
+        if 'phone' not in user_columns:
+            db.session.execute(text('ALTER TABLE user ADD COLUMN phone VARCHAR(30)'))
+        if 'country' not in user_columns:
+            db.session.execute(text('ALTER TABLE user ADD COLUMN country VARCHAR(100)'))
+        if 'city' not in user_columns:
+            db.session.execute(text('ALTER TABLE user ADD COLUMN city VARCHAR(100)'))
         db.session.commit()
 
     @login_manager.user_loader

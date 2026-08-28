@@ -21,6 +21,8 @@ export default function RegisterPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
+    const [phoneCountryCode, setPhoneCountryCode] = useState('+40');
+    const [phone, setPhone] = useState('');
     // State for country & city selection
     const [selectedCountry, setSelectedCountry] = useState<string>('Romania');
     const [selectedCity, setSelectedCity] = useState<string>(CITIES_BY_COUNTRY['Romania'][0]);
@@ -48,7 +50,7 @@ export default function RegisterPage() {
     };
 
     const passwordsMatch = confirmPassword === '' || password === confirmPassword;
-    const canSubmit = email.trim() !== '' && name.trim() !== '' && password.length >= 8 && passwordsMatch;
+    const canSubmit = email.trim() !== '' && name.trim() !== '' && phone.trim() !== '' && password.length >= 8 && passwordsMatch;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -64,7 +66,15 @@ export default function RegisterPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ email, name, password }),
+                body: JSON.stringify({
+                    email,
+                    name,
+                    password,
+                    phone_country_code: phoneCountryCode,
+                    phone,
+                    country: selectedCountry,
+                    city: selectedCity,
+                }),
             });
             const data = await response.json();
 
@@ -127,7 +137,8 @@ export default function RegisterPage() {
                     <div className="flex w-full rounded-xl border border-white/40 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-[#0F4C81]/40 transition">
                         <select
                             aria-label="Select country code"
-                            defaultValue="+40"
+                            value={phoneCountryCode}
+                            onChange={(e) => setPhoneCountryCode(e.target.value)}
                             className="h-12 bg-gray-50 border-r border-gray-200 px-3 text-sm text-[#0B1C2C] font-medium outline-none cursor-pointer hover:bg-gray-100 transition"
                         >
                             <option value="+40">🇷🇴 +40</option>
@@ -141,6 +152,8 @@ export default function RegisterPage() {
                         <input
                             type="tel"
                             required
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
                             placeholder="774 123 567"
                             className="h-12 w-full bg-transparent px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none"
                         />
