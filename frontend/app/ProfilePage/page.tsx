@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { useLanguage } from '../components/LanguageProvider';
 import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle, Key, Home, Car } from 'lucide-react';
 
 interface UserProfile {
@@ -37,6 +38,7 @@ export default function ProfilePage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car' | null>(null);
+  const { t } = useLanguage();
 
   // Data curentă de referință în sistem (Anul 2026)
   const TODAY_STR = '2026-08-24';
@@ -146,11 +148,11 @@ export default function ProfilePage() {
           <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10">
             <div className="w-9" />
             <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-              Your Profile
+              {t('profile_title')}
             </h1>
             <button
                 onClick={() => router.back()}
-                aria-label="Close profile"
+                aria-label={t('close_profile')}
                 className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
             >
               <X className="w-6 h-6" strokeWidth={2.2} />
@@ -161,7 +163,7 @@ export default function ProfilePage() {
           {isSaved && (
               <div className="mx-5 mb-4 py-3 px-4 bg-emerald-600 dark:bg-emerald-700 text-white text-sm font-semibold rounded-2xl flex items-center justify-center space-x-2 shadow-lg animate-fade-in">
                 <Check className="w-4 h-4" strokeWidth={2.5} />
-                <span>Profile updated successfully!</span>
+                <span>{t('profile_updated_success')}</span>
               </div>
           )}
 
@@ -173,7 +175,7 @@ export default function ProfilePage() {
               {profile.avatarUrl && (
                   <button
                       onClick={() => setShowDeleteModal(true)}
-                      aria-label="Delete profile picture"
+                      aria-label={t('delete_profile_picture')}
                       className="absolute bottom-0 left-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white dark:bg-[#0d2a24] text-red-500 shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-black/5 dark:border-white/10 transition-transform active:scale-95 z-10"
                   >
                     <X className="w-5 h-5" strokeWidth={2.5} />
@@ -203,7 +205,7 @@ export default function ProfilePage() {
 
               <button
                   onClick={() => fileInputRef.current?.click()}
-                  aria-label="Upload profile picture"
+                  aria-label={t('upload_profile_picture')}
                   className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white dark:bg-[#0d2a24] text-[#121212] dark:text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-black/5 dark:border-white/10 transition-transform active:scale-95 z-10"
               >
                 <Pencil className="w-4 h-4" strokeWidth={2.2} />
@@ -225,7 +227,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between w-full">
                   <div className="flex-1 pr-2">
                   <span className="block text-[11px] font-bold uppercase tracking-wider text-[#42565d] dark:text-[#9db0b6] mb-0.5">
-                    First Name
+                    {t('first_name_label')}
                   </span>
                     {editingField === 'firstName' ? (
                         <div className="flex items-center space-x-2 mt-1 w-full">
@@ -267,7 +269,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between w-full">
                   <div className="flex-1 pr-2">
                   <span className="block text-[11px] font-bold uppercase tracking-wider text-[#42565d] dark:text-[#9db0b6] mb-0.5">
-                    Last Name
+                    {t('last_name_label')}
                   </span>
                     {editingField === 'lastName' ? (
                         <div className="flex items-center space-x-2 mt-1 w-full">
@@ -309,7 +311,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between w-full">
                   <div className="flex-1 pr-2">
                   <span className="block text-[11px] font-bold uppercase tracking-wider text-[#42565d] dark:text-[#9db0b6] mb-0.5">
-                    Date of Birth
+                    {t('date_of_birth_label')}
                   </span>
                     {editingField === 'birthDate' ? (
                         <div className="flex flex-col w-full mt-1">
@@ -341,7 +343,7 @@ export default function ProfilePage() {
                           {isUnderage && (
                               <div className="flex items-center space-x-1 mt-2 text-red-500 dark:text-red-400 animate-fade-in">
                                 <AlertCircle className="w-3.5 h-3.5" />
-                                <span className="text-[11px] font-bold">You must be at least 18 years old to use ParkShare.</span>
+                                                <span className="text-[11px] font-bold">{t('must_be_18')}</span>
                               </div>
                           )}
 
@@ -349,7 +351,7 @@ export default function ProfilePage() {
                           {isTooOld && (
                               <div className="flex items-center space-x-1 mt-2 text-red-500 dark:text-red-400 animate-fade-in">
                                 <AlertCircle className="w-3.5 h-3.5" />
-                                <span className="text-[11px] font-bold">Please enter a valid birth date.</span>
+                                                <span className="text-[11px] font-bold">{t('invalid_birth_date')}</span>
                               </div>
                           )}
                         </div>
@@ -374,7 +376,7 @@ export default function ProfilePage() {
               {/* Location */}
               <div className="flex flex-col justify-center h-18 px-4 rounded-2xl bg-white/20 dark:bg-white/2 border border-black/3 dark:border-white/2 opacity-75">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-[#6f797d] dark:text-[#6f797d] mb-0.5">
-                Location
+              {t('location_label')}
               </span>
                 <span className="text-base font-medium text-[#121212] dark:text-white">
                 {profile.location}
@@ -384,7 +386,7 @@ export default function ProfilePage() {
               {/* Email */}
               <div className="flex flex-col justify-center h-18 px-4 rounded-2xl bg-white/20 dark:bg-white/2 border border-black/3 dark:border-white/2 opacity-75 overflow-hidden">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-[#6f797d] dark:text-[#6f797d] mb-0.5">
-                Email Address
+              {t('email_address_label')}
               </span>
                 <span className="text-base font-medium text-[#121212] dark:text-white truncate">
                 {profile.email}
@@ -394,7 +396,7 @@ export default function ProfilePage() {
               {/* Phone Number */}
               <div className="flex flex-col justify-center h-18 px-4 rounded-2xl bg-white/20 dark:bg-white/2 border border-black/3 dark:border-white/2 opacity-75">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-[#6f797d] dark:text-[#6f797d] mb-0.5">
-                Phone Number
+              {t('phone_number_label')}
               </span>
                 <span className="text-base font-medium text-[#121212] dark:text-white">
                 {profile.phone}
@@ -403,7 +405,7 @@ export default function ProfilePage() {
 
               {/* Account Settings */}
               <button onClick={() => router.push('/AccountSettingsPage')} aria-label="Open account settings" className="w-full flex items-center justify-between h-15 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
-                <span>Account Settings</span>
+                <span>{t('account_settings_title')}</span>
                 <ChevronRight className="w-5 h-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
               </button>
             </div>
@@ -417,23 +419,23 @@ export default function ProfilePage() {
                     <Trash2 className="h-6 w-6" strokeWidth={2.2} />
                   </div>
                   <h3 className="text-lg font-bold tracking-tight text-[#121212] dark:text-white mb-1">
-                    Delete Photo?
+                    {t('delete_photo_title')}
                   </h3>
                   <p className="text-xs font-medium text-[#42565d] dark:text-[#9db0b6] mb-5">
-                    Are you sure you want to remove your profile picture?
+                    {t('delete_photo_confirm')}
                   </p>
                   <div className="flex gap-3">
                     <button
                         onClick={() => setShowDeleteModal(false)}
                         className="flex-1 h-10 rounded-xl border border-black/10 text-sm font-semibold text-[#121212] dark:border-white/10 dark:text-white cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition"
                     >
-                      Cancel
+                      {t('cancel')}
                     </button>
                     <button
                         onClick={handleDeleteImage}
                         className="flex-1 h-10 rounded-xl bg-red-500 text-sm font-semibold text-white cursor-pointer hover:bg-red-600 transition shadow-md shadow-red-500/20"
                     >
-                      Delete
+                      {t('delete')}
                     </button>
                   </div>
                 </div>

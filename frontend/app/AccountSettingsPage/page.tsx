@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import { countryOptions, countryFlags } from '../../data/address/countries';
+import { useLanguage } from '../components/LanguageProvider';
 import { phoneCountryOptions } from '../../data/address/phonePrefixes';
 import { cityGroups } from '../../data/address/cities';
 
@@ -45,14 +46,6 @@ const initialProfile: ProfileState = {
   lastName: 'Doe',
 };
 
-const fieldLabels: Record<FieldKey, string> = {
-  email: 'Email',
-  phone: 'Phone',
-  country: 'Country',
-  city: 'City',
-  firstName: 'First name',
-  lastName: 'Last name',
-};
 
 const fieldIcons: Record<FieldKey, typeof Mail> = {
   email: Mail,
@@ -122,6 +115,16 @@ export default function AccountSettingsPage() {
   const [citySearch, setCitySearch] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
+  const { t } = useLanguage();
+
+  const fieldLabels = React.useMemo(() => ({
+    email: t('labelEmail'),
+    phone: t('labelPhone'),
+    country: t('labelCountry'),
+    city: t('labelCity'),
+    firstName: t('labelFirstName'),
+    lastName: t('labelLastName'),
+  }) as Record<FieldKey, string>, [t]);
 
   const avatarGradient = useMemo(
     () => getAvatarGradient(draftProfile.firstName, draftProfile.lastName),
@@ -272,7 +275,7 @@ export default function AccountSettingsPage() {
         <header className="flex items-center justify-between px-5 pt-5">
           <div className="flex-1 text-center">
             <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-              Account Settings
+            {t('account_settings_title')}
             </h1>
           </div>
           <button
@@ -343,7 +346,7 @@ export default function AccountSettingsPage() {
                                   value={phoneDigits}
                                   onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, '').slice(0, getPhoneMeta(phonePrefix).maxLength))}
                                   className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
-                                  placeholder="Phone number"
+                                  placeholder={t('phone_number_label')}
                                 />
                               </div>
                               {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
@@ -356,7 +359,7 @@ export default function AccountSettingsPage() {
                                     type="text"
                                     value={countrySearch}
                                     onChange={(e) => setCountrySearch(e.target.value)}
-                                    placeholder="Search country"
+                                    placeholder={t('searchCountryPlaceholder')}
                                     className="w-full rounded-md bg-transparent px-2.5 py-2 text-[15px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:text-white"
                                   />
                                 </div>
@@ -394,7 +397,7 @@ export default function AccountSettingsPage() {
                                       </button>
                                     ))
                                   ) : (
-                                    <div className="px-2.5 py-3 text-sm text-slate-400">No countries found</div>
+                                    <div className="px-2.5 py-3 text-sm text-slate-400">{t('noCountriesFound')}</div>
                                   )}
                                 </div>
                               </div>
@@ -408,7 +411,7 @@ export default function AccountSettingsPage() {
                                     type="text"
                                     value={citySearch}
                                     onChange={(e) => setCitySearch(e.target.value)}
-                                    placeholder="Search city"
+                                    placeholder={t('searchCityPlaceholder')}
                                     className="w-full rounded-md bg-transparent px-2.5 py-2 text-[15px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:text-white"
                                   />
                                 </div>
@@ -436,7 +439,7 @@ export default function AccountSettingsPage() {
                                       </button>
                                     ))
                                   ) : (
-                                    <div className="px-2.5 py-3 text-sm text-slate-400">No cities found</div>
+                                    <div className="px-2.5 py-3 text-sm text-slate-400">{t('noCitiesFound')}</div>
                                   )}
                                 </div>
                               </div>
@@ -489,7 +492,7 @@ export default function AccountSettingsPage() {
                         className="ml-2 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#0f4c81]/20 bg-[#0f4c81]/5 px-2.5 py-1.5 text-[12px] font-semibold text-[#0f4c81] transition hover:bg-[#0f4c81]/10 dark:border-[#7dd3fc]/30 dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]"
                       >
                         <PencilLine className="h-3.5 w-3.5" strokeWidth={2.3} />
-                        Change
+                        {t('change_label')}
                       </button>
                     )
                   ) : (
@@ -499,7 +502,7 @@ export default function AccountSettingsPage() {
                       className="ml-2 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#0f4c81]/20 bg-[#0f4c81]/5 px-2.5 py-1.5 text-[12px] font-semibold text-[#0f4c81] transition hover:bg-[#0f4c81]/10 dark:border-[#7dd3fc]/30 dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]"
                     >
                       <PencilLine className="h-3.5 w-3.5" strokeWidth={2.3} />
-                      Change
+                      {t('change_label')}
                     </button>
                   )}
                 </div>
@@ -524,8 +527,8 @@ export default function AccountSettingsPage() {
                   <Lock className="h-4 w-4" strokeWidth={2.2} />
                 </div>
                 <div>
-                  <p className="text-[16px] font-semibold text-[#121212] dark:text-white">Password</p>
-                  <p className="text-[12px] text-[#42565d] dark:text-[#dfeef0]/70">Update your login password</p>
+                  <p className="text-[16px] font-semibold text-[#121212] dark:text-white">{t('password_label')}</p>
+                  <p className="text-[12px] text-[#42565d] dark:text-[#dfeef0]/70">{t('update_login_password')}</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-400 transition group-hover:text-[#0f4c81] dark:group-hover:text-[#7dd3fc]" />
@@ -538,7 +541,7 @@ export default function AccountSettingsPage() {
               onClick={handleSaveChanges}
               className="w-full cursor-pointer rounded-2xl bg-[#0f4c81] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition active:scale-[0.99]"
             >
-              Save changes
+              {t('saveChanges')}
             </button>
           )}
         </main>
@@ -592,8 +595,8 @@ export default function AccountSettingsPage() {
               <CheckCircle2 className="h-12 w-12 text-[#0f4c81]" strokeWidth={2} />
             </div>
 
-            <h3 className="mb-1 text-lg font-bold text-[#121212] dark:text-white">Success</h3>
-            <p className="mb-5 text-[14px] text-[#42565d] dark:text-[#dfeef0]/80">Changes have been saved.</p>
+            <h3 className="mb-1 text-lg font-bold text-[#121212] dark:text-white">{t('success')}</h3>
+            <p className="mb-5 text-[14px] text-[#42565d] dark:text-[#dfeef0]/80">{t('changesSaved')}</p>
 
             <button
               type="button"
