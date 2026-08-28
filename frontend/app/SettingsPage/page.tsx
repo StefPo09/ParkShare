@@ -217,7 +217,7 @@ export default function SettingsPage() {
             </label>
 
             <div className="divide-y divide-black/5 overflow-hidden rounded-xl border border-black/10 bg-white/50 dark:divide-white/10 dark:border-white/10 dark:bg-white/10">
-              <button type="button" className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
+              <button type="button" onClick={() => router.push(ROUTES.TERMS_OF_SERVICE)} className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-[#42565d] dark:text-[#dfeef0]" />
                   <span className="text-[17px] font-medium text-[#121212] dark:text-white">{t('termsOfService')}</span>
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                 <ChevronRight className="h-5 w-5 text-slate-400" />
               </button>
 
-              <button type="button" className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
+              <button type="button" onClick={() => router.push(ROUTES.PRIVACY_POLICY)} className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-[#42565d] dark:text-[#dfeef0]" />
                   <span className="text-[17px] font-medium text-[#121212] dark:text-white">{t('privacyPolicy')}</span>
