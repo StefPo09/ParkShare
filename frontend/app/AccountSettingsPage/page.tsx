@@ -520,6 +520,7 @@ export default function AccountSettingsPage() {
 
             <button
               type="button"
+              onClick={() => router.push(ROUTES.CHANGE_PASSWORD)}
               className="group flex w-full cursor-pointer items-center justify-between rounded-2xl border border-black/10 bg-white/50 px-3 py-3 text-left transition hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/5"
             >
               <div className="flex items-center gap-3">
