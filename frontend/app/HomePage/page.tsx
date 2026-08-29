@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -44,6 +44,8 @@ export default function HomePage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
@@ -67,86 +69,113 @@ export default function HomePage() {
         <NavMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
         <main className="flex-1 overflow-y-auto px-4 pb-24 pt-2">
-          <button
-            type="button"
-            onClick={() => router.push(ROUTES.MANAGE_SPOT)}
-            className="mb-5 flex w-full cursor-pointer items-center justify-between rounded-[28px] bg-[#9ccdff] px-4 py-4 shadow-[0_8px_18px_rgba(15,76,129,0.18)] transition hover:brightness-[0.98] dark:bg-[#244f86]"
-          >
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ff4b3d] text-base font-bold text-white shadow-md">
-                1
-              </span>
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0d4bb5] text-[82px] font-bold leading-none text-white shadow-inner">
-                <span className="-translate-y-0.5">P</span>
-              </div>
-            </div>
-
-            <div className="flex flex-1 items-center justify-end">
-              <span className="mr-2 text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                {t('manageParking')}
-                <span className="block">{t('manageParkingSpots')}</span>
-              </span>
-            </div>
-
-            <ChevronRight className="ml-2 h-12 w-12 text-[#121212] dark:text-white" strokeWidth={2.5} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push(ROUTES.MANAGE_CAR)}
-            className="mb-5 flex w-full cursor-pointer items-center justify-between rounded-[28px] bg-[#9ccdff] px-4 py-4 shadow-[0_8px_18px_rgba(15,76,129,0.18)] transition hover:brightness-[0.98] dark:bg-[#244f86]"
-          >
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ff4b3d] text-base font-bold text-white shadow-md">
-                1
-              </span>
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#f6f6f6] text-[82px] font-bold leading-none text-[#121212] shadow-inner">
-                <Car className="h-13 w-13 text-[#0f4c81] dark:text-[#0f4c81]" strokeWidth={2.4} />
-              </div>
-            </div>
-
-            <div className="flex flex-1 items-center justify-end">
-              <span className="mr-2 text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                {t('manageYourCars')}
-              </span>
-            </div>
-
-            <ChevronRight className="ml-2 h-12 w-12 text-[#121212] dark:text-white" strokeWidth={2.5} />
-          </button>
-
-          <div className="mb-5 flex h-18.5 items-center rounded-[30px] border-[3px] border-[#121212] bg-transparent px-4 text-[#121212] dark:border-[#dfeaf0] dark:text-white">
-            <span className="flex-1 text-[28px] font-normal tracking-[-0.04em] text-[#121212] dark:text-white">
-              {t('searchSpotOffers')}
-            </span>
-            <Search className="h-9 w-9 text-[#121212] dark:text-white" strokeWidth={2.2} />
-          </div>
-
-          <div className="mb-4 flex items-center justify-between text-[#121212] dark:text-white">
-            <span className="text-[28px] font-bold tracking-tight">{t('spotsInCity')}</span>
-            <ChevronRight className="h-8 w-8" strokeWidth={2.5} />
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            {parkingListings.map((spot) => (
-              <div key={spot.id} className="min-w-0">
-                <div className="relative h-42.5 overflow-hidden rounded-3xl bg-[#d9d9d9]">
-                  <Image
-                    src={spot.image}
-                    alt={spot.title}
-                    fill
-                    sizes="(max-width: 430px) 33vw, 130px"
-                    className="object-cover"
-                  />
-                </div>
-
-                <div className="mt-2">
-                  <p className="text-lg font-medium text-[#121212] dark:text-white">{spot.title}</p>
-                  <p className="text-xl font-bold text-[#121212] dark:text-white">{spot.name}</p>
-                  <p className="text-lg font-medium text-[#121212] dark:text-white">{spot.address}</p>
-                  <p className="text-[23px] font-bold text-[#121212] dark:text-white">{spot.price}</p>
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => router.push(ROUTES.MANAGE_SPOT)}
+              className="group flex w-full cursor-pointer items-center justify-between rounded-[28px] border border-black/5 bg-[#1c3437]/90 p-4 shadow-[0_18px_30px_rgba(15,32,35,0.14)] backdrop-blur-sm transition hover:bg-[#213d40] dark:border-white/10 dark:bg-[#1b2f31]"
+            >
+              <div className="flex items-center gap-5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0f4c81] text-base font-bold text-white shadow-md shadow-[#0f4c81]/25">
+                  1
+                </span>
+                <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-[#cfe5ee] text-[#121212] shadow-inner shadow-black/10 dark:bg-[#cfe5ee]">
+                  <span className="text-[42px] font-black leading-none">P</span>
                 </div>
               </div>
-            ))}
+
+              <div className="flex flex-1 items-center justify-end pr-2">
+                <span className="text-left text-[22px] font-bold leading-[1.1] tracking-[-0.04em] text-white sm:text-[26px]">
+                  {t('manageParking')}
+                  <span className="mt-2 block text-[20px] font-bold text-white sm:text-[23px]">
+                    {t('manageParkingSpots')}
+                  </span>
+                </span>
+              </div>
+
+              <ChevronRight className="h-9 w-9 text-white transition group-hover:translate-x-0.5" strokeWidth={2.5} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push(ROUTES.MANAGE_CAR)}
+              className="group flex w-full cursor-pointer items-center justify-between rounded-[28px] border border-black/5 bg-[#1c3437]/90 p-4 shadow-[0_18px_30px_rgba(15,32,35,0.14)] backdrop-blur-sm transition hover:bg-[#213d40] dark:border-white/10 dark:bg-[#1b2f31]"
+            >
+              <div className="flex items-center gap-5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0f4c81] text-base font-bold text-white shadow-md shadow-[#0f4c81]/25">
+                  1
+                </span>
+                <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-[#b9c8cd] text-[#121212] shadow-inner shadow-black/10 dark:bg-[#b9c8cd]">
+                  <Car className="h-10 w-10 text-[#0f4c81]" strokeWidth={2.4} />
+                </div>
+              </div>
+
+              <div className="flex flex-1 items-center justify-end pr-2">
+                <span className="text-left text-[22px] font-bold leading-[1.1] tracking-[-0.04em] text-white sm:text-[26px]">
+                  {t('manageYourCars')}
+                </span>
+              </div>
+
+              <ChevronRight className="h-9 w-9 text-white transition group-hover:translate-x-0.5" strokeWidth={2.5} />
+            </button>
+
+            <div className="flex items-center gap-3 rounded-[28px] border border-black/5 bg-white/20 px-4 py-3 shadow-[0_18px_30px_rgba(15,32,35,0.08)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                placeholder={t('searchSpotOffers')}
+                className="flex-1 border-0 bg-transparent text-[20px] font-medium tracking-[-0.04em] text-[#121212] outline-none placeholder:text-[#42565d]/80 dark:text-white dark:placeholder:text-[#dfeef0]/80 sm:text-[24px]"
+              />
+              <button
+                type="button"
+                onClick={() => searchInputRef.current?.focus()}
+                aria-label={t('searchSpotOffers')}
+                className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] shadow-lg shadow-[#0f4c81]/15 transition hover:brightness-105 dark:bg-[#9ad7db] dark:text-[#011b1b]"
+              >
+                <Search className="h-5 w-5 text-white dark:text-[#011b1b]" strokeWidth={2.2} />
+              </button>
+            </div>
+
+            <div className="rounded-[28px] border border-black/5 bg-white/20 p-3 shadow-[0_18px_30px_rgba(15,32,35,0.08)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
+              <button
+                type="button"
+                onClick={() => router.push(ROUTES.RENT)}
+                className="mb-3 flex w-full cursor-pointer items-center justify-between text-left text-[#121212] dark:text-white"
+              >
+                <span className="text-[22px] font-bold tracking-tight sm:text-[26px]">{t('spotsInYourCity')}</span>
+                <ChevronRight className="h-7 w-7 text-[#42565d] dark:text-[#dfeef0]" strokeWidth={2.5} />
+              </button>
+
+              <div className="grid grid-cols-3 gap-3">
+                {parkingListings.map((spot) => (
+                  <button
+                    key={spot.id}
+                    type="button"
+                    onClick={() => router.push(ROUTES.RENT)}
+                    className="min-w-0 cursor-pointer overflow-hidden rounded-[22px] border border-black/5 bg-white/40 p-2 text-left shadow-sm transition hover:bg-white/50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  >
+                    <div className="relative h-28 overflow-hidden rounded-[18px] bg-[#d9d9d9]">
+                      <Image
+                        src={spot.image}
+                        alt={spot.title}
+                        fill
+                        sizes="(max-width: 430px) 33vw, 130px"
+                        className="object-cover"
+                      />
+                    </div>
+
+                    <div className="mt-2 space-y-1">
+                      <p className="text-[11px] font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.title}</p>
+                      <p className="text-[13px] font-bold text-[#121212] dark:text-white">{spot.name}</p>
+                      <p className="text-[11px] font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.address}</p>
+                      <p className="text-[18px] font-bold text-[#121212] dark:text-white">{spot.price}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </main>
 
