@@ -136,6 +136,7 @@ export default function SettingsPage() {
               >
                 <option value="en" className="bg-white text-black">English (EN)</option>
                 <option value="ro" className="bg-white text-black">Română (RO)</option>
+                <option value="hu" className="bg-white text-black">Magyar (HU)</option>
                 <option value="de" className="bg-white text-black">Deutsch (DE)</option>
                 <option value="fr" className="bg-white text-black">Français (FR)</option>
                 <option value="es" className="bg-white text-black">Español (ES)</option>
