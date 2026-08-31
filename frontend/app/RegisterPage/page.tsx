@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 
 // Country-to-cities dictionary
@@ -17,6 +18,11 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
 };
 
 export default function RegisterPage() {
+    const router = useRouter();
+    const [email, setEmail] = useState('');
+    const [name, setName] = useState('');
+    const [phoneCountryCode, setPhoneCountryCode] = useState('+40');
+    const [phone, setPhone] = useState('');
     // State for country & city selection
     const [selectedCountry, setSelectedCountry] = useState<string>('Romania');
     const [selectedCity, setSelectedCity] = useState<string>(CITIES_BY_COUNTRY['Romania'][0]);
@@ -28,6 +34,12 @@ export default function RegisterPage() {
     // State for password visibility toggles
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        setEmail(sessionStorage.getItem('signupEmail') ?? '');
+    }, []);
 
     // Automatically update cities dropdown when country changes
     const handleCountryChange = (country: string) => {
@@ -38,14 +50,45 @@ export default function RegisterPage() {
     };
 
     const passwordsMatch = confirmPassword === '' || password === confirmPassword;
+    const canSubmit = email.trim() !== '' && name.trim() !== '' && phone.trim() !== '' && password.length >= 8 && passwordsMatch;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!passwordsMatch) {
-            alert('Passwords do not match!');
+        if (!canSubmit || isSubmitting) {
             return;
         }
-        console.log('Form submitted successfully!');
+
+        setError(null);
+        setIsSubmitting(true);
+
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    email,
+                    name,
+                    password,
+                    phone_country_code: phoneCountryCode,
+                    phone,
+                    country: selectedCountry,
+                    city: selectedCity,
+                }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Unable to create your account.');
+            }
+
+            sessionStorage.removeItem('signupEmail');
+            router.push(ROUTES.LOGIN);
+        } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : 'Unable to connect to the backend.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -62,12 +105,27 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
 
+                {/* Email */}
+                <div className="flex flex-col w-full gap-1">
+                    <label className="font-medium text-sm text-[#0B1C2C]">Email</label>
+                    <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="email@domain.com"
+                        className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                    />
+                </div>
+
                 {/* Full Name */}
                 <div className="flex flex-col w-full gap-1">
                     <label className="font-medium text-sm text-[#0B1C2C]">Full Name</label>
                     <input
                         type="text"
                         required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
                         placeholder="e.g. John Doe"
                         className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
                     />
@@ -79,7 +137,8 @@ export default function RegisterPage() {
                     <div className="flex w-full rounded-xl border border-white/40 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-[#0F4C81]/40 transition">
                         <select
                             aria-label="Select country code"
-                            defaultValue="+40"
+                            value={phoneCountryCode}
+                            onChange={(e) => setPhoneCountryCode(e.target.value)}
                             className="h-12 bg-gray-50 border-r border-gray-200 px-3 text-sm text-[#0B1C2C] font-medium outline-none cursor-pointer hover:bg-gray-100 transition"
                         >
                             <option value="+40">🇷🇴 +40</option>
@@ -93,6 +152,8 @@ export default function RegisterPage() {
                         <input
                             type="tel"
                             required
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
                             placeholder="774 123 567"
                             className="h-12 w-full bg-transparent px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none"
                         />
@@ -193,12 +254,23 @@ export default function RegisterPage() {
             </span>
                     )}
                 </div>
+                {password.length > 0 && password.length < 8 && (
+                    <span className="text-xs text-red-600 font-medium -mt-3">
+                        Password must be at least 8 characters.
+                    </span>
+                )}
+                {error && (
+                    <p role="alert" className="text-center text-sm text-red-600">
+                        {error}
+                    </p>
+                )}
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    className="mt-4 h-12 w-full rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md"
+                    disabled={!canSubmit || isSubmitting}
+                    className="mt-4 h-12 w-full rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45"
                 >
-                    Sign up
+                    {isSubmitting ? 'Creating account...' : 'Sign up'}
                 </button>
                 <a href={ROUTES.LOGIN} className="text-[#000000]/50 text-sm underline flex justify-end">
                     Already have an account?
