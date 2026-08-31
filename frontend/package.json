@@ -23,6 +23,7 @@
     "@heroicons/react": "^2.2.0",
     "@react-google-maps/api": "^2.20.8",
     "@stripe/react-stripe-js": "^6.8.2",
+    "@stripe/stripe-js": "^9.15.0",
     "all-the-cities": "^3.1.0",
     "autoprefixer": "^10.5.2",
     "cities-list": "^1.0.3",
@@ -33,6 +34,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
+    "stripe": "^22.6.0",
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
