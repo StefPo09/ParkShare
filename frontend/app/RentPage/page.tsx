@@ -267,7 +267,8 @@ export default function ParkingRentPage() {
                             <span className="text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">/ hour</span>
                         </div>
 
-                        <button className="px-8 py-3.5 cursor-pointer bg-[#0f4c81] hover:bg-[#0c3e67] text-white font-semibold text-base rounded-2xl shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition-all active:scale-95">
+                        <button onClick={() => router.push(ROUTES.PAYMENT)}
+                                className="px-8 py-3.5 cursor-pointer bg-[#0f4c81] hover:bg-[#0c3e67] text-white font-semibold text-base rounded-2xl shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition-all active:scale-95">
                             Rent
                         </button>
                     </div>
