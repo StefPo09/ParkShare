@@ -1,12 +1,91 @@
 import secrets
 from datetime import datetime, timedelta, timezone
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_user, logout_user, login_required
+from flask import Blueprint, jsonify, render_template, request, redirect, url_for, flash
+from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import User
 from . import db
 
 auth = Blueprint('auth', __name__)
+
+
+def user_response(user):
+    return {
+        'id': user.id,
+        'email': user.email,
+        'name': user.name,
+        'role': user.role,
+        'phone_country_code': user.phone_country_code,
+        'phone': user.phone,
+        'country': user.country,
+        'city': user.city,
+    }
+
+
+@auth.route('/api/auth/register', methods=['POST'])
+def api_register():
+    data = request.get_json(silent=True) or {}
+    email = data.get('email', '').strip().lower()
+    name = data.get('name', '').strip()
+    password = data.get('password', '')
+
+    if not email or not name or not password:
+        return jsonify({'error': 'Email, name, and password are required.'}), 400
+
+    phone_country_code = data.get('phone_country_code', '').strip()
+    phone = data.get('phone', '').strip()
+    country = data.get('country', '').strip()
+    city = data.get('city', '').strip()
+    if not phone_country_code or not phone or not country or not city:
+        return jsonify({'error': 'Phone, country, and city are required.'}), 400
+
+    if len(password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters.'}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'An account with that email already exists.'}), 409
+
+    user = User(
+        email=email,
+        name=name,
+        password=generate_password_hash(password),
+        phone_country_code=phone_country_code,
+        phone=phone,
+        country=country,
+        city=city,
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({'user': user_response(user)}), 201
+
+
+@auth.route('/api/auth/login', methods=['POST'])
+def api_login():
+    data = request.get_json(silent=True) or {}
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not check_password_hash(user.password, password):
+        return jsonify({'error': 'Invalid email or password.'}), 401
+
+    login_user(user, remember=bool(data.get('remember')))
+    return jsonify({'user': user_response(user)}), 200
+
+
+@auth.route('/api/auth/me', methods=['GET'])
+def api_current_user():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Authentication required.'}), 401
+
+    return jsonify({'user': user_response(current_user)}), 200
+
+
+@auth.route('/api/auth/logout', methods=['POST'])
+def api_logout():
+    logout_user()
+    return jsonify({'success': True}), 200
 
 @auth.route('/login')
 def login():
