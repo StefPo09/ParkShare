@@ -2,7 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { Elements } from '@stripe/react-stripe-js';
+import type { Appearance } from '@stripe/stripe-js';
 import { stripePromise } from '../../lib/stripe';
 import { CheckoutForm } from '../components/StripePayment';
 import { ROUTES } from '../../constants/routes';
@@ -22,7 +24,11 @@ export default function PaymentPage() {
 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-    // Create the PaymentIntent as soon as the page loads
+    const { resolvedTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    const isDark = mounted && resolvedTheme === 'dark';
+
     useEffect(() => {
         fetch('/api/create-payment-intent', { method: 'POST' })
             .then((res) => res.json())
@@ -49,8 +55,61 @@ export default function PaymentPage() {
     };
 
     const handlePaymentSuccess = () => {
-        router.push(ROUTES.SUCCESS_PAYMENT); // add this to your ROUTES constant
+        router.push(ROUTES.SUCCESS_PAYMENT);
     };
+
+    const appearance: Appearance = {
+        theme: isDark ? 'night' : 'stripe',
+        variables: {
+            colorPrimary: isDark ? '#2dd4bf' : '#0f4c81',
+            colorBackground: isDark ? '#011b1b' : '#dfeef0',
+            colorText: isDark ? '#ffffff' : '#121212',
+            colorTextSecondary: isDark ? '#ffffff' : '#42565d',
+            colorTextPlaceholder: isDark ? '#9db0b6' : '#6f797d',
+            colorDanger: '#ef4444',
+            fontFamily: '"Your-App-Font", system-ui, sans-serif',
+            fontSizeBase: '18px',
+            fontWeightNormal: '500',
+            spacingUnit: '4px',
+            borderRadius: '12px',
+        },
+        rules: {
+            '.Input': {
+                border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)',
+                boxShadow: 'none',
+                padding: '10px 12px',
+            },
+            '.Input:focus': {
+                border: `1px solid ${isDark ? '#2dd4bf' : '#0f4c81'}`,
+                boxShadow: `0 0 0 1px ${isDark ? '#2dd4bf' : '#0f4c81'}`,
+            },
+            '.Label': {
+                fontSize: '12px',
+                fontWeight: '500',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                marginBottom: '4px',
+                color: isDark ? '#ffffff' : undefined,
+            },
+            '.Tab': {
+                border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                borderRadius: '12px',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)',
+            },
+            '.Tab--selected': {
+                border: `1px solid ${isDark ? '#2dd4bf' : '#0f4c81'}`,
+                backgroundColor: isDark ? 'rgba(45,212,191,0.08)' : 'rgba(15,76,129,0.05)',
+            },
+            '.TabLabel': {
+                color: isDark ? '#ffffff' : undefined,
+            },
+        },
+    };
+
+    if (!mounted) {
+        return null; // sau un skeleton/loading state, ca să eviți flash-ul greșit de temă
+    }''
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
@@ -83,7 +142,7 @@ export default function PaymentPage() {
 
                 <main className="flex-1 px-4 pt-4 overflow-y-auto space-y-4 pb-24">
 
-                    {/* --- CAR INFO (unchanged) --- */}
+                    {/* Car info section unchanged */}
                     <div className="space-y-4 px-2">
                         <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
                             Car info:
@@ -185,7 +244,6 @@ export default function PaymentPage() {
                         </div>
                     </div>
 
-                    {/* --- PAYMENT INFO (now Stripe-powered) --- */}
                     <div className="space-y-4 px-2 pt-2">
                         <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
                             Payment info:
@@ -194,10 +252,7 @@ export default function PaymentPage() {
                         {clientSecret ? (
                             <Elements
                                 stripe={stripePromise}
-                                options={{
-                                    clientSecret,
-                                    appearance: { theme: 'stripe' },
-                                }}
+                                options={{ clientSecret, appearance }}
                             >
                                 <CheckoutForm
                                     disabled={!isCarInfoValid}
@@ -212,7 +267,6 @@ export default function PaymentPage() {
                     </div>
                 </main>
 
-                {/* --- Bottom nav (unchanged) --- */}
                 <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
                     <button onClick={() => setActiveTab('key')} className={`p-1.5 transition-all cursor-pointer rounded-full ${activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'}`}>
                         <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
@@ -226,7 +280,6 @@ export default function PaymentPage() {
                 </nav>
             </div>
 
-            {/* --- Help modal (unchanged) --- */}
             {showHelpModal && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
