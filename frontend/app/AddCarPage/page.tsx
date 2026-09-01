@@ -16,6 +16,8 @@ export default function AddCarPage() {
   const [carImage, setCarImage] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
     plate: '',
@@ -73,6 +75,41 @@ export default function AddCarPage() {
 
   const updateField = (field: 'name' | 'plate' | 'model', value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/cars', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          brand: form.name,
+          model: form.model,
+          license_plate: form.plate,
+          color: form.name,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        setErrorMessage(error.error || 'Failed to create car.');
+        setIsLoading(false);
+        return;
+      }
+
+      router.push(ROUTES.MANAGE_CAR);
+    } catch (err) {
+      setErrorMessage('An error occurred. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -221,15 +258,22 @@ export default function AddCarPage() {
           </main>
 
           <div className="px-4 pb-6 pt-2 mb-24">
+            {errorMessage && (
+                <div className="mb-3 rounded-lg bg-red-500/20 border border-red-500 px-4 py-2 text-red-700 dark:text-red-300 text-sm">
+                  {errorMessage}
+                </div>
+            )}
             <button
                 type="button"
-                disabled={!canSubmit}
-                onClick={() => {
-                  if (canSubmit) router.push(ROUTES.MANAGE_CAR);
-                }}
-                className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67] disabled:cursor-not-allowed disabled:bg-[#0f4c81]/45 disabled:shadow-none"
+                disabled={!canSubmit || isLoading}
+                onClick={handleSubmit}
+                className={`flex w-full cursor-pointer items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition ${
+                    canSubmit && !isLoading
+                        ? 'bg-[#0f4c81] text-white hover:bg-[#0c3e67]'
+                        : 'bg-[#0f4c81]/45 text-white cursor-not-allowed shadow-none'
+                }`}
             >
-              {t('addCar')}
+              {isLoading ? 'Loading...' : t('addCar')}
             </button>
           </div>
 
