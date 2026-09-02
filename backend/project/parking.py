@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
+from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .models import Booking, Car, City, ParkingSpot, User
@@ -39,7 +40,11 @@ def create_city():
 
     city = City(name=name, country=country or None)
     db.session.add(city)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'A city with this name already exists.'}), 409
 
     return jsonify({'city': city.to_dict()}), 201
 
@@ -83,7 +88,11 @@ def create_car():
         color=(data.get('color') or '').strip() or None,
     )
     db.session.add(car)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'A car with this license plate already exists.'}), 409
 
     return jsonify({'car': car.to_dict()}), 201
 
@@ -169,7 +178,11 @@ def create_spot():
         is_available=bool(data.get('is_available', True)),
     )
     db.session.add(spot)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create parking spot due to data integrity issue.'}), 409
 
     return jsonify({'spot': spot.to_dict()}), 201
 
@@ -198,203 +211,4 @@ def get_my_bookings():
     return jsonify({'bookings': [booking.to_dict() for booking in bookings]}), 200
 
 
-@parking.route('/api/owner-bookings', methods=['GET'])
-@login_required
-def get_owner_bookings():
-    bookings = db.session.query(Booking).join(ParkingSpot).filter(ParkingSpot.user_id == current_user.id).order_by(Booking.created_at.desc()).all()
-    return jsonify({'bookings': [booking.to_dict() for booking in bookings]}), 200
-
-
-@parking.route('/api/bookings', methods=['POST'])
-@login_required
-def create_booking():
-    data = request.get_json(silent=True) or {}
-    spot_id = data.get('spot_id')
-    start_date_raw = data.get('start_date')
-    end_date_raw = data.get('end_date')
-
-    if not spot_id or not start_date_raw or not end_date_raw:
-        return jsonify({'error': 'spot_id, start_date, and end_date are required.'}), 400
-
-    spot = ParkingSpot.query.get(spot_id)
-    if not spot:
-        return jsonify({'error': 'Parking spot not found.'}), 404
-
-    if spot.user_id == current_user.id:
-        return jsonify({'error': 'You cannot book your own parking spot.'}), 400
-
-    if not spot.is_available:
-        return jsonify({'error': 'This parking spot is currently unavailable.'}), 400
-
-    try:
-        start_date = datetime.fromisoformat(start_date_raw.replace('Z', '+00:00'))
-        end_date = datetime.fromisoformat(end_date_raw.replace('Z', '+00:00'))
-    except ValueError:
-        return jsonify({'error': 'Dates must be valid ISO timestamps.'}), 400
-
-    if end_date <= start_date:
-        return jsonify({'error': 'End date must be after the start date.'}), 400
-
-    duration_days = (end_date - start_date).total_seconds() / 86400
-    if duration_days <= 0:
-        return jsonify({'error': 'Booking duration must be greater than zero.'}), 400
-
-    total_price = round(float(spot.price_per_day) * duration_days, 2)
-
-    booking = Booking(
-        spot_id=spot.id,
-        user_id=current_user.id,
-        start_date=start_date,
-        end_date=end_date,
-        total_price=total_price,
-        status='pending',
-    )
-    db.session.add(booking)
-    db.session.commit()
-
-    return jsonify({'booking': booking.to_dict()}), 201
-
-
-@parking.route('/api/bookings/<int:booking_id>/status', methods=['PATCH'])
-@login_required
-def update_booking_status(booking_id):
-    booking = Booking.query.get(booking_id)
-    if not booking:
-        return jsonify({'error': 'Booking not found.'}), 404
-
-    spot = ParkingSpot.query.get(booking.spot_id)
-    if not spot or spot.user_id != current_user.id:
-        return jsonify({'error': 'You do not have permission to update this booking.'}), 403
-
-    data = request.get_json(silent=True) or {}
-    new_status = (data.get('status') or '').strip().lower()
-    valid_statuses = {'pending', 'accepted', 'rejected', 'cancelled'}
-
-    if new_status not in valid_statuses:
-        return jsonify({'error': 'Status must be one of: pending, accepted, rejected, cancelled.'}), 400
-
-    booking.status = new_status
-    db.session.commit()
-
-    return jsonify({'booking': booking.to_dict()}), 200
-
-
-@parking.route('/api/my-spots', methods=['GET'])
-@login_required
-def get_my_spots():
-    spots = ParkingSpot.query.filter_by(user_id=current_user.id).order_by(ParkingSpot.created_at.desc()).all()
-    return jsonify({'spots': [spot.to_dict() for spot in spots]}), 200
-
-
-@parking.route('/api/spots/<int:spot_id>', methods=['PUT', 'PATCH'])
-@login_required
-def update_spot(spot_id):
-    spot = ParkingSpot.query.filter_by(id=spot_id, user_id=current_user.id).first()
-    if not spot:
-        return jsonify({'error': 'Spot not found or you do not own it.'}), 404
-
-    data = request.get_json(silent=True) or {}
-
-    if 'title' in data:
-        title = (data.get('title') or '').strip()
-        if not title:
-            return jsonify({'error': 'Title cannot be empty.'}), 400
-        spot.title = title
-
-    if 'address' in data:
-        address = (data.get('address') or '').strip()
-        if not address:
-            return jsonify({'error': 'Address cannot be empty.'}), 400
-        spot.address = address
-
-    if 'description' in data:
-        spot.description = (data.get('description') or '').strip() or None
-
-    if 'price_per_day' in data:
-        try:
-            price_value = float(data.get('price_per_day'))
-        except (TypeError, ValueError):
-            return jsonify({'error': 'Price per day must be a valid number.'}), 400
-        if price_value < 0:
-            return jsonify({'error': 'Price per day cannot be negative.'}), 400
-        spot.price_per_day = price_value
-
-    if 'city_id' in data:
-        city = City.query.get(data.get('city_id'))
-        if not city:
-            return jsonify({'error': 'City not found.'}), 404
-        spot.city_id = city.id
-
-    if 'latitude' in data:
-        spot.latitude = data.get('latitude')
-
-    if 'longitude' in data:
-        spot.longitude = data.get('longitude')
-
-    if 'is_available' in data:
-        spot.is_available = bool(data.get('is_available'))
-
-    db.session.commit()
-    return jsonify({'spot': spot.to_dict()}), 200
-
-
-@parking.route('/api/spots/<int:spot_id>', methods=['DELETE'])
-@login_required
-def delete_spot(spot_id):
-    spot = ParkingSpot.query.filter_by(id=spot_id, user_id=current_user.id).first()
-    if not spot:
-        return jsonify({'error': 'Spot not found or you do not own it.'}), 404
-
-    db.session.delete(spot)
-    db.session.commit()
-    return jsonify({'success': True, 'message': 'Parking spot deleted.'}), 200
-
-
-@parking.route('/api/cars/<int:car_id>', methods=['PUT', 'PATCH'])
-@login_required
-def update_car(car_id):
-    car = Car.query.filter_by(id=car_id, user_id=current_user.id).first()
-    if not car:
-        return jsonify({'error': 'Car not found or you do not own it.'}), 404
-
-    data = request.get_json(silent=True) or {}
-
-    if 'brand' in data:
-        brand = (data.get('brand') or '').strip()
-        if not brand:
-            return jsonify({'error': 'Brand cannot be empty.'}), 400
-        car.brand = brand
-
-    if 'model' in data:
-        model = (data.get('model') or '').strip()
-        if not model:
-            return jsonify({'error': 'Model cannot be empty.'}), 400
-        car.model = model
-
-    if 'license_plate' in data:
-        license_plate = (data.get('license_plate') or '').strip()
-        if not license_plate:
-            return jsonify({'error': 'License plate cannot be empty.'}), 400
-        car.license_plate = license_plate
-
-    if 'year' in data:
-        car.year = data.get('year')
-
-    if 'color' in data:
-        color = (data.get('color') or '').strip()
-        car.color = color or None
-
-    db.session.commit()
-    return jsonify({'car': car.to_dict()}), 200
-
-
-@parking.route('/api/cars/<int:car_id>', methods=['DELETE'])
-@login_required
-def delete_car(car_id):
-    car = Car.query.filter_by(id=car_id, user_id=current_user.id).first()
-    if not car:
-        return jsonify({'error': 'Car not found or you do not own it.'}), 404
-
-    db.session.delete(car)
-    db.session.commit()
-    return jsonify({'success': True, 'message': 'Car deleted.'}), 200
+{
