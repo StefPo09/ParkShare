@@ -23,4 +23,5 @@ export const ROUTES = {
   EDIT_SPOT: '/EditSpotPage',
   MANAGE_SPOT: '/ManageSpotsPage',
   ADD_SPOT: '/AddSpotPage',
+  SUCCESS_PAYMENT: '/SuccessPaymentPage',
 } as const;
