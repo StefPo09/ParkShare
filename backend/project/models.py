@@ -8,6 +8,8 @@ from . import db
 
 
 class User(UserMixin, db.Model):
+    __tablename__ = 'user'
+
     id = db.Column(db.Integer, primary_key=True)  # primary keys are required by SQLAlchemy
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
@@ -32,6 +34,8 @@ class User(UserMixin, db.Model):
 
 
 class City(db.Model):
+    __tablename__ = 'city'
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     country = db.Column(db.String(120), nullable=True)
@@ -49,6 +53,8 @@ class City(db.Model):
 
 
 class Car(db.Model):
+    __tablename__ = 'car'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     brand = db.Column(db.String(80), nullable=False)
@@ -74,6 +80,8 @@ class Car(db.Model):
 
 
 class ParkingSpot(db.Model):
+    __tablename__ = 'parking_spot'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     city_id = db.Column(db.Integer, db.ForeignKey('city.id'), nullable=False)
@@ -107,6 +115,8 @@ class ParkingSpot(db.Model):
 
 
 class Booking(db.Model):
+    __tablename__ = 'booking'
+
     id = db.Column(db.Integer, primary_key=True)
     spot_id = db.Column(db.Integer, db.ForeignKey('parking_spot.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
