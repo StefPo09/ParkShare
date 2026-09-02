@@ -87,7 +87,7 @@ Start the backend and frontend in two separate terminals. Start Flask first beca
 From Git Bash:
 
 ```bash
-cd /c/Users/cezara.dumitrescu/Documents/ParkShare/backend
+cd /c/Users/denni/ParkShare-main/backend
 source .venv/Scripts/activate
 pip install -r requirements.txt
 python run.py
@@ -100,7 +100,7 @@ The backend will be available at `http://127.0.0.1:5000`.
 From Git Bash:
 
 ```bash
-cd /c/Users/cezara.dumitrescu/Documents/ParkShare/frontend
+cd /c/Users/denni/ParkShare-main/frontend
 npm install
 npm run dev
 ```
