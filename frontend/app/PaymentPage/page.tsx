@@ -8,14 +8,12 @@ import type { Appearance } from '@stripe/stripe-js';
 import { stripePromise } from '../../lib/stripe';
 import { CheckoutForm } from '../components/StripePayment';
 import { ROUTES } from '../../constants/routes';
-import { useLanguage } from '../components/LanguageProvider';
 import {
     X, ChevronRight, ChevronDown, Upload, CircleHelp, Key, Home, Car
 } from 'lucide-react';
 
 export default function PaymentPage() {
     const router = useRouter();
-    const { t } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
 
@@ -110,8 +108,8 @@ export default function PaymentPage() {
     };
 
     if (!mounted) {
-        return null;
-    }
+        return null; // sau un skeleton/loading state, ca să eviți flash-ul greșit de temă
+    }''
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
@@ -120,7 +118,7 @@ export default function PaymentPage() {
                 <header className="flex items-center justify-between px-5 pt-5">
                     <div className="flex-1 text-center">
                         <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                            {t('rentParkingSpot')}
+                            Rent parking spot
                         </h1>
                     </div>
                     <button
@@ -134,24 +132,25 @@ export default function PaymentPage() {
 
                 <div className="px-6 pt-2 text-center">
                     <p className="text-xs font-medium text-[#42565d] dark:text-[#d6e7ea]">
-                        {t('rentingSpotAt')} Parking spot address
+                        Renting spot at: Parking spot address
                     </p>
                     <button className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[#0f4c81] dark:text-[#2dd4bf] hover:underline cursor-pointer">
-                        {t('viewDetails')}
+                        View details
                         <ChevronRight className="w-3 h-3" />
                     </button>
                 </div>
 
                 <main className="flex-1 px-4 pt-4 overflow-y-auto space-y-4 pb-24">
 
+                    {/* Car info section unchanged */}
                     <div className="space-y-4 px-2">
                         <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
-                            {t('carInfo')}
+                            Car info:
                         </h3>
 
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="car-plate" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                                {t('registrationPlate')}
+                                Registration plate
                             </label>
                             <input
                                 id="car-plate"
@@ -165,7 +164,7 @@ export default function PaymentPage() {
 
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="car-model" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                                {t('carModel')}
+                                Car model
                             </label>
                             <div className="relative w-full">
                                 <select
@@ -186,9 +185,8 @@ export default function PaymentPage() {
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <div className="mb-2 flex items-center justify-between gap-2">
                                 <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                                    {t('legalDocuments')}
+                                    Legal documents
                                 </label>
-
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
@@ -197,14 +195,13 @@ export default function PaymentPage() {
                                     >
                                         <CircleHelp className="h-4 w-4" strokeWidth={2.2} />
                                     </button>
-
                                     <button
                                         type="button"
                                         onClick={handleUploadClick}
                                         className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                                     >
                                         <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
-                                        <span>{t('uploadPdf')}</span>
+                                        <span>Upload PDF</span>
                                     </button>
                                 </div>
                             </div>
@@ -274,16 +271,13 @@ export default function PaymentPage() {
                     <button onClick={() => setActiveTab('key')} className={`p-1.5 transition-all cursor-pointer rounded-full ${activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'}`}>
                         <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
                     </button>
-
                     <button onClick={() => setActiveTab('home')} className={`p-1.5 transition-all cursor-pointer rounded-full ${activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'}`}>
                         <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
                     </button>
-
                     <button onClick={() => setActiveTab('car')} className={`p-1.5 transition-all cursor-pointer rounded-full ${activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'}`}>
                         <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
                     </button>
                 </nav>
-
             </div>
 
             {showHelpModal && (
@@ -297,18 +291,15 @@ export default function PaymentPage() {
                         >
                             <X className="h-4 w-4" strokeWidth={2.5} />
                         </button>
-
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-white/10 dark:text-white mt-2">
                             <CircleHelp className="h-6 w-6" strokeWidth={2.2} />
                         </div>
-
                         <h3 className="mt-4 text-xl font-bold tracking-tight text-[#121212] dark:text-white">
                             Legal Documents
                         </h3>
                         <p className="mt-3 text-sm leading-relaxed text-[#404b51] dark:text-slate-300">
                             Please upload the official registration document or certificate of your car. The file must be in <strong>PDF format</strong> and should be clearly legible.
                         </p>
-
                         <div className="mt-6">
                             <button
                                 type="button"
