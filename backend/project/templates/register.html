@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column is-6 is-offset-3">
+    <h3 class="title">Complete Registration</h3>
+    <div class="box">{% with messages = get_flashed_messages() %}
+{% if messages %}
+    <div class="notification is-danger">
+        {{ messages[0] }}
+    </div>
+{% endif %}
+{% endwith %}
+<form method="POST" action="/register">
+            <div class="field">
+                <label class="label">Email</label>
+                <div class="control">
+                    <input class="input" type="email" name="email" placeholder="Email" required value="{{ email }}">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Password</label>
+                <div class="control">
+                    <input class="input" type="password" name="password" placeholder="Password" required>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">First name</label>
+                <div class="control">
+                    <input class="input" type="text" name="first_name" placeholder="First name">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Last name</label>
+                <div class="control">
+                    <input class="input" type="text" name="last_name" placeholder="Last name">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Phone country code</label>
+                <div class="control">
+                    <input class="input" type="text" name="phone_country_code" placeholder="+1">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Phone number</label>
+                <div class="control">
+                    <input class="input" type="text" name="phone" placeholder="Phone">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Country</label>
+                <div class="control">
+                    <input class="input" type="text" name="country" placeholder="Country">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">City</label>
+                <div class="control">
+                    <input class="input" type="text" name="city" placeholder="City">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Date of birth</label>
+                <div class="control">
+                    <input class="input" type="date" name="date_of_birth">
+                </div>
+            </div>
+
+            <button class="button is-block is-info is-large is-fullwidth">Sign Up</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
