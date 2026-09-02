@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
+from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .models import Booking, Car, City, ParkingSpot, User
@@ -39,7 +40,11 @@ def create_city():
 
     city = City(name=name, country=country or None)
     db.session.add(city)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'A city with this name already exists.'}), 409
 
     return jsonify({'city': city.to_dict()}), 201
 
@@ -84,7 +89,12 @@ def create_car():
         color=(data.get('color') or '').strip() or None,
     )
     db.session.add(car)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'A car with this license plate already exists.'}), 409
+
     return jsonify({'car': car.to_dict()}), 201
 
 
@@ -167,7 +177,12 @@ def create_spot():
         is_available=bool(data.get('is_available', True)),
     )
     db.session.add(spot)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create parking spot due to data integrity issue.'}), 409
+
     return jsonify({'spot': spot.to_dict()}), 201
 
 

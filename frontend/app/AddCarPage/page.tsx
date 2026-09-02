@@ -22,6 +22,7 @@ export default function AddCarPage() {
     name: '',
     plate: '',
     model: '',
+    color: '',
     document: '',
   });
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
@@ -73,7 +74,7 @@ export default function AddCarPage() {
     if (documentInputRef.current) documentInputRef.current.value = '';
   };
 
-  const updateField = (field: 'name' | 'plate' | 'model', value: string) => {
+  const updateField = (field: 'name' | 'plate' | 'model' | 'color', value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
@@ -84,7 +85,8 @@ export default function AddCarPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/cars', {
+      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API}/api/cars`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -94,7 +96,7 @@ export default function AddCarPage() {
           brand: form.name,
           model: form.model,
           license_plate: form.plate,
-          color: form.name,
+          color: form.color,
         }),
       });
 
@@ -114,7 +116,7 @@ export default function AddCarPage() {
 
   return (
       <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
-        <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
+        <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] sh[...]">
           <header className="flex items-center justify-between px-5 pt-5">
             <div className="flex-1 text-center">
               <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">{t('yourCar')}</h1>
@@ -123,7 +125,7 @@ export default function AddCarPage() {
             <button
                 aria-label="Close"
                 onClick={() => router.push(ROUTES.MANAGE_CAR)}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5[...]"
             >
               <X className="h-7 w-7" strokeWidth={2.2} />
             </button>
@@ -134,7 +136,7 @@ export default function AddCarPage() {
               <button
                   type="button"
                   onClick={handlePhotoAreaClick}
-                  className="group relative flex h-47.5 w-47.5 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white/50 bg-[#e8e8e8] shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)] transition-transform duration-200 hover:scale-[1.01] dark:bg-[#d7d7d7]"
+                  className="group relative flex h-47.5 w-47.5 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white/50 bg-[#e8e8e8] shadow-[inset_0_2px_10px[...]"
                   aria-label="Upload car photo options"
               >
                 <input
@@ -168,7 +170,7 @@ export default function AddCarPage() {
                     value={form.name}
                     onChange={(event) => updateField('name', event.target.value)}
                     placeholder={t('carName')}
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 d[...]
                 />
               </div>
 
@@ -181,7 +183,7 @@ export default function AddCarPage() {
                     value={form.plate}
                     onChange={(event) => updateField('plate', event.target.value)}
                     placeholder="DT 123 RAL"
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 d[...]
                 />
               </div>
 
@@ -194,7 +196,7 @@ export default function AddCarPage() {
                     value={form.model}
                     onChange={(event) => updateField('model', event.target.value)}
                     placeholder="CarModel_a83"
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 d[...]
                 />
               </div>
 
@@ -210,7 +212,7 @@ export default function AddCarPage() {
                     <button
                         type="button"
                         onClick={() => setIsHelpModalOpen(true)}
-                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#42565d] shadow-sm transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-[#d6e7ea] dark:hover:bg-white/10"
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#42565d] shadow-sm transition hover:-translate[...]
                         aria-label={t('documentHelp')}
                     >
                       <CircleHelp className="h-4 w-4" strokeWidth={2.2} />
@@ -220,7 +222,7 @@ export default function AddCarPage() {
                     <button
                         type="button"
                         onClick={() => documentInputRef.current?.click()}
-                        className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                        className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-tra[...]
                     >
                       <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
                       <span>{t('uploadPdf')}</span>
@@ -236,14 +238,14 @@ export default function AddCarPage() {
                     onChange={handleDocumentChange}
                 />
 
-                <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
+                <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-whi[...]
                   {form.document ? (
                       <>
                         <span className="truncate pr-2">{form.document}</span>
                         <button
                             type="button"
                             onClick={handleDeleteDocument}
-                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white active:scale-95"
+                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white active:scale-95[...]
                             aria-label="Remove document"
                         >
                           <X className="h-4 w-4" strokeWidth={2.5} />
@@ -311,11 +313,11 @@ export default function AddCarPage() {
         {/* Pop-up / Modal modern pentru opțiuni foto mașină */}
         {isPhotoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 [...]
                 <button
                     type="button"
                     onClick={() => setIsPhotoModalOpen(false)}
-                    className="absolute right-4 top-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/5 text-[#121212] hover:bg-black/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition"
+                    className="absolute right-4 top-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/5 text-[#121212] hover:bg-black/10 dark:bg-white/5 dark:text-wh[...]
                     aria-label="Cancel"
                 >
                   <X className="h-4 w-4" strokeWidth={2.5} />
@@ -335,14 +337,14 @@ export default function AddCarPage() {
                         setIsPhotoModalOpen(false);
                         photoInputRef.current?.click();
                       }}
-                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[0.98] dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/15"
+                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[[...]
                   >
                     {t('changePhoto')}
                   </button>
                   <button
                       type="button"
                       onClick={handleDeletePhoto}
-                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98] dark:bg-red-600/80 dark:hover:bg-red-600"
+                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98] dark:bg-red-600/80 d[...]
                   >
                     {t('deletePhoto')}
                   </button>
@@ -354,11 +356,11 @@ export default function AddCarPage() {
         {/* Pop-up / Modal explicativ pentru secțiunea Legal Documents */}
         {isHelpModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 [...]
                 <button
                     type="button"
                     onClick={() => setIsHelpModalOpen(false)}
-                    className="absolute right-4 top-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/5 text-[#121212] hover:bg-black/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition"
+                    className="absolute right-4 top-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/5 text-[#121212] hover:bg-black/10 dark:bg-white/5 dark:text-wh[...]
                     aria-label="Close info"
                 >
                   <X className="h-4 w-4" strokeWidth={2.5} />
