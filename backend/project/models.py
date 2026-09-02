@@ -62,6 +62,8 @@ class Car(db.Model):
     license_plate = db.Column(db.String(30), nullable=False, unique=True)
     year = db.Column(db.Integer, nullable=True)
     color = db.Column(db.String(40), nullable=True)
+    image_url = db.Column(db.String(255), nullable=True)
+    document_url = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     owner = db.relationship('User', back_populates='cars')
@@ -75,6 +77,8 @@ class Car(db.Model):
             'license_plate': self.license_plate,
             'year': self.year,
             'color': self.color,
+            'image_url': self.image_url,
+            'document_url': self.document_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -91,6 +95,8 @@ class ParkingSpot(db.Model):
     price_per_day = db.Column(db.Float, nullable=False, default=0.0)
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
+    image_url = db.Column(db.String(255), nullable=True)
+    document_url = db.Column(db.String(255), nullable=True)
     is_available = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -109,6 +115,8 @@ class ParkingSpot(db.Model):
             'price_per_day': self.price_per_day,
             'latitude': self.latitude,
             'longitude': self.longitude,
+            'image_url': self.image_url,
+            'document_url': self.document_url,
             'is_available': self.is_available,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
