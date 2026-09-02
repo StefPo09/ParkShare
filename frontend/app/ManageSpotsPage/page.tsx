@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -10,31 +10,39 @@ import ProfileMenu from "../components/ProfileMenu";
 import { useLanguage } from '../components/LanguageProvider';
 
 interface SpotItem {
-    id: string;
-    name: string;
+    id: number;
+    title: string;
     address: string;
-    imageUrl?: string;
+    description?: string;
+    price_per_day: number;
 }
-
-const mockSpots: SpotItem[] = [
-    {
-        id: '1',
-        name: 'Custom spot name',
-        address: 'Parking spot address',
-        imageUrl: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-        id: '2',
-        name: 'Downtown Garage Spot',
-        address: 'Main Street 123',
-    },
-];
 
 export default function ManageSpotsPage() {
     const router = useRouter();
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [spots, setSpots] = useState<SpotItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchSpots = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/my-spots', {
+                    credentials: 'include',
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setSpots(data.spots || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch spots:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchSpots();
+    }, []);
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative font-sans">
@@ -64,40 +72,40 @@ export default function ManageSpotsPage() {
 
                 {/* --- Lista de locuri de parcare --- */}
                 <main className="flex-1 px-4 pt-6 pb-8 overflow-y-auto space-y-4">
-                    {mockSpots.map((spot) => (
-                        <div
-                            key={spot.id}
-                            onClick={() => router.push(ROUTES.EDIT_SPOT || '/edit-spot')}
-                            className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
-                        >
-                            <div className="flex items-center space-x-4">
-                                {/* Thumbnail Imagine / Icon Spot */}
-                                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
-                                    {spot.imageUrl ? (
-                                        <Image
-                                            src={spot.imageUrl}
-                                            alt={spot.name}
-                                            fill
-                                            sizes="64px"
-                                            loading="eager"
-                                            className="object-cover"
-                                        />
-                                    ) : (
-                                        <MapPin className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
-                                    )}
-                                </div>
-
-                                {/* Informații Spot */}
-                                <div>
-                                    <h2 className="text-lg font-bold leading-snug">{spot.name}</h2>
-                                    <p className="text-sm font-medium text-slate-200/80">{spot.address}</p>
-                                </div>
-                            </div>
-
-                            {/* Săgeată Dreapta */}
-                            <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-12 text-[#404b51] dark:text-slate-400">
+                            Loading spots...
                         </div>
-                    ))}
+                    ) : spots.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <MapPin className="h-12 w-12 text-[#404b51] dark:text-slate-400 mb-2" />
+                            <p className="text-[#404b51] dark:text-slate-400">No parking spots yet</p>
+                        </div>
+                    ) : (
+                        spots.map((spot) => (
+                            <div
+                                key={spot.id}
+                                onClick={() => router.push(ROUTES.EDIT_SPOT || '/edit-spot')}
+                                className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
+                            >
+                                <div className="flex items-center space-x-4">
+                                    {/* Thumbnail Imagine / Icon Spot */}
+                                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
+                                        <MapPin className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
+                                    </div>
+
+                                    {/* Informații Spot */}
+                                    <div>
+                                        <h2 className="text-lg font-bold leading-snug">{spot.title}</h2>
+                                        <p className="text-sm font-medium text-slate-200/80">{spot.address}</p>
+                                    </div>
+                                </div>
+
+                                {/* Săgeată Dreapta */}
+                                <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
+                            </div>
+                        ))
+                    )}
                 </main>
 
                 {/* --- Buton Add New Spot --- */}

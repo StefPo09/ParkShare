@@ -173,7 +173,7 @@ export default function PaymentPage() {
                                     onChange={(e) => setCarModel(e.target.value)}
                                     className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none appearance-none cursor-pointer dark:border-white/10 dark:bg-white/5 dark:text-white"
                                 >
-                                    <option value="" disabled hidden>Car model...</option>
+                                    <option value="" disabled hidden>{t('carModel')}...</option>
                                     <option value="sedan">Sedan</option>
                                     <option value="suv">SUV</option>
                                     <option value="hatchback">Hatchback</option>
@@ -191,7 +191,7 @@ export default function PaymentPage() {
                                     <button
                                         type="button"
                                         onClick={() => setShowHelpModal(true)}
-                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#42565d] shadow-sm transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-[#d6e7ea] dark:hover:bg-white/10"
+                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#42565d] shadow-sm transition hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                                     >
                                         <CircleHelp className="h-4 w-4" strokeWidth={2.2} />
                                     </button>
@@ -214,14 +214,14 @@ export default function PaymentPage() {
                                 onChange={handleFileChange}
                             />
 
-                            <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
+                            <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/5 dark:bg-white/5 dark:text-white">
                                 {uploadedFile ? (
                                     <>
                                         <span className="truncate pr-2 font-medium">{uploadedFile.name}</span>
                                         <button
                                             type="button"
                                             onClick={handleRemoveFile}
-                                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white active:scale-95"
+                                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
                                         >
                                             <X className="h-4 w-4" strokeWidth={2.5} />
                                         </button>
@@ -286,7 +286,7 @@ export default function PaymentPage() {
                         <button
                             type="button"
                             onClick={() => setShowHelpModal(false)}
-                            className="absolute right-4 top-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/5 text-[#121212] hover:bg-black/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition"
+                            className="absolute right-4 top-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/5 text-[#121212] hover:bg-black/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                             aria-label="Close info"
                         >
                             <X className="h-4 w-4" strokeWidth={2.5} />

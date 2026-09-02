@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -10,31 +10,40 @@ import ProfileMenu from "../components/ProfileMenu";
 import { useLanguage } from '../components/LanguageProvider';
 
 interface CarItem {
-    id: string;
-    name: string;
+    id: number;
+    brand: string;
     model: string;
-    imageUrl?: string;
+    license_plate: string;
+    year?: number;
+    color?: string;
 }
-
-const mockCars: CarItem[] = [
-    {
-        id: '1',
-        name: 'Personal car name',
-        model: 'car model',
-        imageUrl: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-        id: '2',
-        name: 'Personal car name 2',
-        model: 'car model 2',
-    },
-];
 
 export default function ManageCarsPage() {
     const router = useRouter();
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [cars, setCars] = useState<CarItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCars = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/cars', {
+                    credentials: 'include',
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setCars(data.cars || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch cars:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchCars();
+    }, []);
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative font-sans">
@@ -64,40 +73,40 @@ export default function ManageCarsPage() {
 
                 {/* --- Lista de mașini --- */}
                 <main className="flex-1 px-4 pt-6 pb-8 overflow-y-auto space-y-4">
-                    {mockCars.map((car) => (
-                        <div
-                            key={car.id}
-                            onClick={() => router.push(ROUTES.EDIT_CAR)}
-                            className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
-                        >
-                            <div className="flex items-center space-x-4">
-                                {/* Thumbnail Imagine / Icon Mașină */}
-                                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
-                                    {car.imageUrl ? (
-                                        <Image
-                                            src={car.imageUrl}
-                                            alt={car.name}
-                                            fill
-                                            sizes="64px"
-                                            loading="eager"
-                                            className="object-cover"
-                                        />
-                                    ) : (
-                                        <Car className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
-                                    )}
-                                </div>
-
-                                {/* Informații Mașină */}
-                                <div>
-                                    <h2 className="text-lg font-bold leading-snug">{car.name}</h2>
-                                    <p className="text-sm font-medium text-slate-200/80">{car.model}</p>
-                                </div>
-                            </div>
-
-                            {/* Săgeată Dreapta */}
-                            <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-12 text-[#404b51] dark:text-slate-400">
+                            Loading cars...
                         </div>
-                    ))}
+                    ) : cars.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <Car className="h-12 w-12 text-[#404b51] dark:text-slate-400 mb-2" />
+                            <p className="text-[#404b51] dark:text-slate-400">{t('noCars')}</p>
+                        </div>
+                    ) : (
+                        cars.map((car) => (
+                            <div
+                                key={car.id}
+                                onClick={() => router.push(ROUTES.EDIT_CAR)}
+                                className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
+                            >
+                                <div className="flex items-center space-x-4">
+                                    {/* Thumbnail Imagine / Icon Mașină */}
+                                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
+                                        <Car className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
+                                    </div>
+
+                                    {/* Informații Mașină */}
+                                    <div>
+                                        <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
+                                        <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
+                                    </div>
+                                </div>
+
+                                {/* Săgeată Dreapta */}
+                                <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
+                            </div>
+                        ))
+                    )}
                 </main>
 
                 {/* --- Buton Add New Car --- */}
