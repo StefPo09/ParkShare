@@ -8,11 +8,9 @@ from . import db
 
 
 class User(UserMixin, db.Model):
-    __tablename__ = 'user'
-
-    id = db.Column(db.Integer, primary_key=True)  # primary keys are required by SQLAlchemy
+    id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(100))
+    password = db.Column(db.String(255))
     name = db.Column(db.String(1000))
     phone_country_code = db.Column(db.String(8), nullable=True)
     phone = db.Column(db.String(30), nullable=True)
@@ -25,6 +23,8 @@ class User(UserMixin, db.Model):
     cars = db.relationship('Car', back_populates='owner', cascade='all, delete-orphan')
     parking_spots = db.relationship('ParkingSpot', back_populates='owner', cascade='all, delete-orphan')
     bookings = db.relationship('Booking', back_populates='user', cascade='all, delete-orphan')
+    personal_details = db.relationship('PersonalDetails', uselist=False, back_populates='user', cascade='all, delete-orphan')
+    profile_picture = db.relationship('ProfilePicture', uselist=False, back_populates='user', cascade='all, delete-orphan')
 
     def has_role(self, role):
         return self.role == role
@@ -33,9 +33,29 @@ class User(UserMixin, db.Model):
         return self.role == 'admin'
 
 
-class City(db.Model):
-    __tablename__ = 'city'
+class PersonalDetails(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    first_name = db.Column(db.String(200), nullable=True)
+    last_name = db.Column(db.String(200), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    date_of_birth = db.Column(db.Date, nullable=True)
 
+    user = db.relationship('User', back_populates='personal_details')
+
+
+class ProfilePicture(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    filename = db.Column(db.String(512), nullable=True)
+    content_type = db.Column(db.String(100), nullable=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='profile_picture')
+
+
+class City(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     country = db.Column(db.String(120), nullable=True)
