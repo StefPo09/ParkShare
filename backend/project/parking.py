@@ -75,7 +75,8 @@ def create_car():
 
     if not brand or not model or not license_plate:
         return jsonify({'error': 'Brand, model, and license plate are required.'}), 400
-
+    if Car.query.filter_by(user_id=current_user.id).count() >= 5:
+        return jsonify({'error': 'Maximum 5 cars per user.'}), 400
     if Car.query.filter_by(license_plate=license_plate).first():
         return jsonify({'error': 'A car with this license plate already exists.'}), 409
 
@@ -107,7 +108,6 @@ def get_spots():
 
     if available_only:
         query = query.filter_by(is_available=True)
-
     if city_id is not None:
         query = query.filter_by(city_id=city_id)
     elif city_name:
@@ -116,7 +116,6 @@ def get_spots():
             query = query.filter_by(city_id=city.id)
         else:
             return jsonify({'spots': []}), 200
-
     if max_price is not None:
         query = query.filter(ParkingSpot.price_per_day <= max_price)
 
@@ -129,7 +128,6 @@ def get_city_spots(city_id):
     city = City.query.get(city_id)
     if not city:
         return jsonify({'error': 'City not found.'}), 404
-
     spots = ParkingSpot.query.filter_by(city_id=city.id).order_by(ParkingSpot.created_at.desc()).all()
     return jsonify({'city': city.to_dict(), 'spots': [spot.to_dict() for spot in spots]}), 200
 
@@ -153,12 +151,13 @@ def create_spot():
 
     if not city_id or not title or not address:
         return jsonify({'error': 'City, title, and address are required.'}), 400
+    if ParkingSpot.query.filter_by(user_id=current_user.id).count() >= 5:
+        return jsonify({'error': 'Maximum 5 rented spots per user.'}), 400
 
     try:
         price_value = float(price_per_day)
     except (TypeError, ValueError):
         return jsonify({'error': 'Price per day must be a valid number.'}), 400
-
     if price_value < 0:
         return jsonify({'error': 'Price per day cannot be negative.'}), 400
 
@@ -193,14 +192,11 @@ def update_spot_availability(spot_id):
     spot = ParkingSpot.query.filter_by(id=spot_id, user_id=current_user.id).first()
     if not spot:
         return jsonify({'error': 'Spot not found or you do not own it.'}), 404
-
     data = request.get_json(silent=True) or {}
     if 'is_available' not in data:
         return jsonify({'error': 'is_available is required.'}), 400
-
     spot.is_available = bool(data.get('is_available'))
     db.session.commit()
-
     return jsonify({'spot': spot.to_dict()}), 200
 
 
@@ -211,4 +207,48 @@ def get_my_bookings():
     return jsonify({'bookings': [booking.to_dict() for booking in bookings]}), 200
 
 
-{
+@parking.route('/api/owner-bookings', methods=['GET'])
+@login_required
+def get_owner_bookings():
+    bookings = db.session.query(Booking).join(ParkingSpot).filter(ParkingSpot.user_id == current_user.id).order_by(Booking.created_at.desc()).all()
+    return jsonify({'bookings': [booking.to_dict() for booking in bookings]}), 200
+
+
+@parking.route('/api/bookings', methods=['POST'])
+@login_required
+def create_booking():
+    data = request.get_json(silent=True) or {}
+    spot_id = data.get('spot_id')
+    start_date_raw = data.get('start_date')
+    end_date_raw = data.get('end_date')
+
+    if not spot_id or not start_date_raw or not end_date_raw:
+        return jsonify({'error': 'spot_id, start_date, and end_date are required.'}), 400
+
+    spot = ParkingSpot.query.get(spot_id)
+    if not spot:
+        return jsonify({'error': 'Spot not found.'}), 404
+    if spot.user_id == current_user.id:
+        return jsonify({'error': 'You cannot book your own spot.'}), 400
+
+    try:
+        start_date = datetime.fromisoformat(start_date_raw)
+        end_date = datetime.fromisoformat(end_date_raw)
+    except ValueError:
+        return jsonify({'error': 'start_date and end_date must be valid ISO datetime strings.'}), 400
+
+    if end_date <= start_date:
+        return jsonify({'error': 'end_date must be after start_date.'}), 400
+
+    total_price = (end_date - start_date).total_seconds() / 86400 * float(spot.price_per_day)
+    booking = Booking(
+        spot_id=spot.id,
+        user_id=current_user.id,
+        start_date=start_date,
+        end_date=end_date,
+        total_price=total_price,
+        status='pending',
+    )
+    db.session.add(booking)
+    db.session.commit()
+    return jsonify({'booking': booking.to_dict()}), 201
