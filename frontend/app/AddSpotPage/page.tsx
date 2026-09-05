@@ -22,6 +22,7 @@ interface City {
 export default function AddSpotPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,7 +52,7 @@ export default function AddSpotPage() {
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/cities', {
+        const response = await fetch(`${API}/api/cities`, {
           credentials: 'include',
         });
         if (response.ok) {
@@ -146,7 +147,7 @@ export default function AddSpotPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/spots', {
+      const response = await fetch(`${API}/api/spots`, {
         method: 'POST',
         credentials: 'include',
         headers: {

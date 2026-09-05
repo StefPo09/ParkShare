@@ -10,6 +10,7 @@ import { useLanguage } from '../components/LanguageProvider';
 export default function AddCarPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const photoInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,7 +85,7 @@ export default function AddCarPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/cars', {
+      const response = await fetch(`${API}/api/cars`, {
         method: 'POST',
         credentials: 'include',
         headers: {
