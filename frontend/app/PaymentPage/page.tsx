@@ -109,7 +109,7 @@ export default function PaymentPage() {
 
     if (!mounted) {
         return null; // sau un skeleton/loading state, ca să eviți flash-ul greșit de temă
-    }''
+    }
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
@@ -173,7 +173,7 @@ export default function PaymentPage() {
                                     onChange={(e) => setCarModel(e.target.value)}
                                     className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none appearance-none cursor-pointer dark:border-white/10 dark:bg-white/5 dark:text-white"
                                 >
-                                    <option value="" disabled hidden>{t('carModel')}...</option>
+                                    <option value="" disabled hidden>Car model...</option>
                                     <option value="sedan">Sedan</option>
                                     <option value="suv">SUV</option>
                                     <option value="hatchback">Hatchback</option>
