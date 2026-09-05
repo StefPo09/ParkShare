@@ -83,6 +83,7 @@ interface ParkingSpot {
 export default function ParkingRentPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const [spots, setSpots] = useState<ParkingSpot[]>([]);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
@@ -116,7 +117,7 @@ export default function ParkingRentPage() {
   useEffect(() => {
     const fetchSpots = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/spots?available_only=true', {
+        const response = await fetch(`${API}/api/spots?available_only=true`, {
           credentials: 'include',
         });
         if (response.ok) {
@@ -154,7 +155,7 @@ export default function ParkingRentPage() {
     setBookingError(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/bookings', {
+      const response = await fetch(`${API}/api/bookings`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
