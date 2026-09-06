@@ -1,84 +1,118 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { ROUTES } from '../../constants/routes';
+import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 import {
-  Menu,
-  MapPin,
-  Key,
-  Home,
-  Car,
+    Menu,
+    MapPin,
+    Clock,
+    Key,
+    Home,
+    Car,
 } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
 import { useLanguage } from '../components/LanguageProvider';
 
-// Custom dark map style to match dark UI theme
+// Custom dark map style to match the dark UI theme
 const darkMapStyle: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry', stylers: [{ color: '#091d19' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#091d19' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#74928d' }] },
-  {
-    featureType: 'administrative.locality',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#a0ece0' }],
-  },
-  {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#53827a' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'geometry',
-    stylers: [{ color: '#0e2b25' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#163a33' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#091d19' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry',
-    stylers: [{ color: '#204f46' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#040d0b' }],
-  },
+    { elementType: 'geometry', stylers: [{ color: '#091d19' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#091d19' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#74928d' }] },
+    {
+        featureType: 'administrative.locality',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#a0ece0' }],
+    },
+    {
+        featureType: 'poi',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#53827a' }],
+    },
+    {
+        featureType: 'poi.park',
+        elementType: 'geometry',
+        stylers: [{ color: '#0e2b25' }],
+    },
+    {
+        featureType: 'road',
+        elementType: 'geometry',
+        stylers: [{ color: '#163a33' }],
+    },
+    {
+        featureType: 'road',
+        elementType: 'geometry.stroke',
+        stylers: [{ color: '#091d19' }],
+    },
+    {
+        featureType: 'road.highway',
+        elementType: 'geometry',
+        stylers: [{ color: '#204f46' }],
+    },
+    {
+        featureType: 'water',
+        elementType: 'geometry',
+        stylers: [{ color: '#040d0b' }],
+    },
 ];
 
 const containerStyle = {
-  width: '100%',
-  height: '100%',
+    width: '100%',
+    height: '100%',
 };
 
+// Center position (e.g., San Francisco)
 const mapCenter = {
-  lat: 37.7749,
-  lng: -122.4194,
+    lat: 37.7749,
+    lng: -122.4194,
 };
 
 interface ParkingSpot {
-  id: number;
-  title: string;
-  address: string;
-  price_per_day: number;
-  description?: string;
-  is_available: boolean;
-  latitude: number;
-  longitude: number;
-  user_id: number;
-  city_id: number;
+    id: string;
+    price: number;
+    address: string;
+    availability: string;
+    distance: string;
+    image: string;
+    lat: number;
+    lng: number;
 }
+
+const mockSpots: ParkingSpot[] = [
+    {
+        id: '1',
+        price: 4,
+        address: 'Parking spot address',
+        availability: '14:00-18:00',
+        distance: '100 meters',
+        image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=800&q=80',
+        lat: 37.7749,
+        lng: -122.4194,
+    },
+    {
+        id: '2',
+        price: 3,
+        address: 'Eastside Spot',
+        availability: '10:00-20:00',
+        distance: '350 meters',
+        image: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=800&q=80',
+        lat: 37.7770,
+        lng: -122.4120,
+    },
+    {
+        id: '3',
+        price: 5,
+        address: 'Downtown Garage',
+        availability: '08:00-18:00',
+        distance: '500 meters',
+        image: 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=800&q=80',
+        lat: 37.7710,
+        lng: -122.4250,
+    },
+];
 
 export default function ParkingRentPage() {
     const { t } = useLanguage();
@@ -270,101 +304,6 @@ export default function ParkingRentPage() {
                     </button>
                 </nav>
             </div>
-          )}
-        </main>
-
-        {/* --- Bottom Drawer / Rental Details --- */}
-        <section className="bg-white/40 dark:bg-[#011b1b]/95 border-t border-black/5 dark:border-white/10 backdrop-blur-md rounded-t-4xl p-5 shadow-[0_-15px_30px_rgba(15,32,35,0.08)] transition-colors duration-300 z-20">
-          <div className="w-12 h-1.5 bg-black/10 dark:bg-white/10 rounded-full mx-auto mb-4" />
-
-          {isLoading ? (
-            <div className="text-center py-8 text-[#42565d] dark:text-[#d6e7ea]">Loading spots...</div>
-          ) : !selectedSpot ? (
-            <div className="text-center py-8 text-[#42565d] dark:text-[#d6e7ea]">No available spots</div>
-          ) : (
-            <>
-              <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 shadow-[inset_0_2px_10px_rgba(15,23,42,0.08)] border border-black/5 dark:border-white/5 bg-[#e8e8e8] dark:bg-[#1a2a28] flex items-center justify-center">
-                <MapPin className="w-12 h-12 text-[#42565d] dark:text-[#d6e7ea]" strokeWidth={2} />
-              </div>
-
-              <h2 className="text-[20px] font-bold tracking-tight text-[#121212] dark:text-white mb-1">
-                {selectedSpot.title}
-              </h2>
-              <p className="text-[13px] font-medium text-[#42565d] dark:text-[#d6e7ea] mb-5">
-                {selectedSpot.address}
-              </p>
-
-              <div className="space-y-3 mb-4">
-                <div>
-                  <label className="text-[12px] font-bold uppercase text-[#42565d] dark:text-[#d6e7ea]">Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-[#121212] dark:text-white outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[12px] font-bold uppercase text-[#42565d] dark:text-[#d6e7ea]">End Date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-[#121212] dark:text-white outline-none"
-                  />
-                </div>
-              </div>
-
-              {bookingError && <div className="mb-3 text-red-700 dark:text-red-300 text-sm">{bookingError}</div>}
-
-              <div className="flex items-center justify-between mt-4 pb-20">
-                <div className="flex items-baseline space-x-0.5">
-                  <span className="text-[26px] font-extrabold tracking-tight text-[#121212] dark:text-white">${selectedSpot.price_per_day}</span>
-                  <span className="text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">/ day</span>
-                </div>
-
-                <button
-                  onClick={handleBookSpot}
-                  disabled={isBooking || !startDate || !endDate}
-                  className="px-8 py-3.5 cursor-pointer bg-[#0f4c81] hover:bg-[#0c3e67] disabled:bg-[#0f4c81]/45 disabled:cursor-not-allowed text-white font-semibold text-base rounded-2xl shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition-all active:scale-95"
-                >
-                  {isBooking ? 'Booking...' : 'Rent'}
-                </button>
-              </div>
-            </>
-          )}
-        </section>
-
-        {/* --- Bottom Navigation Bar --- */}
-        <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
-          <button
-            onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
-            className={`p-1.5 transition-all cursor-pointer rounded-full ${
-              activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
-            <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
-            className={`p-1.5 transition-all cursor-pointer rounded-full ${
-              activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
-            <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
-            className={`p-1.5 transition-all cursor-pointer rounded-full ${
-              activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
-            <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-          </button>
-        </nav>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }
