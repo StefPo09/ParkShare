@@ -19,7 +19,6 @@ auth = Blueprint('auth', __name__)
 
 def user_response(user):
     pd = getattr(user, 'personal_details', None)
-    personal = pd or {}
     return {
         'id': user.id,
         'email': user.email,
@@ -27,11 +26,11 @@ def user_response(user):
         'role': user.role,
         'phone_country_code': user.phone_country_code,
         'phone': user.phone,
-        'country': personal.get('country') or user.country,
-        'city': personal.get('city') or user.city,
-        'first_name': personal.get('first_name'),
-        'last_name': personal.get('last_name'),
-        'date_of_birth': personal.get('date_of_birth').isoformat() if personal.get('date_of_birth') else None,
+        'country': (pd.country if pd else None) or user.country,
+        'city': (pd.city if pd else None) or user.city,
+        'first_name': pd.first_name if pd else None,
+        'last_name': pd.last_name if pd else None,
+        'date_of_birth': pd.date_of_birth.isoformat() if pd and pd.date_of_birth else None,
     }
 
 
@@ -57,7 +56,7 @@ def api_register():
 
     user = User(
         email=email,
-        password=generate_password_hash(password) if password else None,
+        password=generate_password_hash(password,  method='pbkdf2:sha256') if password else None,
         phone_country_code=phone_country_code or None,
         phone=phone or None,
         country=country or None,
@@ -245,7 +244,7 @@ def register_post():
         if len(password) < 8:
             flash('Password must be at least 8 characters.')
             return redirect(url_for('auth.register', email=email))
-        user.password = generate_password_hash(password)
+        user.password = generate_password_hash(password,  method='pbkdf2:sha256')
     user.phone_country_code = phone_country_code or None
     user.phone = phone or None
     user.country = country or user.country
@@ -315,9 +314,42 @@ def reset_password_post(token):
         return redirect(url_for('auth.login'))
 
     new_password = request.form.get('password')
-    user.password = generate_password_hash(new_password)
+    user.password = generate_password_hash(new_password,  method='pbkdf2:sha256')
     user.reset_token = None
     user.reset_token_expires = None
     db.session.commit()
     flash('Your password has been reset successfully! Please log in.')
     return redirect(url_for('auth.login'))
+
+@auth.route('/api/user/personal-details', methods=['PATCH'])
+@login_required
+def update_personal_details():
+    data = request.get_json(silent=True) or {}
+    pd = PersonalDetails.query.filter_by(user_id=current_user.id).first()
+    if not pd:
+        pd = PersonalDetails(user_id=current_user.id)
+        db.session.add(pd)
+
+    if 'first_name' in data:
+        pd.first_name = (data.get('first_name') or '').strip() or None
+    if 'last_name' in data:
+        pd.last_name = (data.get('last_name') or '').strip() or None
+    if 'date_of_birth' in data:
+        dob = (data.get('date_of_birth') or '').strip()
+        if dob:
+            try:
+                parsed = datetime.strptime(dob, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid date format, expected YYYY-MM-DD.'}), 400
+            age = (datetime.utcnow().date() - parsed).days / 365.25
+            if age < 18 or age > 120:
+                return jsonify({'error': 'Invalid date of birth.'}), 400
+            pd.date_of_birth = parsed
+        else:
+            pd.date_of_birth = None
+
+    if pd.first_name or pd.last_name:
+        current_user.name = ((pd.first_name or '') + ' ' + (pd.last_name or '')).strip()
+
+    db.session.commit()
+    return jsonify({'user': user_response(current_user)}), 200
