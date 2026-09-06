@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle, Key, Home, Car } from 'lucide-react';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface UserProfile {
   firstName: string;
@@ -18,20 +20,53 @@ interface UserProfile {
   phone: string;
 }
 
-const DEFAULT_PROFILE: UserProfile = {
-  firstName: 'Firstname',
-  lastName: 'Lastname',
+const EMPTY_PROFILE: UserProfile = {
+  firstName: '',
+  lastName: '',
   avatarUrl: '',
-  username: 'Username_App',
-  birthDate: '2006-05-15',
-  location: 'London, England',
-  email: 'Firstname.business@gmail.com',
-  phone: '1234567890',
+  username: '',
+  birthDate: '',
+  location: '',
+  email: '',
+  phone: '',
 };
+
+// Shape returned by /api/auth/me
+interface ApiUser {
+  id: number;
+  email: string;
+  name: string | null;
+  phone_country_code: string | null;
+  phone: string | null;
+  country: string | null;
+  city: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  date_of_birth: string | null;
+}
+
+function mapApiUserToProfile(u: ApiUser): UserProfile {
+  const location = [u.city, u.country].filter(Boolean).join(', ');
+  const phone = [u.phone_country_code, u.phone].filter(Boolean).join(' ');
+  // No dedicated username column on the backend yet — derive one from the email for now.
+  const username = u.email ? u.email.split('@')[0] : '';
+
+  return {
+    firstName: u.first_name || '',
+    lastName: u.last_name || '',
+    avatarUrl: '', // loaded separately, see fetchAvatar
+    username,
+    birthDate: u.date_of_birth || '',
+    location,
+    email: u.email || '',
+    phone,
+  };
+}
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  const [profile, setProfile] = useState<UserProfile>(EMPTY_PROFILE);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingField, setEditingField] = useState<'firstName' | 'lastName' | 'birthDate' | null>(null);
   const [tempValue, setTempValue] = useState('');
   const [isSaved, setIsSaved] = useState(false);
@@ -43,20 +78,51 @@ export default function ProfilePage() {
   // Data curentă de referință în sistem (Anul 2026)
   const TODAY_STR = '2026-08-24';
 
-  useEffect(() => {
-    const savedData = localStorage.getItem('parkshare_user_profile');
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        if (!parsed.birthDate) {
-          parsed.birthDate = '2006-05-15';
-        }
-        setProfile(parsed);
-      } catch (e) {
-        console.error('Failed to parse profile data:', e);
-      }
+  const fetchAvatar = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture/download`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return; // no picture set, or not found — leave avatarUrl empty
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setProfile((prev) => ({ ...prev, avatarUrl: objectUrl }));
+    } catch (e) {
+      console.error('Failed to load profile picture:', e);
     }
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          credentials: 'include',
+        });
+
+        if (res.status === 401) {
+          router.push('/login'); // adjust to your actual login route
+          return;
+        }
+        if (!res.ok) throw new Error(`Unexpected status ${res.status}`);
+
+        const data = await res.json();
+        if (cancelled) return;
+
+        setProfile(mapApiUserToProfile(data.user));
+        fetchAvatar();
+      } catch (e) {
+        console.error('Failed to load profile:', e);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, fetchAvatar]);
 
   const calculateAge = (dateString: string): number => {
     if (!dateString) return 0;
@@ -70,24 +136,15 @@ export default function ProfilePage() {
     return age;
   };
 
-  // Validări stări
   const userAge = editingField === 'birthDate' ? calculateAge(tempValue) : 0;
   const isUnderage = editingField === 'birthDate' && tempValue !== '' && userAge < 18;
   const isTooOld = editingField === 'birthDate' && tempValue !== '' && userAge > 120;
   const isInvalidDate = isUnderage || isTooOld;
 
-  // Calculăm dinamic data minimă acceptată în calendar (Astăzi minus 120 de ani)
   const getMinDateAttribute = (): string => {
     const d = new Date(TODAY_STR);
     d.setFullYear(d.getFullYear() - 120);
     return d.toISOString().split('T')[0];
-  };
-
-  const saveProfileData = (updatedProfile: UserProfile) => {
-    setProfile(updatedProfile);
-    localStorage.setItem('parkshare_user_profile', JSON.stringify(updatedProfile));
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
   };
 
   const startEditing = (field: 'firstName' | 'lastName' | 'birthDate') => {
@@ -95,13 +152,34 @@ export default function ProfilePage() {
     setTempValue(profile[field]);
   };
 
-  const handleSaveField = (field: 'firstName' | 'lastName' | 'birthDate') => {
+  const handleSaveField = async (field: 'firstName' | 'lastName' | 'birthDate') => {
     if (field === 'birthDate' && (calculateAge(tempValue) < 18 || calculateAge(tempValue) > 120)) {
       return;
     }
-    const updated = { ...profile, [field]: tempValue };
-    saveProfileData(updated);
-    setEditingField(null);
+
+    const fieldMap: Record<typeof field, string> = {
+      firstName: 'first_name',
+      lastName: 'last_name',
+      birthDate: 'date_of_birth',
+    };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/personal-details`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [fieldMap[field]]: tempValue }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+
+      const data = await res.json();
+      setProfile((prev) => ({ ...prev, ...mapApiUserToProfile(data.user), avatarUrl: prev.avatarUrl }));
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+      setEditingField(null);
+    } catch (e) {
+      console.error('Failed to save field:', e);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'firstName' | 'lastName' | 'birthDate') => {
@@ -111,23 +189,42 @@ export default function ProfilePage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        const updated = { ...profile, avatarUrl: base64String };
-        saveProfileData(updated);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('picture', file);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+
+      await fetchAvatar();
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+    } catch (err) {
+      console.error('Failed to upload profile picture:', err);
     }
   };
 
-  const handleDeleteImage = () => {
-    const updated = { ...profile, avatarUrl: '' };
-    saveProfileData(updated);
-    setShowDeleteModal(false);
+  const handleDeleteImage = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 404) throw new Error('Delete failed');
+      setProfile((prev) => ({ ...prev, avatarUrl: '' }));
+    } catch (err) {
+      console.error('Failed to delete profile picture:', err);
+    } finally {
+      setShowDeleteModal(false);
+    }
   };
 
   const formatDateDisplay = (dateString: string) => {
@@ -139,6 +236,14 @@ export default function ProfilePage() {
       return dateString;
     }
   };
+
+  if (isLoading) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-[#dfeef0] dark:bg-[#011b1b]">
+          <div className="h-8 w-8 rounded-full border-2 border-[#0f4c81] dark:border-[#2dd4bf] border-t-transparent animate-spin" />
+        </div>
+    );
+  }
 
   return (
       <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
@@ -343,7 +448,7 @@ export default function ProfilePage() {
                           {isUnderage && (
                               <div className="flex items-center space-x-1 mt-2 text-red-500 dark:text-red-400 animate-fade-in">
                                 <AlertCircle className="w-3.5 h-3.5" />
-                                                <span className="text-[11px] font-bold">{t('must_be_18')}</span>
+                                <span className="text-[11px] font-bold">{t('must_be_18')}</span>
                               </div>
                           )}
 
@@ -351,7 +456,7 @@ export default function ProfilePage() {
                           {isTooOld && (
                               <div className="flex items-center space-x-1 mt-2 text-red-500 dark:text-red-400 animate-fade-in">
                                 <AlertCircle className="w-3.5 h-3.5" />
-                                                <span className="text-[11px] font-bold">{t('invalid_birth_date')}</span>
+                                <span className="text-[11px] font-bold">{t('invalid_birth_date')}</span>
                               </div>
                           )}
                         </div>
@@ -442,35 +547,35 @@ export default function ProfilePage() {
               </div>
           )}
 
-              {/* --- Bottom Navigation Bar --- */}
-              <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
-                <button
-                  onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
-                  className={`p-1.5 transition-all cursor-pointer rounded-full ${
+          {/* --- Bottom Navigation Bar --- */}
+          <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+            <button
+                onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
+                className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-                  }`}
-                >
-                  <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
-                </button>
+                }`}
+            >
+              <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+            </button>
 
-                <button
-                  onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
-                  className={`p-1.5 transition-all cursor-pointer rounded-full ${
+            <button
+                onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
+                className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-                  }`}
-                >
-                  <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-                </button>
+                }`}
+            >
+              <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+            </button>
 
-                <button
-                  onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
-                  className={`p-1.5 transition-all cursor-pointer rounded-full ${
+            <button
+                onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+                className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-                  }`}
-                >
-                  <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-                </button>
-              </nav>
+                }`}
+            >
+              <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+            </button>
+          </nav>
 
         </div>
       </div>
