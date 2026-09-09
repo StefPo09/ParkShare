@@ -19,7 +19,19 @@ auth = Blueprint('auth', __name__)
 
 def user_response(user):
     pd = getattr(user, 'personal_details', None)
-    personal = pd or {}
+    if pd is not None:
+        personal_country = getattr(pd, 'country', None) or user.country
+        personal_city = getattr(pd, 'city', None) or user.city
+        first_name = getattr(pd, 'first_name', None)
+        last_name = getattr(pd, 'last_name', None)
+        date_of_birth = pd.date_of_birth.isoformat() if getattr(pd, 'date_of_birth', None) else None
+    else:
+        personal_country = user.country
+        personal_city = user.city
+        first_name = None
+        last_name = None
+        date_of_birth = None
+
     return {
         'id': user.id,
         'email': user.email,
@@ -27,11 +39,11 @@ def user_response(user):
         'role': user.role,
         'phone_country_code': user.phone_country_code,
         'phone': user.phone,
-        'country': personal.get('country') or user.country,
-        'city': personal.get('city') or user.city,
-        'first_name': personal.get('first_name'),
-        'last_name': personal.get('last_name'),
-        'date_of_birth': personal.get('date_of_birth').isoformat() if personal.get('date_of_birth') else None,
+        'country': personal_country,
+        'city': personal_city,
+        'first_name': first_name,
+        'last_name': last_name,
+        'date_of_birth': date_of_birth,
     }
 
 
@@ -42,6 +54,7 @@ def api_register():
     password = data.get('password') or ''
     first_name = (data.get('first_name') or '').strip()
     last_name = (data.get('last_name') or '').strip()
+    display_name = (data.get('name') or '').strip()
     phone_country_code = (data.get('phone_country_code') or '').strip()
     phone = (data.get('phone') or '').strip()
     country = (data.get('country') or '').strip()
@@ -50,10 +63,17 @@ def api_register():
 
     if not email:
         return jsonify({'error': 'Email is required.'}), 400
-    if password and len(password) < 8:
+    if not password:
+        return jsonify({'error': 'Password is required.'}), 400
+    if len(password) < 8:
         return jsonify({'error': 'Password must be at least 8 characters.'}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'An account with that email already exists.'}), 409
+
+    if display_name and not (first_name or last_name):
+        name_parts = display_name.split()
+        first_name = name_parts[0]
+        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
 
     user = User(
         email=email,
@@ -65,6 +85,9 @@ def api_register():
     )
     if first_name or last_name:
         user.name = ((first_name or '') + ' ' + (last_name or '')).strip()
+    elif display_name:
+        user.name = display_name
+
     db.session.add(user)
     db.session.commit()
 

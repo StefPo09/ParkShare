@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Elements } from '@stripe/react-stripe-js';
@@ -9,17 +9,15 @@ import { stripePromise } from '../../lib/stripe';
 import { CheckoutForm } from '../components/StripePayment';
 import { ROUTES } from '../../constants/routes';
 import {
-    X, ChevronRight, ChevronDown, Upload, CircleHelp, Key, Home, Car
+    X, ChevronRight, ChevronDown, CircleHelp, Key, Home, Car
 } from 'lucide-react';
 
 export default function PaymentPage() {
     const router = useRouter();
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
 
     const [plate, setPlate] = useState('');
     const [carModel, setCarModel] = useState('');
-    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [showHelpModal, setShowHelpModal] = useState(false);
 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -37,17 +35,6 @@ export default function PaymentPage() {
     }, []);
 
     const isCarInfoValid = plate.trim() !== '' && carModel !== '';
-
-    const handleUploadClick = () => fileInputRef.current?.click();
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) setUploadedFile(e.target.files[0]);
-    };
-
-    const handleRemoveFile = () => {
-        setUploadedFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    };
 
     const handleUseOwnCar = () => {
         setPlate('B 123 ABC');
@@ -171,7 +158,7 @@ export default function PaymentPage() {
                                     id="car-model"
                                     value={carModel}
                                     onChange={(e) => setCarModel(e.target.value)}
-                                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none appearance-none cursor-pointer dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none appearance-none cursor-pointer dark:border-white/10 dark:bg-white/5"
                                 >
                                     <option value="" disabled hidden>Car model...</option>
                                     <option value="sedan">Sedan</option>
@@ -181,55 +168,6 @@ export default function PaymentPage() {
                                 <ChevronDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-[#42565d] dark:text-[#9db0b6] pointer-events-none" />
                             </div>
                         </div>
-
-                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                                <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                                    Legal documents
-                                </label>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowHelpModal(true)}
-                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#1f2937]/15 bg-white/40 text-[#42565d] shadow-sm transition hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                                    >
-                                        <CircleHelp className="h-4 w-4" strokeWidth={2.2} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleUploadClick}
-                                        className="flex h-8 items-center gap-1.5 rounded-full border border-[#1f2937]/15 bg-white/40 px-3 text-[14px] text-[#1f2937] shadow-sm cursor-pointer transition hover:-translate-y-0.5 hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                                    >
-                                        <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
-                                        <span>Upload PDF</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".pdf,application/pdf"
-                                className="hidden"
-                                onChange={handleFileChange}
-                            />
-
-                            <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/5 dark:bg-white/5 dark:text-white">
-                                {uploadedFile ? (
-                                    <>
-                                        <span className="truncate pr-2 font-medium">{uploadedFile.name}</span>
-                                        <button
-                                            type="button"
-                                            onClick={handleRemoveFile}
-                                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
-                                        >
-                                            <X className="h-4 w-4" strokeWidth={2.5} />
-                                        </button>
-                                    </>
-                                ) : (
-                                    <span className="truncate text-[#6f797d] dark:text-[#9db0b6]">Select PDF document</span>
-                                )}
-                            </div>
 
                             <div className="mt-3 pl-1">
                                 <button
@@ -241,7 +179,6 @@ export default function PaymentPage() {
                                     <ChevronRight className="w-3 h-3" />
                                 </button>
                             </div>
-                        </div>
                     </div>
 
                     <div className="space-y-4 px-2 pt-2">
