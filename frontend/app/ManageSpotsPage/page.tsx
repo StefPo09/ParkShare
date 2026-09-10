@@ -28,7 +28,8 @@ export default function ManageSpotsPage() {
     useEffect(() => {
         const fetchSpots = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/my-spots', {
+                const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                const response = await fetch(`${API}/api/my-spots`, {
                     credentials: 'include',
                 });
                 if (response.ok) {

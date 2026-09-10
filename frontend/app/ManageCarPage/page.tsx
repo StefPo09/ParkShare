@@ -25,21 +25,28 @@ export default function ManageCarsPage() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [cars, setCars] = useState<CarItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchCars = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/cars', {
-                    credentials: 'include',
-                });
+                        const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                        const response = await fetch(`${API}/api/cars`, {
+                            credentials: 'include',
+                        });
                 if (response.ok) {
                     const data = await response.json();
                     setCars(data.cars || []);
-                }
+                        } else {
+                            const errText = `Server returned ${response.status}`;
+                            console.error('Failed to fetch cars:', errText);
+                            setErrorMessage(`Failed to load cars: ${response.statusText || response.status}`);
+                        }
             } catch (error) {
-                console.error('Failed to fetch cars:', error);
+                        console.error('Failed to fetch cars:', error);
+                        setErrorMessage('Failed to fetch cars. Is the backend running and CORS configured?');
             } finally {
-                setIsLoading(false);
+                        setIsLoading(false);
             }
         };
         fetchCars();
@@ -73,40 +80,46 @@ export default function ManageCarsPage() {
 
                 {/* --- Lista de mașini --- */}
                 <main className="flex-1 px-4 pt-6 pb-8 overflow-y-auto space-y-4">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-12 text-[#404b51] dark:text-slate-400">
-                            Loading cars...
+                    {errorMessage && (
+                                            <div className="mb-3 rounded-lg bg-red-500/20 border border-red-500 px-4 py-2 text-red-700 dark:text-red-300 text-sm">
+                                                {errorMessage}
                         </div>
-                    ) : cars.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <Car className="h-12 w-12 text-[#404b51] dark:text-slate-400 mb-2" />
-                            <p className="text-[#404b51] dark:text-slate-400">{t('noCars')}</p>
-                        </div>
-                    ) : (
-                        cars.map((car) => (
-                            <div
-                                key={car.id}
-                                onClick={() => router.push(ROUTES.EDIT_CAR)}
-                                className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
-                            >
-                                <div className="flex items-center space-x-4">
-                                    {/* Thumbnail Imagine / Icon Mașină */}
-                                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
-                                        <Car className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
+                                        )}
+
+                                        {isLoading ? (
+                                            <div className="flex items-center justify-center py-12 text-[#404b51] dark:text-slate-400">
+                                                Loading cars...
+                                            </div>
+                                        ) : cars.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                                <Car className="h-12 w-12 text-[#404b51] dark:text-slate-400 mb-2" />
+                                                <p className="text-[#404b51] dark:text-slate-400">{t('noCars')}</p>
+                                            </div>
+                                        ) : (
+                                            cars.map((car) => (
+                                                <div
+                                                    key={car.id}
+                                                    onClick={() => router.push(ROUTES.EDIT_CAR)}
+                                                    className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
+                                                >
+                                                    <div className="flex items-center space-x-4">
+                                                        {/* Thumbnail Imagine / Icon Mașină */}
+                                                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
+                                                            <Car className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
                                     </div>
 
-                                    {/* Informații Mașină */}
-                                    <div>
-                                        <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
-                                        <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
-                                    </div>
-                                </div>
+                                                        {/* Informații Mașină */}
+                                                        <div>
+                                                            <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
+                                                            <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
+                                                        </div>
+                                                    </div>
 
-                                {/* Săgeată Dreapta */}
-                                <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
-                            </div>
-                        ))
-                    )}
+                                                    {/* Săgeată Dreapta */}
+                                                    <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
+                                                </div>
+                                            ))
+                                        )}
                 </main>
 
                 {/* --- Buton Add New Car --- */}
