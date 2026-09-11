@@ -1,6 +1,8 @@
+import os
+import uuid
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, send_from_directory
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 
@@ -8,6 +10,22 @@ from . import db
 from .models import Booking, Car, City, ParkingSpot, User
 
 parking = Blueprint('parking', __name__)
+
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+
+
+def _allowed_image(filename: str) -> bool:
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+
+def _save_uploaded_image(file_storage, prefix: str) -> str:
+    """Salvează fișierul primit in app.config['UPLOAD_DIR'] și returnează numele generat."""
+    ext = file_storage.filename.rsplit('.', 1)[1].lower()
+    filename = f"{prefix}_{uuid.uuid4().hex}.{ext}"
+    upload_dir = current_app.config['UPLOAD_DIR']
+    os.makedirs(upload_dir, exist_ok=True)
+    file_storage.save(os.path.join(upload_dir, filename))
+    return filename
 
 
 @parking.route('/api/cities', methods=['GET'])
@@ -68,10 +86,12 @@ def get_car(car_id):
 @parking.route('/api/cars', methods=['POST'])
 @login_required
 def create_car():
-    data = request.get_json(silent=True) or {}
-    brand = (data.get('brand') or '').strip()
-    model = (data.get('model') or '').strip()
-    license_plate = (data.get('license_plate') or '').strip()
+    # multipart/form-data acum, nu JSON — ca să putem primi fișierul de imagine
+    brand = (request.form.get('brand') or '').strip()
+    model = (request.form.get('model') or '').strip()
+    license_plate = (request.form.get('license_plate') or '').strip()
+    color = (request.form.get('color') or '').strip()
+    year = request.form.get('year')
 
     if not brand or not model or not license_plate:
         return jsonify({'error': 'Brand, model, and license plate are required.'}), 400
@@ -80,13 +100,21 @@ def create_car():
     if Car.query.filter_by(license_plate=license_plate).first():
         return jsonify({'error': 'A car with this license plate already exists.'}), 409
 
+    image_filename = None
+    image_file = request.files.get('image')
+    if image_file and image_file.filename:
+        if not _allowed_image(image_file.filename):
+            return jsonify({'error': 'Invalid image type. Use png, jpg, jpeg or webp.'}), 400
+        image_filename = _save_uploaded_image(image_file, 'car')
+
     car = Car(
         user_id=current_user.id,
         brand=brand,
         model=model,
         license_plate=license_plate,
-        year=data.get('year'),
-        color=(data.get('color') or '').strip() or None,
+        year=int(year) if year else None,
+        color=color or None,
+        image_url=image_filename,
     )
     db.session.add(car)
     try:
@@ -96,6 +124,14 @@ def create_car():
         return jsonify({'error': 'A car with this license plate already exists.'}), 409
 
     return jsonify({'car': car.to_dict()}), 201
+
+
+@parking.route('/api/cars/<int:car_id>/image', methods=['GET'])
+def get_car_image(car_id):
+    car = Car.query.get(car_id)
+    if not car or not car.image_url:
+        return jsonify({'error': 'Image not found.'}), 404
+    return send_from_directory(current_app.config['UPLOAD_DIR'], car.image_url)
 
 
 @parking.route('/api/spots', methods=['GET'])
@@ -143,11 +179,12 @@ def get_spot(spot_id):
 @parking.route('/api/spots', methods=['POST'])
 @login_required
 def create_spot():
-    data = request.get_json(silent=True) or {}
-    city_id = data.get('city_id')
-    title = (data.get('title') or '').strip()
-    address = (data.get('address') or '').strip()
-    price_per_day = data.get('price_per_day', 0)
+    # multipart/form-data acum, nu JSON — ca să putem primi fișierul de imagine
+    city_id = request.form.get('city_id')
+    title = (request.form.get('title') or '').strip()
+    address = (request.form.get('address') or '').strip()
+    description = (request.form.get('description') or '').strip()
+    price_per_day = request.form.get('price_per_day', 0)
 
     if not city_id or not title or not address:
         return jsonify({'error': 'City, title, and address are required.'}), 400
@@ -165,16 +202,24 @@ def create_spot():
     if not city:
         return jsonify({'error': 'City not found.'}), 404
 
+    image_filename = None
+    image_file = request.files.get('image')
+    if image_file and image_file.filename:
+        if not _allowed_image(image_file.filename):
+            return jsonify({'error': 'Invalid image type. Use png, jpg, jpeg or webp.'}), 400
+        image_filename = _save_uploaded_image(image_file, 'spot')
+
     spot = ParkingSpot(
         user_id=current_user.id,
         city_id=city.id,
         title=title,
         address=address,
-        description=(data.get('description') or '').strip() or None,
+        description=description or None,
         price_per_day=price_value,
-        latitude=data.get('latitude'),
-        longitude=data.get('longitude'),
-        is_available=bool(data.get('is_available', True)),
+        latitude=request.form.get('latitude'),
+        longitude=request.form.get('longitude'),
+        is_available=True,
+        image_url=image_filename,
     )
     db.session.add(spot)
     try:
@@ -184,6 +229,21 @@ def create_spot():
         return jsonify({'error': 'Failed to create parking spot due to data integrity issue.'}), 409
 
     return jsonify({'spot': spot.to_dict()}), 201
+
+
+@parking.route('/api/spots/<int:spot_id>/image', methods=['GET'])
+def get_spot_image(spot_id):
+    spot = ParkingSpot.query.get(spot_id)
+    if not spot or not spot.image_url:
+        return jsonify({'error': 'Image not found.'}), 404
+    return send_from_directory(current_app.config['UPLOAD_DIR'], spot.image_url)
+
+
+@parking.route('/api/my-spots', methods=['GET'])
+@login_required
+def get_my_spots():
+    spots = ParkingSpot.query.filter_by(user_id=current_user.id).order_by(ParkingSpot.created_at.desc()).all()
+    return jsonify({'spots': [spot.to_dict() for spot in spots]}), 200
 
 
 @parking.route('/api/spots/<int:spot_id>/availability', methods=['PATCH'])

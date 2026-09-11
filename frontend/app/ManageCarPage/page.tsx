@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { Menu, ChevronRight, Plus, Car, Key, Home } from 'lucide-react';
@@ -16,6 +15,7 @@ interface CarItem {
     license_plate: string;
     year?: number;
     color?: string;
+    image_url?: string | null; // NOU
 }
 
 export default function ManageCarsPage() {
@@ -26,10 +26,12 @@ export default function ManageCarsPage() {
     const [cars, setCars] = useState<CarItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'; // NOU
+
     useEffect(() => {
         const fetchCars = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/cars', {
+                const response = await fetch(`${API}/api/cars`, {
                     credentials: 'include',
                 });
                 if (response.ok) {
@@ -43,7 +45,7 @@ export default function ManageCarsPage() {
             }
         };
         fetchCars();
-    }, []);
+    }, [API]);
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative font-sans">
@@ -90,9 +92,17 @@ export default function ManageCarsPage() {
                                 className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
                             >
                                 <div className="flex items-center space-x-4">
-                                    {/* Thumbnail Imagine / Icon Mașină */}
+                                    {/* SCHIMBARE: afiseaza imaginea reala daca exista */}
                                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
-                                        <Car className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
+                                        {car.image_url ? (
+                                            <img
+                                                src={`${API}${car.image_url}`}
+                                                alt={`${car.brand} ${car.model}`}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <Car className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
+                                        )}
                                     </div>
 
                                     {/* Informații Mașină */}
@@ -150,6 +160,7 @@ export default function ManageCarsPage() {
                         <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
                     </button>
                 </nav>
+
             </div>
         </div>
     );
