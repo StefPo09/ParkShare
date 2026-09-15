@@ -4,6 +4,8 @@ import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
+import { countryOptions } from '../../data/address/countries';
+import { cityGroups } from '../../data/address/generatedCities';
 import {
   X,
   Upload,
@@ -33,9 +35,17 @@ export default function AddSpotPage() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [countries, setCountries] = useState<string[]>(countryOptions);
   const [cities, setCities] = useState<City[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedCityName, setSelectedCityName] = useState('');
+  const [countrySearch, setCountrySearch] = useState('');
+  const [citySearch, setCitySearch] = useState('');
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [isCityOpen, setIsCityOpen] = useState(false);
 
   const [values, setValues] = useState({
+    country: '',
     city_id: '',
     name: '',
     address: '',
@@ -58,9 +68,23 @@ export default function AddSpotPage() {
         });
         if (response.ok) {
           const data = await response.json();
-          setCities(data.cities || []);
-          if (data.cities && data.cities.length > 0) {
-            setValues((v) => ({ ...v, city_id: data.cities[0].id.toString() }));
+          const apiCities = data.cities || [];
+          setCities(apiCities);
+
+          if (selectedCountry) {
+            const optionList = cityGroups[selectedCountry] || [];
+            const currentCityMatch = optionList.find(
+              (cityName) => cityName.toLowerCase() === selectedCityName.toLowerCase()
+            );
+
+            if (currentCityMatch && apiCities.length > 0) {
+              const backendMatch = apiCities.find(
+                (city) => city.name?.trim().toLowerCase() === currentCityMatch.trim().toLowerCase()
+              );
+              if (backendMatch) {
+                setValues((v) => ({ ...v, city_id: backendMatch.id.toString() }));
+              }
+            }
           }
         }
       } catch (error) {
@@ -68,15 +92,26 @@ export default function AddSpotPage() {
       }
     };
     fetchCities();
-  }, []);
+  }, [API, selectedCountry, selectedCityName]);
+
+  const cityOptions = selectedCountry ? cityGroups[selectedCountry] || [] : [];
+  const filteredCountries = countries.filter((country) =>
+    country.toLowerCase().includes(countrySearch.trim().toLowerCase())
+  );
+  const filteredCities = cityOptions.filter((cityName) =>
+    cityName.toLowerCase().includes(citySearch.trim().toLowerCase())
+  );
 
   const canSubmit =
+      values.country.trim().length > 0 &&
       values.city_id.trim().length > 0 &&
       values.name.trim().length > 0 &&
       values.address.trim().length > 0 &&
       values.rentalPriceAmount.trim().length > 0 &&
       values.document.trim().length > 0 &&
       !!spotImage;
+
+  const isAddSpotDisabled = !canSubmit || isLoading;
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -119,6 +154,20 @@ export default function AddSpotPage() {
 
   const updateValue = (key: keyof typeof values, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+    setSelectedCityName('');
+    setValues((current) => ({ ...current, country, city_id: '' }));
+  };
+
+  const handleCityChange = (cityName: string) => {
+    setSelectedCityName(cityName);
+    const match = cities.find(
+      (city) => city.name.trim().toLowerCase() === cityName.trim().toLowerCase()
+    );
+    setValues((current) => ({ ...current, city_id: match ? String(match.id) : '' }));
   };
 
   const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -245,26 +294,121 @@ export default function AddSpotPage() {
                 {t('spotSpecifications')}
               </h3>
 
+              {/* Country Selection */}
+              <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                <label className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                  Country
+                </label>
+                <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setIsCountryOpen((prev) => !prev)}
+                    className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] dark:text-white"
+                  >
+                    <span className={values.country ? 'text-[#121212] dark:text-white' : 'text-[#6f797d] dark:text-[#9db0b6]'}>
+                      {values.country || 'Select a country...'}
+                    </span>
+                    <span className="text-base text-[#42565d] dark:text-[#d6e7ea]">{isCountryOpen ? '▴' : '▾'}</span>
+                  </button>
+
+                  {isCountryOpen && (
+                    <div className="border-t border-black/10 p-2 dark:border-white/10">
+                      <input
+                        type="text"
+                        value={countrySearch}
+                        onChange={(e) => setCountrySearch(e.target.value)}
+                        placeholder="Search country..."
+                        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-[#032a2a] dark:text-white dark:placeholder:text-[#9db0b6]"
+                      />
+                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+                        {filteredCountries.length > 0 ? (
+                          filteredCountries.map((country) => (
+                            <button
+                              key={country}
+                              type="button"
+                              onClick={() => {
+                                handleCountryChange(country);
+                                setCountrySearch('');
+                                setIsCountryOpen(false);
+                              }}
+                              className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                                values.country === country
+                                  ? 'bg-[#dfeef0] text-[#0f4c81] dark:bg-white/10 dark:text-[#2dd4bf]'
+                                  : 'text-[#121212] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
+                              }`}
+                            >
+                              <span>{country}</span>
+                              {values.country === country && <span>✓</span>}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-[#6f797d] dark:text-[#9db0b6]">
+                            No countries found
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* City Selection */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
-                <label htmlFor="spot-city" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                <label className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   City
                 </label>
-                <select
-                    id="spot-city"
-                    value={values.city_id}
-                    onChange={(e) => setValues((prev) => ({ ...prev, city_id: e.target.value }))}
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white cursor-pointer"
-                >
-                  <option value="" disabled className="text-gray-400 bg-white">
-                    Select a city...
-                  </option>
-                  {cities.map((city) => (
-                      <option key={city.id} value={city.id.toString()} className="text-black bg-white">
-                        {city.name}
-                      </option>
-                  ))}
-                </select>
+                <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                  <button
+                    type="button"
+                    onClick={() => selectedCountry && setIsCityOpen((prev) => !prev)}
+                    disabled={!selectedCountry}
+                    className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] disabled:cursor-not-allowed disabled:opacity-60 dark:text-white"
+                  >
+                    <span className={selectedCityName ? 'text-[#121212] dark:text-white' : 'text-[#6f797d] dark:text-[#9db0b6]'}>
+                      {selectedCityName || (selectedCountry ? 'Select a city...' : 'Select a country first')}
+                    </span>
+                    <span className="text-base text-[#42565d] dark:text-[#d6e7ea]">{isCityOpen ? '▴' : '▾'}</span>
+                  </button>
+
+                  {isCityOpen && selectedCountry && (
+                    <div className="border-t border-black/10 p-2 dark:border-white/10">
+                      <input
+                        type="text"
+                        value={citySearch}
+                        onChange={(e) => setCitySearch(e.target.value)}
+                        placeholder="Search city..."
+                        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-[#032a2a] dark:text-white dark:placeholder:text-[#9db0b6]"
+                      />
+                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+                        {filteredCities.length > 0 ? (
+                          filteredCities.map((cityName) => (
+                            <button
+                              key={cityName}
+                              type="button"
+                              onClick={() => {
+                                handleCityChange(cityName);
+                                setCitySearch('');
+                                setIsCityOpen(false);
+                              }}
+                              className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                                selectedCityName === cityName
+                                  ? 'bg-[#dfeef0] text-[#0f4c81] dark:bg-white/10 dark:text-[#2dd4bf]'
+                                  : 'text-[#121212] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
+                              }`}
+                            >
+                              <span>{cityName}</span>
+                              {selectedCityName === cityName && <span>✓</span>}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-[#6f797d] dark:text-[#9db0b6]">
+                            No cities found
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Name */}
@@ -453,12 +597,12 @@ export default function AddSpotPage() {
               )}
               <button
                   type="button"
-                  disabled={!canSubmit || isLoading}
+                  disabled={isAddSpotDisabled}
                   onClick={handleAddSpotSubmit}
-                  className={`flex w-full cursor-pointer items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:scale-[1.01] active:scale-[0.99] ${
-                      canSubmit && !isLoading
-                          ? 'bg-[#0f4c81] text-white hover:bg-[#0c3e67]'
-                          : 'bg-[#0f4c81]/45 text-white cursor-not-allowed shadow-none'
+                  className={`flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition ${
+                      isAddSpotDisabled
+                          ? 'cursor-not-allowed bg-[#0f4c81]/45 text-white shadow-none'
+                          : 'cursor-pointer bg-[#0f4c81] text-white hover:scale-[1.01] hover:bg-[#0c3e67] active:scale-[0.99]'
                   }`}
               >
                 {isLoading ? 'Loading...' : t('addSpot')}
