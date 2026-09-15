@@ -145,11 +145,10 @@ class ParkingSpot(db.Model):
             'is_available': self.is_available,
             'latitude': self.latitude,
             'longitude': self.longitude,
-            'image_url': self.image_url,
-            'document_url': self.document_url,
-            'is_available': self.is_available,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
             'image_url': f'/api/spots/{self.id}/image' if self.image_url else None,
+            'document_url': f'/api/spots/{self.id}/document' if self.document_url else None,
+            'document_name': self.document_url,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
 

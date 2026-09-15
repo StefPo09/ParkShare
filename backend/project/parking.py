@@ -31,7 +31,7 @@ def _save_uploaded_image(file_storage, prefix: str) -> str:
     return filename
 
 def _delete_image_file(filename):
-    """Șterge fișierul de imagine de pe disc dacă există."""
+    """Șterge fișierul de pe disc dacă există."""
     if not filename:
         return
     filepath = os.path.join(current_app.config['UPLOAD_DIR'], filename)
@@ -100,7 +100,6 @@ def get_car(car_id):
 @parking.route('/api/cars', methods=['POST'])
 @login_required
 def create_car():
-    # multipart/form-data acum, nu JSON — ca să putem primi fișiere
     brand = (request.form.get('brand') or '').strip()
     model = (request.form.get('model') or '').strip()
     license_plate = (request.form.get('license_plate') or '').strip()
@@ -176,7 +175,6 @@ def update_car(car_id):
         year_raw = request.form.get('year')
         car.year = int(year_raw) if year_raw else None
 
-    # Imagine nouă -> șterge fișierul vechi de pe disc, salvează pe cel nou
     image_file = request.files.get('image')
     if image_file and image_file.filename:
         if not _allowed_image(image_file.filename):
@@ -395,6 +393,20 @@ def update_spot(spot_id):
         old_image = spot.image_url
         spot.image_url = _save_uploaded_image(image_file, 'spot')
         _delete_image_file(old_image)
+    elif request.form.get('remove_image') == 'true':
+        old_image = spot.image_url
+        spot.image_url = None
+        _delete_image_file(old_image)
+
+    doc_file = request.files.get('document')
+    if doc_file and doc_file.filename:
+        old_doc = spot.document_url
+        spot.document_url = _save_uploaded_image(doc_file, 'doc')
+        _delete_image_file(old_doc)
+    elif request.form.get('remove_document') == 'true':
+        old_doc = spot.document_url
+        spot.document_url = None
+        _delete_image_file(old_doc)
 
     db.session.commit()
     return jsonify({'spot': spot.to_dict()}), 200
@@ -408,6 +420,7 @@ def delete_spot(spot_id):
         return jsonify({'error': 'Spot not found or you do not own it.'}), 404
 
     _delete_image_file(spot.image_url)
+    _delete_image_file(spot.document_url)
     db.session.delete(spot)
     db.session.commit()
     return jsonify({'message': 'Spot deleted successfully.'}), 200
@@ -419,6 +432,14 @@ def get_spot_image(spot_id):
     if not spot or not spot.image_url:
         return jsonify({'error': 'Image not found.'}), 404
     return send_from_directory(current_app.config['UPLOAD_DIR'], spot.image_url)
+
+
+@parking.route('/api/spots/<int:spot_id>/document', methods=['GET'])
+def get_spot_document(spot_id):
+    spot = ParkingSpot.query.get(spot_id)
+    if not spot or not spot.document_url:
+        return jsonify({'error': 'Document not found.'}), 404
+    return send_from_directory(current_app.config['UPLOAD_DIR'], spot.document_url)
 
 
 @parking.route('/api/my-spots', methods=['GET'])
