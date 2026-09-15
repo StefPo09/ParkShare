@@ -6,6 +6,9 @@ from flask import Blueprint, current_app, jsonify, request, send_from_directory
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 
+from werkzeug.utils import secure_filename
+import os
+
 from . import db
 from .models import Booking, Car, City, ParkingSpot, User
 
@@ -26,6 +29,17 @@ def _save_uploaded_image(file_storage, prefix: str) -> str:
     os.makedirs(upload_dir, exist_ok=True)
     file_storage.save(os.path.join(upload_dir, filename))
     return filename
+
+def _delete_image_file(filename):
+    """Șterge fișierul de imagine de pe disc dacă există."""
+    if not filename:
+        return
+    filepath = os.path.join(current_app.config['UPLOAD_DIR'], filename)
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except OSError:
+            pass  # nu blocăm request-ul dacă ștergerea fizică eșuează
 
 
 @parking.route('/api/cities', methods=['GET'])
@@ -124,6 +138,73 @@ def create_car():
         return jsonify({'error': 'A car with this license plate already exists.'}), 409
 
     return jsonify({'car': car.to_dict()}), 201
+
+@parking.route('/api/cars/<int:car_id>', methods=['PATCH'])
+@login_required
+def update_car(car_id):
+    car = Car.query.filter_by(id=car_id, user_id=current_user.id).first()
+    if not car:
+        return jsonify({'error': 'Car not found or you do not own it.'}), 404
+
+    if 'brand' in request.form:
+        brand = request.form.get('brand', '').strip()
+        if not brand:
+            return jsonify({'error': 'Brand cannot be empty.'}), 400
+        car.brand = brand
+
+    if 'model' in request.form:
+        model = request.form.get('model', '').strip()
+        if not model:
+            return jsonify({'error': 'Model cannot be empty.'}), 400
+        car.model = model
+
+    if 'license_plate' in request.form:
+        license_plate = request.form.get('license_plate', '').strip()
+        if not license_plate:
+            return jsonify({'error': 'License plate cannot be empty.'}), 400
+        existing = Car.query.filter(
+            Car.license_plate == license_plate, Car.id != car.id
+        ).first()
+        if existing:
+            return jsonify({'error': 'A car with this license plate already exists.'}), 409
+        car.license_plate = license_plate
+
+    if 'color' in request.form:
+        car.color = request.form.get('color', '').strip() or None
+
+    if 'year' in request.form:
+        year_raw = request.form.get('year')
+        car.year = int(year_raw) if year_raw else None
+
+    # Imagine nouă -> șterge fișierul vechi de pe disc, salvează pe cel nou
+    image_file = request.files.get('image')
+    if image_file and image_file.filename:
+        if not _allowed_image(image_file.filename):
+            return jsonify({'error': 'Invalid image type. Use png, jpg, jpeg or webp.'}), 400
+        old_image = car.image_url
+        car.image_url = _save_uploaded_image(image_file, 'car')
+        _delete_image_file(old_image)
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'error': 'A car with this license plate already exists.'}), 409
+
+    return jsonify({'car': car.to_dict()}), 200
+
+
+@parking.route('/api/cars/<int:car_id>', methods=['DELETE'])
+@login_required
+def delete_car(car_id):
+    car = Car.query.filter_by(id=car_id, user_id=current_user.id).first()
+    if not car:
+        return jsonify({'error': 'Car not found or you do not own it.'}), 404
+
+    _delete_image_file(car.image_url)
+    db.session.delete(car)
+    db.session.commit()
+    return jsonify({'message': 'Car deleted successfully.'}), 200
 
 
 @parking.route('/api/cars/<int:car_id>/image', methods=['GET'])
@@ -229,6 +310,94 @@ def create_spot():
         return jsonify({'error': 'Failed to create parking spot due to data integrity issue.'}), 409
 
     return jsonify({'spot': spot.to_dict()}), 201
+
+@parking.route('/api/spots/<int:spot_id>', methods=['PATCH'])
+@login_required
+def update_spot(spot_id):
+    spot = ParkingSpot.query.filter_by(id=spot_id, user_id=current_user.id).first()
+    if not spot:
+        return jsonify({'error': 'Spot not found or you do not own it.'}), 404
+
+    if 'city_id' in request.form:
+        city = City.query.get(request.form.get('city_id'))
+        if not city:
+            return jsonify({'error': 'City not found.'}), 404
+        spot.city_id = city.id
+
+    if 'title' in request.form:
+        title = request.form.get('title', '').strip()
+        if not title:
+            return jsonify({'error': 'Title cannot be empty.'}), 400
+        spot.title = title
+
+    if 'address' in request.form:
+        address = request.form.get('address', '').strip()
+        if not address:
+            return jsonify({'error': 'Address cannot be empty.'}), 400
+        spot.address = address
+
+    if 'description' in request.form:
+        spot.description = request.form.get('description', '').strip() or None
+
+    if 'price_per_day' in request.form:
+        try:
+            price_value = float(request.form.get('price_per_day'))
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Price per day must be a valid number.'}), 400
+        if price_value < 0:
+            return jsonify({'error': 'Price per day cannot be negative.'}), 400
+        spot.price_per_day = price_value
+
+    if 'latitude' in request.form:
+        spot.latitude = request.form.get('latitude') or None
+
+    if 'longitude' in request.form:
+        spot.longitude = request.form.get('longitude') or None
+
+    # FIX: Aceste verificari trebuie sa fie ALINIATE LA STÂNGA, nu indentate sub longitude!
+    if 'start_hour' in request.form or 'start_time' in request.form:
+        val = request.form.get('start_hour') or request.form.get('start_time')
+        if val:
+            spot.start_hour = val
+
+    if 'end_hour' in request.form or 'end_time' in request.form:
+        val = request.form.get('end_hour') or request.form.get('end_time')
+        if val:
+            spot.end_hour = val
+
+    if 'price_currency' in request.form:
+        val = request.form.get('price_currency')
+        if val:
+            spot.price_currency = val
+
+    if 'is_on_sale' in request.form:
+        val = request.form.get('is_on_sale')
+        spot.is_on_sale = str(val).lower() in ['true', '1', 'on sale']
+
+    # Imagine nouă -> șterge fișierul vechi de pe disc, salvează pe cel nou
+    image_file = request.files.get('image')
+    if image_file and image_file.filename:
+        if not _allowed_image(image_file.filename):
+            return jsonify({'error': 'Invalid image type. Use png, jpg, jpeg or webp.'}), 400
+        old_image = spot.image_url
+        spot.image_url = _save_uploaded_image(image_file, 'spot')
+        _delete_image_file(old_image)
+
+    db.session.commit()
+    return jsonify({'spot': spot.to_dict()}), 200
+
+
+@parking.route('/api/spots/<int:spot_id>', methods=['DELETE'])
+@login_required
+def delete_spot(spot_id):
+    spot = ParkingSpot.query.filter_by(id=spot_id, user_id=current_user.id).first()
+    if not spot:
+        return jsonify({'error': 'Spot not found or you do not own it.'}), 404
+
+    _delete_image_file(spot.image_url)
+    db.session.delete(spot)  # cascade șterge automat și booking-urile aferente
+    db.session.commit()
+    return jsonify({'message': 'Spot deleted successfully.'}), 200
 
 
 @parking.route('/api/spots/<int:spot_id>/image', methods=['GET'])

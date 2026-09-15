@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef, ChangeEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import {
@@ -16,37 +16,71 @@ import {
 
 export default function EditSpotPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const spotId = searchParams.get('id');
     const { t } = useLanguage();
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const documentInputRef = useRef<HTMLInputElement>(null);
 
-    // Stare imagine
-    const [spotImage, setSpotImage] = useState<string | null>(
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=600&q=80'
-    );
+    const [spotImage, setSpotImage] = useState<string | null>(null);
+    const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
     const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false); // Stare pentru noul modal de succes
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
-    // Stările obiectului "values"
     const [values, setValues] = useState({
-        name: 'Custom spot name',
-        address: 'Parking spot address',
+        name: '',
+        address: '',
         startHour: '14:00',
         endHour: '18:00',
-        extraInfo: 'None',
-        rentalPriceAmount: '4.00',
-        rentalPriceCurrency: '$',
+        extraInfo: '',
+        rentalPriceAmount: '0.00',
+        rentalPriceCurrency: 'RON',
         sellingInfo: 'Not on sale',
-        document: 'ParkDoc3.pdf',
+        document: '',
     });
 
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+    // Încărcare date loc de parcare (inclusiv orele)
+    useEffect(() => {
+        if (!spotId) return;
+
+        fetch(`${API}/api/spots/${spotId}`, { credentials: 'include' })
+            .then((res) => {
+                if (!res.ok) throw new Error('Failed to fetch spot');
+                return res.json();
+            })
+            .then((data) => {
+                if (data.spot) {
+                    const spot = data.spot;
+                    setValues((prev) => ({
+                        ...prev,
+                        name: spot.title || '',
+                        address: spot.address || '',
+                        // Preluăm ora din start_hour sau start_time (pentru compatibilitate)
+                        startHour: spot.start_hour || spot.start_time || '14:00',
+                        endHour: spot.end_hour || spot.end_time || '18:00',
+                        extraInfo: spot.description || '',
+                        rentalPriceAmount: spot.price_per_day ? String(spot.price_per_day) : '0.00',
+                        rentalPriceCurrency: spot.price_currency || 'RON',
+                        sellingInfo: spot.is_on_sale ? 'On sale' : 'Not on sale',
+                    }));
+                    if (spot.image_url) {
+                        setSpotImage(`${API}${spot.image_url}`);
+                    }
+                }
+            })
+            .catch((err) => console.error('Error fetching spot:', err));
+    }, [spotId, API]);
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
+        setSelectedImageFile(file);
         const objectUrl = URL.createObjectURL(file);
         setSpotImage(objectUrl);
         setIsPhotoModalOpen(false);
@@ -58,6 +92,7 @@ export default function EditSpotPage() {
 
     const handleDeletePhoto = () => {
         setSpotImage(null);
+        setSelectedImageFile(null);
         setIsPhotoModalOpen(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -101,22 +136,59 @@ export default function EditSpotPage() {
         if (documentInputRef.current) documentInputRef.current.value = '';
     };
 
-    // Funcție apelată la apăsarea butonului "Rent"
-    const handleRentSubmit = () => {
-        setIsSuccessModalOpen(true);
+    // Salvare modificări cu trimiterea ambelor formate de timp
+    const handleRentSubmit = async () => {
+        if (!spotId) return;
+
+        const formData = new FormData();
+        formData.append('title', values.name);
+        formData.append('address', values.address);
+
+        // Trimitem orele în ambele formate posibile pentru backend (start_hour / start_time)
+        formData.append('start_hour', values.startHour);
+        formData.append('end_hour', values.endHour);
+        formData.append('start_time', values.startHour);
+        formData.append('end_time', values.endHour);
+
+        formData.append('description', values.extraInfo);
+        formData.append('price_per_day', values.rentalPriceAmount);
+        formData.append('price_currency', values.rentalPriceCurrency);
+
+        const isOnSale = values.sellingInfo === 'On sale';
+        formData.append('is_on_sale', String(isOnSale));
+        formData.append('selling_info', values.sellingInfo);
+
+        if (selectedImageFile) {
+            formData.append('image', selectedImageFile);
+        }
+
+        try {
+            const res = await fetch(`${API}/api/spots/${spotId}`, {
+                method: 'PATCH',
+                body: formData,
+                credentials: 'include',
+            });
+
+            if (res.ok) {
+                setIsSuccessModalOpen(true);
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Failed to update spot');
+            }
+        } catch (err) {
+            console.error('Error updating spot:', err);
+        }
     };
 
-    // Închide modalul și navighează înapoi
     const handleCloseSuccessModal = () => {
         setIsSuccessModalOpen(false);
-            router.push(ROUTES.MANAGE_CAR);
+        router.push(ROUTES.MANAGE_SPOT);
     };
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
             <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
 
-                {/* Header */}
                 <header className="flex items-center justify-between px-5 pt-5">
                     <div className="flex-1 text-center">
                         <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
@@ -132,10 +204,8 @@ export default function EditSpotPage() {
                     </button>
                 </header>
 
-                {/* Main Content */}
                 <main className="flex-1 px-4 pt-4 overflow-y-auto space-y-4 pb-24 no-scrollbar">
 
-                    {/* Zona Foto */}
                     <div className="relative flex flex-col items-center justify-center mb-2">
                         <div className="relative group w-full max-w-70 h-55">
                             <button
@@ -171,13 +241,11 @@ export default function EditSpotPage() {
                         </div>
                     </div>
 
-                    {/* Formular */}
                     <div className="space-y-4 px-2">
                         <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
                             {t('spotSpecifications')}
                         </h3>
 
-                        {/* Name */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-name" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 {t('spotName')}
@@ -192,7 +260,6 @@ export default function EditSpotPage() {
                             />
                         </div>
 
-                        {/* Address */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-address" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 {t('address')}
@@ -207,11 +274,10 @@ export default function EditSpotPage() {
                             />
                         </div>
 
-                        {/* Time Available */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
-              <span className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                {t('timeAvailable')}
-              </span>
+                            <span className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                {t('timeAvailable')}
+                            </span>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label htmlFor="start-hour" className="sr-only">{t('startHourLabel')}</label>
@@ -236,7 +302,6 @@ export default function EditSpotPage() {
                             </div>
                         </div>
 
-                        {/* Extra Info */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-extra" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 {t('extraInfo')}
@@ -251,7 +316,6 @@ export default function EditSpotPage() {
                             />
                         </div>
 
-                        {/* Rental Price */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-price" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 {t('rentalPrice')}
@@ -279,12 +343,11 @@ export default function EditSpotPage() {
                                     <option value="€" className="text-black bg-white">€</option>
                                 </select>
                                 <span className="text-[18px] font-semibold text-[#42565d] dark:text-[#d6e7ea] pr-2 select-none">
-                  /h
-                </span>
+                                    /h
+                                </span>
                             </div>
                         </div>
 
-                        {/* Selling Info */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-selling" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 Selling info
@@ -304,7 +367,6 @@ export default function EditSpotPage() {
                             </select>
                         </div>
 
-                        {/* Legal Documents */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <div className="mb-2 flex items-center justify-between gap-2">
                                 <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
@@ -328,7 +390,8 @@ export default function EditSpotPage() {
                                         <Upload className="h-3.5 w-3.5" strokeWidth={2.2} />
                                         <span>{t('uploadPdf')}</span>
                                     </button>
-                                </div>                            </div>
+                                </div>
+                            </div>
                             <input
                                 ref={documentInputRef}
                                 type="file"
@@ -355,7 +418,6 @@ export default function EditSpotPage() {
                         </div>
                     </div>
 
-                    {/* Rent Button */}
                     <div className="px-2 pt-4">
                         <button
                             type="button"
@@ -367,7 +429,6 @@ export default function EditSpotPage() {
                     </div>
                 </main>
 
-                {/* Bottom Navigation */}
                 <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
                     <button
                         onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
@@ -399,12 +460,10 @@ export default function EditSpotPage() {
 
             </div>
 
-            {/* NEW Custom Success Pop-up Modal */}
             {isSuccessModalOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 animate-fadeIn">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center transform scale-100 transition-transform duration-300">
 
-                        {/* Animăluț/Iconiță de succes mult mai eye-catching */}
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400 mb-4 animate-bounce">
                             <CheckCircle2 className="h-10 w-10 stroke-[2.2]" />
                         </div>
@@ -429,7 +488,6 @@ export default function EditSpotPage() {
                 </div>
             )}
 
-            {/* Photo Options Modal */}
             {isPhotoModalOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -469,7 +527,6 @@ export default function EditSpotPage() {
                 </div>
             )}
 
-            {/* PDF Info Modal */}
             {isInfoModalOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
