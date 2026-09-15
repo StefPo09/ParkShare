@@ -11,8 +11,15 @@ import {
     Key,
     Home,
     Car,
-    CheckCircle2
+    CheckCircle2,
+    Pencil
 } from 'lucide-react';
+
+interface SpotPhoto {
+    id: string;
+    url: string;
+    file: File | null;
+}
 
 export default function EditSpotPage() {
     return (
@@ -31,9 +38,15 @@ function EditSpotPageContent() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const documentInputRef = useRef<HTMLInputElement>(null);
 
-    const [spotImage, setSpotImage] = useState<string | null>(null);
-    const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+    const MAX_SPOT_PHOTOS = 5;
+    const [spotPhotos, setSpotPhotos] = useState<SpotPhoto[]>([]);
+    const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+    const [photoMode, setPhotoMode] = useState<'add' | 'replace'>('add');
     const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+    const [showDeletePhotoModal, setShowDeletePhotoModal] = useState(false);
+
+    const [selectedDocumentFile, setSelectedDocumentFile] = useState<File | null>(null);
+    const [isDocumentRemoved, setIsDocumentRemoved] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
@@ -52,7 +65,9 @@ function EditSpotPageContent() {
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-    // Încărcare date loc de parcare (inclusiv orele)
+    const activePhoto = spotPhotos[activePhotoIndex] || null;
+
+    // Încărcare date loc de parcare (inclusiv pozele și orele)
     useEffect(() => {
         if (!spotId) return;
 
@@ -68,16 +83,16 @@ function EditSpotPageContent() {
                         ...prev,
                         name: spot.title || '',
                         address: spot.address || '',
-                        // Preluăm ora din start_hour sau start_time (pentru compatibilitate)
                         startHour: spot.start_hour || spot.start_time || '14:00',
                         endHour: spot.end_hour || spot.end_time || '18:00',
                         extraInfo: spot.description || '',
                         rentalPriceAmount: spot.price_per_day ? String(spot.price_per_day) : '0.00',
                         rentalPriceCurrency: spot.price_currency || 'RON',
                         sellingInfo: spot.is_on_sale ? 'On sale' : 'Not on sale',
+                        document: spot.document_name || (spot.document_url ? 'Legal Document.pdf' : ''),
                     }));
                     if (spot.image_url) {
-                        setSpotImage(`${API}${spot.image_url}`);
+                        setSpotPhotos([{ id: 'existing-image', url: `${API}${spot.image_url}`, file: null }]);
                     }
                 }
             })
@@ -88,21 +103,62 @@ function EditSpotPageContent() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        setSelectedImageFile(file);
         const objectUrl = URL.createObjectURL(file);
-        setSpotImage(objectUrl);
+
+        if (photoMode === 'replace' && activePhoto) {
+            setSpotPhotos((photos) =>
+                photos.map((photo, index) =>
+                    index === activePhotoIndex ? { ...photo, url: objectUrl, file } : photo
+                )
+            );
+        } else if (spotPhotos.length < MAX_SPOT_PHOTOS) {
+            const newPhoto: SpotPhoto = { id: `${Date.now()}-${Math.random()}`, url: objectUrl, file };
+            setSpotPhotos((photos) => {
+                const nextPhotos = [...photos, newPhoto];
+                setActivePhotoIndex(Math.max(nextPhotos.length - 1, 0));
+                return nextPhotos;
+            });
+        }
+
+        setPhotoMode('add');
         setIsPhotoModalOpen(false);
+        setShowDeletePhotoModal(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handlePhotoAreaClick = () => {
-        setIsPhotoModalOpen(true);
+        if (spotPhotos.length > 0) {
+            setIsPhotoModalOpen(true);
+        } else {
+            setPhotoMode('add');
+            fileInputRef.current?.click();
+        }
     };
 
     const handleDeletePhoto = () => {
-        setSpotImage(null);
-        setSelectedImageFile(null);
+        const remainingPhotos = spotPhotos.filter((_, index) => index !== activePhotoIndex);
+        setSpotPhotos(remainingPhotos);
+        setActivePhotoIndex((prev) => {
+            if (remainingPhotos.length === 0) return 0;
+            return Math.min(prev, remainingPhotos.length - 1);
+        });
         setIsPhotoModalOpen(false);
+        setShowDeletePhotoModal(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const openPhotoPickerForAdd = () => {
+        if (spotPhotos.length >= MAX_SPOT_PHOTOS) return;
+        setPhotoMode('add');
+        setIsPhotoModalOpen(false);
+        fileInputRef.current?.click();
+    };
+
+    const openPhotoPickerForReplace = () => {
+        if (!activePhoto) return;
+        setPhotoMode('replace');
+        setIsPhotoModalOpen(false);
+        fileInputRef.current?.click();
     };
 
     const handleDocumentFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +172,8 @@ function EditSpotPageContent() {
             return;
         }
 
+        setSelectedDocumentFile(file);
+        setIsDocumentRemoved(false);
         setValues((current) => ({ ...current, document: file.name }));
     };
 
@@ -140,11 +198,13 @@ function EditSpotPageContent() {
     };
 
     const handleRemoveDocument = () => {
+        setSelectedDocumentFile(null);
+        setIsDocumentRemoved(true);
         setValues((current) => ({ ...current, document: '' }));
         if (documentInputRef.current) documentInputRef.current.value = '';
     };
 
-    // Salvare modificări cu trimiterea ambelor formate de timp
+    // Salvare modificări cu pozele și documentul PDF
     const handleRentSubmit = async () => {
         if (!spotId) return;
 
@@ -152,7 +212,6 @@ function EditSpotPageContent() {
         formData.append('title', values.name);
         formData.append('address', values.address);
 
-        // Trimitem orele în ambele formate posibile pentru backend (start_hour / start_time)
         formData.append('start_hour', values.startHour);
         formData.append('end_hour', values.endHour);
         formData.append('start_time', values.startHour);
@@ -166,8 +225,23 @@ function EditSpotPageContent() {
         formData.append('is_on_sale', String(isOnSale));
         formData.append('selling_info', values.sellingInfo);
 
-        if (selectedImageFile) {
-            formData.append('image', selectedImageFile);
+        const primaryPhoto = spotPhotos.find((photo) => photo.file);
+        if (primaryPhoto?.file) {
+            formData.append('image', primaryPhoto.file);
+        } else if (spotPhotos.length === 0) {
+            formData.append('remove_image', 'true');
+        }
+
+        spotPhotos.forEach((photo) => {
+            if (photo.file) {
+                formData.append('images', photo.file);
+            }
+        });
+
+        if (selectedDocumentFile) {
+            formData.append('document', selectedDocumentFile);
+        } else if (isDocumentRemoved) {
+            formData.append('remove_document', 'true');
         }
 
         try {
@@ -214,38 +288,102 @@ function EditSpotPageContent() {
 
                 <main className="flex-1 px-4 pt-4 overflow-y-auto space-y-4 pb-24 no-scrollbar">
 
+                    {/* Photo Area */}
                     <div className="relative flex flex-col items-center justify-center mb-2">
-                        <div className="relative group w-full max-w-70 h-55">
-                            <button
-                                type="button"
-                                onClick={handlePhotoAreaClick}
-                                className="relative h-full w-full cursor-pointer overflow-hidden rounded-4xl border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-[#032a2a]"
-                                aria-label="Spot photo options"
-                            >
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={handleFileChange}
-                                />
+                        <div className="relative group flex w-full max-w-80 items-center justify-center gap-2 h-60">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
 
-                                {spotImage ? (
-                                    <img src={spotImage} alt="Parking Spot" className="h-full w-full object-cover" />
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center h-full gap-2 text-[#404b51] dark:text-[#8ba2a6]">
+                            {spotPhotos.length > 0 && activePhoto ? (
+                                <>
+                                    {activePhotoIndex > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActivePhotoIndex((prev) => Math.max(prev - 1, 0))}
+                                            className="relative h-32 w-16 overflow-hidden rounded-2xl border border-white/40 bg-black/5 shadow-sm transition-transform duration-300 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5"
+                                            aria-label="Previous photo"
+                                        >
+                                            <img
+                                                src={spotPhotos[activePhotoIndex - 1].url}
+                                                alt="Previous spot photo"
+                                                className="h-full w-full object-cover opacity-75"
+                                            />
+                                        </button>
+                                    )}
+
+                                    <div className="relative h-55 w-full max-w-70 overflow-hidden rounded-[32px] border border-white/40 bg-[#cce5e7] shadow-lg transition-all duration-300 dark:border-white/10 dark:bg-white/5">
+                                        <div className="absolute inset-0 transition-transform duration-300 ease-out">
+                                            <button
+                                                type="button"
+                                                onClick={handlePhotoAreaClick}
+                                                className="relative h-full w-full cursor-pointer overflow-hidden"
+                                                aria-label="Spot photo options"
+                                            >
+                                                <img src={activePhoto.url} alt="Parking Spot" className="h-full w-full object-cover" />
+                                            </button>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowDeletePhotoModal(true)}
+                                            className="absolute bottom-3 left-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-red-500 shadow-[0_4px_12px_rgba(0,0,0,0.18)] border border-black/5 transition-transform active:scale-95"
+                                            aria-label="Delete current photo"
+                                        >
+                                            <X className="h-5 w-5" strokeWidth={2.6} />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={openPhotoPickerForReplace}
+                                            className="absolute bottom-3 right-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-[#121212] shadow-[0_4px_12px_rgba(0,0,0,0.18)] border border-black/5 transition-transform active:scale-95"
+                                            aria-label="Change current photo"
+                                        >
+                                            <Pencil className="h-4 w-4" strokeWidth={2.2} />
+                                        </button>
+                                    </div>
+
+                                    {activePhotoIndex < spotPhotos.length - 1 ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActivePhotoIndex((prev) => Math.min(prev + 1, spotPhotos.length - 1))}
+                                            className="relative h-32 w-16 overflow-hidden rounded-2xl border border-white/40 bg-black/5 shadow-sm transition-transform duration-300 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5"
+                                            aria-label="Next photo"
+                                        >
+                                            <img
+                                                src={spotPhotos[activePhotoIndex + 1].url}
+                                                alt="Next spot photo"
+                                                className="h-full w-full object-cover opacity-75"
+                                            />
+                                        </button>
+                                    ) : spotPhotos.length < MAX_SPOT_PHOTOS ? (
+                                        <button
+                                            type="button"
+                                            onClick={openPhotoPickerForAdd}
+                                            className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-full border border-dashed border-[#0f4c81]/50 bg-white/70 text-[#0f4c81] shadow-sm transition hover:scale-105 dark:border-[#2dd4bf]/60 dark:bg-[#032a2a] dark:text-[#2dd4bf]"
+                                            aria-label="Add photo"
+                                        >
+                                            <span className="text-3xl leading-none">+</span>
+                                        </button>
+                                    ) : null}
+                                </>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handlePhotoAreaClick}
+                                    className="relative h-55 w-full max-w-70 cursor-pointer overflow-hidden rounded-[32px] border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                                    aria-label="Spot photo options"
+                                >
+                                    <div className="flex h-full flex-col items-center justify-center gap-2 text-[#404b51] dark:text-[#8ba2a6]">
                                         <Upload className="h-8 w-8 stroke-[1.8]" />
                                         <span className="text-sm font-medium">{t('spotPhoto')}</span>
                                     </div>
-                                )}
-
-                                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
-                                    <span className="h-2 w-2 rounded-full bg-white opacity-90 shadow-sm"></span>
-                                    <span className="h-2 w-2 rounded-full bg-white/50 shadow-sm"></span>
-                                    <span className="h-2 w-2 rounded-full bg-white/50 shadow-sm"></span>
-                                    <span className="h-2 w-2 rounded-full bg-white/50 shadow-sm"></span>
-                                </div>
-                            </button>
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -468,6 +606,7 @@ function EditSpotPageContent() {
 
             </div>
 
+            {/* Success Modal */}
             {isSuccessModalOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 animate-fadeIn">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center transform scale-100 transition-transform duration-300">
@@ -496,6 +635,7 @@ function EditSpotPageContent() {
                 </div>
             )}
 
+            {/* Photo Options Modal */}
             {isPhotoModalOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -516,16 +656,30 @@ function EditSpotPageContent() {
                         </p>
 
                         <div className="mt-5 space-y-3">
+                            {spotPhotos.length < MAX_SPOT_PHOTOS && (
+                                <button
+                                    type="button"
+                                    onClick={openPhotoPickerForAdd}
+                                    className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#0f4c81] text-white text-sm font-bold shadow-sm hover:bg-[#0c3e67] transition active:scale-[0.98]"
+                                >
+                                    Add Another Photo
+                                </button>
+                            )}
+                            {activePhoto && (
+                                <button
+                                    type="button"
+                                    onClick={openPhotoPickerForReplace}
+                                    className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[0.98] dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/15"
+                                >
+                                    {t('changePhoto')}
+                                </button>
+                            )}
                             <button
                                 type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[0.98] dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/15"
-                            >
-                                {t('changePhoto')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleDeletePhoto}
+                                onClick={() => {
+                                    setIsPhotoModalOpen(false);
+                                    setShowDeletePhotoModal(true);
+                                }}
                                 className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98] dark:bg-red-600/80 dark:hover:bg-red-600"
                             >
                                 {t('deletePhoto')}
@@ -535,6 +689,38 @@ function EditSpotPageContent() {
                 </div>
             )}
 
+            {/* Delete Confirmation Modal */}
+            {showDeletePhotoModal && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+                    <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+                        <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
+                            Delete Photo?
+                        </h3>
+                        <p className="mt-2 text-sm text-[#404b51] dark:text-slate-300 font-medium">
+                            Are you sure you want to delete this photo from your spot?
+                        </p>
+
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowDeletePhotoModal(false)}
+                                className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-slate-200 text-[#121212] text-sm font-bold shadow-sm hover:bg-slate-300 transition active:scale-[0.98] dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDeletePhoto}
+                                className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98]"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Info Modal */}
             {isInfoModalOpen && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
