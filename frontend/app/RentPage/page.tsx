@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from '../../constants/routes';
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
 import {
     Menu,
     MapPin,
@@ -129,7 +129,9 @@ export default function ParkingRentPage() {
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [, setMap] = useState<google.maps.Map | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   // Load Google Maps SDK
   const { isLoaded } = useJsApiLoader({
@@ -146,6 +148,57 @@ export default function ParkingRentPage() {
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationPermissionDenied(true);
+      return;
+    }
+
+    const storageKey = 'parkshare-location-permission';
+    const storedPermission = window.localStorage.getItem(storageKey);
+
+    const requestLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const nextLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(nextLocation);
+          setLocationPermissionDenied(false);
+          window.localStorage.setItem(storageKey, 'granted');
+        },
+        () => {
+          setLocationPermissionDenied(true);
+          window.localStorage.setItem(storageKey, 'denied');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 600000,
+        }
+      );
+    };
+
+    if (storedPermission === 'granted') {
+      requestLocation();
+      return;
+    }
+
+    if (storedPermission === 'denied') {
+      setLocationPermissionDenied(true);
+      return;
+    }
+
+    requestLocation();
+  }, []);
+
+  useEffect(() => {
+    if (!map || !userLocation) return;
+    map.panTo(userLocation);
+    map.setZoom(13);
+  }, [map, userLocation]);
 
   // Fetch available parking spots
   useEffect(() => {
@@ -173,23 +226,43 @@ export default function ParkingRentPage() {
           lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
         }));
 
-        setSpots(fetchedSpots.length > 0 ? fetchedSpots : mockSpots);
-        setSelectedSpot((fetchedSpots.length > 0 ? fetchedSpots : mockSpots)[0] ?? null);
+        const spotsToUse = fetchedSpots.length > 0 ? fetchedSpots : mockSpots;
+        const normalizedSpots = userLocation
+          ? [...spotsToUse].sort((a, b) => {
+              const distanceA = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
+              const distanceB = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+              return distanceA - distanceB;
+            })
+          : spotsToUse;
+
+        setSpots(normalizedSpots);
+        setSelectedSpot(normalizedSpots[0] ?? null);
       } catch (error) {
         console.warn('Falling back to mock parking spots:', error);
-        setSpots(mockSpots);
-        setSelectedSpot(mockSpots[0] ?? null);
+        const fallbackSpots = userLocation
+          ? [...mockSpots].sort((a, b) => {
+              const distanceA = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
+              const distanceB = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+              return distanceA - distanceB;
+            })
+          : mockSpots;
+
+        setSpots(fallbackSpots);
+        setSelectedSpot(fallbackSpots[0] ?? null);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSpots();
-  }, [API]);
+  }, [API, userLocation]);
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-  }, []);
+    if (userLocation) {
+      mapInstance.panTo(userLocation);
+    }
+  }, [userLocation]);
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -232,6 +305,8 @@ export default function ParkingRentPage() {
     }
   };
 
+  const mapCenterTarget = userLocation ?? (selectedSpot ? { lat: selectedSpot.lat, lng: selectedSpot.lng } : mapCenter);
+
   return (
     <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
       <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
@@ -263,7 +338,7 @@ export default function ParkingRentPage() {
           {isLoaded ? (
             <GoogleMap
               mapContainerStyle={containerStyle}
-              center={selectedSpot ? { lat: selectedSpot.lat, lng: selectedSpot.lng } : mapCenter}
+              center={mapCenterTarget}
               zoom={14}
               onLoad={onLoad}
               onUnmount={onUnmount}
@@ -273,6 +348,22 @@ export default function ParkingRentPage() {
                 styles: isDarkMode ? darkMapStyle : [],
               }}
             >
+              {userLocation && (
+                <Circle
+                  center={userLocation}
+                  radius={22}
+                  options={{
+                    strokeColor: '#1e90ff',
+                    strokeOpacity: 0.9,
+                    strokeWeight: 2,
+                    fillColor: '#1e90ff',
+                    fillOpacity: 0.18,
+                    clickable: false,
+                    zIndex: 20,
+                  }}
+                />
+              )}
+
               {spots.map((spot) => {
                 const isSelected = selectedSpot?.id === spot.id;
 
