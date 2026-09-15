@@ -97,7 +97,7 @@ class Car(db.Model):
             'license_plate': self.license_plate,
             'year': self.year,
             'color': self.color,
-            'image_url': self.image_url,
+            'image_url': f'/api/cars/{self.id}/image' if self.image_url else None,
             'document_url': self.document_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
@@ -139,6 +139,7 @@ class ParkingSpot(db.Model):
             'document_url': self.document_url,
             'is_available': self.is_available,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'image_url': f'/api/spots/{self.id}/image' if self.image_url else None,
         }
 
 
