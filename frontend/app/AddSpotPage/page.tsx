@@ -39,6 +39,10 @@ export default function AddSpotPage() {
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCityName, setSelectedCityName] = useState('');
+  const [countrySearch, setCountrySearch] = useState('');
+  const [citySearch, setCitySearch] = useState('');
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [isCityOpen, setIsCityOpen] = useState(false);
 
   const [values, setValues] = useState({
     country: '',
@@ -91,6 +95,12 @@ export default function AddSpotPage() {
   }, [API, selectedCountry, selectedCityName]);
 
   const cityOptions = selectedCountry ? cityGroups[selectedCountry] || [] : [];
+  const filteredCountries = countries.filter((country) =>
+    country.toLowerCase().includes(countrySearch.trim().toLowerCase())
+  );
+  const filteredCities = cityOptions.filter((cityName) =>
+    cityName.toLowerCase().includes(citySearch.trim().toLowerCase())
+  );
 
   const canSubmit =
       values.country.trim().length > 0 &&
@@ -284,47 +294,119 @@ export default function AddSpotPage() {
 
               {/* Country Selection */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
-                <label htmlFor="spot-country" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                <label className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   Country
                 </label>
-                <select
-                    id="spot-country"
-                    value={values.country}
-                    onChange={(e) => handleCountryChange(e.target.value)}
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white cursor-pointer"
-                >
-                  <option value="" disabled className="text-gray-400 bg-white">
-                    Select a country...
-                  </option>
-                  {countries.map((country) => (
-                      <option key={country} value={country} className="text-black bg-white">
-                        {country}
-                      </option>
-                  ))}
-                </select>
+                <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setIsCountryOpen((prev) => !prev)}
+                    className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] dark:text-white"
+                  >
+                    <span className={values.country ? 'text-[#121212] dark:text-white' : 'text-[#6f797d] dark:text-[#9db0b6]'}>
+                      {values.country || 'Select a country...'}
+                    </span>
+                    <span className="text-base text-[#42565d] dark:text-[#d6e7ea]">{isCountryOpen ? '▴' : '▾'}</span>
+                  </button>
+
+                  {isCountryOpen && (
+                    <div className="border-t border-black/10 p-2 dark:border-white/10">
+                      <input
+                        type="text"
+                        value={countrySearch}
+                        onChange={(e) => setCountrySearch(e.target.value)}
+                        placeholder="Search country..."
+                        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-[#032a2a] dark:text-white dark:placeholder:text-[#9db0b6]"
+                      />
+                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+                        {filteredCountries.length > 0 ? (
+                          filteredCountries.map((country) => (
+                            <button
+                              key={country}
+                              type="button"
+                              onClick={() => {
+                                handleCountryChange(country);
+                                setCountrySearch('');
+                                setIsCountryOpen(false);
+                              }}
+                              className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                                values.country === country
+                                  ? 'bg-[#dfeef0] text-[#0f4c81] dark:bg-white/10 dark:text-[#2dd4bf]'
+                                  : 'text-[#121212] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
+                              }`}
+                            >
+                              <span>{country}</span>
+                              {values.country === country && <span>✓</span>}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-[#6f797d] dark:text-[#9db0b6]">
+                            No countries found
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* City Selection */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
-                <label htmlFor="spot-city" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                <label className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   City
                 </label>
-                <select
-                    id="spot-city"
-                    value={selectedCityName}
-                    onChange={(e) => handleCityChange(e.target.value)}
+                <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                  <button
+                    type="button"
+                    onClick={() => selectedCountry && setIsCityOpen((prev) => !prev)}
                     disabled={!selectedCountry}
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <option value="" disabled className="text-gray-400 bg-white">
-                    {selectedCountry ? 'Select a city...' : 'Select a country first'}
-                  </option>
-                  {cityOptions.map((cityName) => (
-                      <option key={cityName} value={cityName} className="text-black bg-white">
-                        {cityName}
-                      </option>
-                  ))}
-                </select>
+                    className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] disabled:cursor-not-allowed disabled:opacity-60 dark:text-white"
+                  >
+                    <span className={selectedCityName ? 'text-[#121212] dark:text-white' : 'text-[#6f797d] dark:text-[#9db0b6]'}>
+                      {selectedCityName || (selectedCountry ? 'Select a city...' : 'Select a country first')}
+                    </span>
+                    <span className="text-base text-[#42565d] dark:text-[#d6e7ea]">{isCityOpen ? '▴' : '▾'}</span>
+                  </button>
+
+                  {isCityOpen && selectedCountry && (
+                    <div className="border-t border-black/10 p-2 dark:border-white/10">
+                      <input
+                        type="text"
+                        value={citySearch}
+                        onChange={(e) => setCitySearch(e.target.value)}
+                        placeholder="Search city..."
+                        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-[#032a2a] dark:text-white dark:placeholder:text-[#9db0b6]"
+                      />
+                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+                        {filteredCities.length > 0 ? (
+                          filteredCities.map((cityName) => (
+                            <button
+                              key={cityName}
+                              type="button"
+                              onClick={() => {
+                                handleCityChange(cityName);
+                                setCitySearch('');
+                                setIsCityOpen(false);
+                              }}
+                              className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                                selectedCityName === cityName
+                                  ? 'bg-[#dfeef0] text-[#0f4c81] dark:bg-white/10 dark:text-[#2dd4bf]'
+                                  : 'text-[#121212] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
+                              }`}
+                            >
+                              <span>{cityName}</span>
+                              {selectedCityName === cityName && <span>✓</span>}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-[#6f797d] dark:text-[#9db0b6]">
+                            No cities found
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Name */}
