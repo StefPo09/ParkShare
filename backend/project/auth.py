@@ -205,9 +205,18 @@ def profile_picture():
     os.makedirs(user_dir, exist_ok=True)
     final_name = f"u{current_user.id}_{int(datetime.utcnow().timestamp())}_{filename}"
     final_path = os.path.join(user_dir, final_name)
-    uploaded.save(final_path)
 
     pic = ProfilePicture.query.filter_by(user_id=current_user.id).first()
+    if pic and pic.filename:
+        old_path = os.path.join(user_dir, pic.filename)
+        try:
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        except OSError:
+            pass
+
+    uploaded.save(final_path)
+
     if not pic:
         pic = ProfilePicture(user_id=current_user.id)
         db.session.add(pic)
