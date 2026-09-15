@@ -305,6 +305,35 @@ export default function ParkingRentPage() {
             </div>
           )}
         </main>
+
+        <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+          <button
+            onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+          </button>
+        </nav>
       </div>
     </div>
   );
