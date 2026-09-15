@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
+import React, { useState, useRef, ChangeEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
@@ -15,6 +15,14 @@ import {
 } from 'lucide-react';
 
 export default function EditCarPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#dfeef0] dark:bg-[#011b1b]" />}>
+      <EditCarPageContent />
+    </Suspense>
+  );
+}
+
+function EditCarPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const carId = searchParams.get('id');

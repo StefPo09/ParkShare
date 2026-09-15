@@ -154,35 +154,38 @@ export default function ParkingRentPage() {
         const response = await fetch(`${API}/api/spots?available_only=true`, {
           credentials: 'include',
         });
-        if (response.ok) {
-          const data = await response.json();
-          const rawSpots = data.spots || [];
 
-          // Normalize server spot shape to local ParkingSpot interface
-          const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
-            id: s.id ?? s._id ?? String(s.id ?? ''),
-            price: s.price_per_day ?? s.price ?? 0,
-            address: s.address ?? s.location ?? '',
-            availability: s.availability ?? s.available_hours ?? '',
-            distance: s.distance ?? '',
-            image: s.image ?? s.photo ?? '',
-            lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
-            lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
-          }));
-
-          setSpots(fetchedSpots);
-          if (fetchedSpots.length > 0) {
-            setSelectedSpot(fetchedSpots[0]);
-          }
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
         }
+
+        const data = await response.json();
+        const rawSpots = Array.isArray(data?.spots) ? data.spots : [];
+
+        const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
+          id: s.id ?? s._id ?? String(s.id ?? ''),
+          price: s.price_per_day ?? s.price ?? 0,
+          address: s.address ?? s.location ?? '',
+          availability: s.availability ?? s.available_hours ?? '',
+          distance: s.distance ?? '',
+          image: s.image ?? s.photo ?? '',
+          lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
+          lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
+        }));
+
+        setSpots(fetchedSpots.length > 0 ? fetchedSpots : mockSpots);
+        setSelectedSpot((fetchedSpots.length > 0 ? fetchedSpots : mockSpots)[0] ?? null);
       } catch (error) {
-        console.error('Failed to fetch spots:', error);
+        console.warn('Falling back to mock parking spots:', error);
+        setSpots(mockSpots);
+        setSelectedSpot(mockSpots[0] ?? null);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchSpots();
-  }, []);
+  }, [API]);
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
