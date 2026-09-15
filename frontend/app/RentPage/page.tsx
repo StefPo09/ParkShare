@@ -154,35 +154,38 @@ export default function ParkingRentPage() {
         const response = await fetch(`${API}/api/spots?available_only=true`, {
           credentials: 'include',
         });
-        if (response.ok) {
-          const data = await response.json();
-          const rawSpots = data.spots || [];
 
-          // Normalize server spot shape to local ParkingSpot interface
-          const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
-            id: s.id ?? s._id ?? String(s.id ?? ''),
-            price: s.price_per_day ?? s.price ?? 0,
-            address: s.address ?? s.location ?? '',
-            availability: s.availability ?? s.available_hours ?? '',
-            distance: s.distance ?? '',
-            image: s.image ?? s.photo ?? '',
-            lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
-            lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
-          }));
-
-          setSpots(fetchedSpots);
-          if (fetchedSpots.length > 0) {
-            setSelectedSpot(fetchedSpots[0]);
-          }
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
         }
+
+        const data = await response.json();
+        const rawSpots = Array.isArray(data?.spots) ? data.spots : [];
+
+        const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
+          id: s.id ?? s._id ?? String(s.id ?? ''),
+          price: s.price_per_day ?? s.price ?? 0,
+          address: s.address ?? s.location ?? '',
+          availability: s.availability ?? s.available_hours ?? '',
+          distance: s.distance ?? '',
+          image: s.image ?? s.photo ?? '',
+          lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
+          lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
+        }));
+
+        setSpots(fetchedSpots.length > 0 ? fetchedSpots : mockSpots);
+        setSelectedSpot((fetchedSpots.length > 0 ? fetchedSpots : mockSpots)[0] ?? null);
       } catch (error) {
-        console.error('Failed to fetch spots:', error);
+        console.warn('Falling back to mock parking spots:', error);
+        setSpots(mockSpots);
+        setSelectedSpot(mockSpots[0] ?? null);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchSpots();
-  }, []);
+  }, [API]);
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -305,6 +308,35 @@ export default function ParkingRentPage() {
             </div>
           )}
         </main>
+
+        <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+          <button
+            onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+          </button>
+        </nav>
       </div>
     </div>
   );
