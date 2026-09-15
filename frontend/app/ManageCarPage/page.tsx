@@ -115,8 +115,8 @@ export default function ManageCarsPage() {
 
                                     {/* Informații Mașină */}
                                     <div>
-                                        <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
-                                        <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
+                                        <h2 className="text-lg font-bold leading-snug">{car.brand}</h2>
+                                        <p className="text-sm font-medium text-slate-200/80">{car.license_plate} - {car.model}</p>
                                     </div>
                                 </div>
 
