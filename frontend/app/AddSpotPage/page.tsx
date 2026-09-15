@@ -4,6 +4,8 @@ import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
+import { countryOptions } from '../../data/address/countries';
+import { cityGroups } from '../../data/address/generatedCities';
 import {
   X,
   Upload,
@@ -33,9 +35,13 @@ export default function AddSpotPage() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [countries, setCountries] = useState<string[]>(countryOptions);
   const [cities, setCities] = useState<City[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedCityName, setSelectedCityName] = useState('');
 
   const [values, setValues] = useState({
+    country: '',
     city_id: '',
     name: '',
     address: '',
@@ -58,9 +64,23 @@ export default function AddSpotPage() {
         });
         if (response.ok) {
           const data = await response.json();
-          setCities(data.cities || []);
-          if (data.cities && data.cities.length > 0) {
-            setValues((v) => ({ ...v, city_id: data.cities[0].id.toString() }));
+          const apiCities = data.cities || [];
+          setCities(apiCities);
+
+          if (selectedCountry) {
+            const optionList = cityGroups[selectedCountry] || [];
+            const currentCityMatch = optionList.find(
+              (cityName) => cityName.toLowerCase() === selectedCityName.toLowerCase()
+            );
+
+            if (currentCityMatch && apiCities.length > 0) {
+              const backendMatch = apiCities.find(
+                (city) => city.name?.trim().toLowerCase() === currentCityMatch.trim().toLowerCase()
+              );
+              if (backendMatch) {
+                setValues((v) => ({ ...v, city_id: backendMatch.id.toString() }));
+              }
+            }
           }
         }
       } catch (error) {
@@ -68,9 +88,12 @@ export default function AddSpotPage() {
       }
     };
     fetchCities();
-  }, []);
+  }, [API, selectedCountry, selectedCityName]);
+
+  const cityOptions = selectedCountry ? cityGroups[selectedCountry] || [] : [];
 
   const canSubmit =
+      values.country.trim().length > 0 &&
       values.city_id.trim().length > 0 &&
       values.name.trim().length > 0 &&
       values.address.trim().length > 0 &&
@@ -119,6 +142,20 @@ export default function AddSpotPage() {
 
   const updateValue = (key: keyof typeof values, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+    setSelectedCityName('');
+    setValues((current) => ({ ...current, country, city_id: '' }));
+  };
+
+  const handleCityChange = (cityName: string) => {
+    setSelectedCityName(cityName);
+    const match = cities.find(
+      (city) => city.name.trim().toLowerCase() === cityName.trim().toLowerCase()
+    );
+    setValues((current) => ({ ...current, city_id: match ? String(match.id) : '' }));
   };
 
   const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -245,6 +282,28 @@ export default function AddSpotPage() {
                 {t('spotSpecifications')}
               </h3>
 
+              {/* Country Selection */}
+              <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                <label htmlFor="spot-country" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                  Country
+                </label>
+                <select
+                    id="spot-country"
+                    value={values.country}
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white cursor-pointer"
+                >
+                  <option value="" disabled className="text-gray-400 bg-white">
+                    Select a country...
+                  </option>
+                  {countries.map((country) => (
+                      <option key={country} value={country} className="text-black bg-white">
+                        {country}
+                      </option>
+                  ))}
+                </select>
+              </div>
+
               {/* City Selection */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="spot-city" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
@@ -252,16 +311,17 @@ export default function AddSpotPage() {
                 </label>
                 <select
                     id="spot-city"
-                    value={values.city_id}
-                    onChange={(e) => setValues((prev) => ({ ...prev, city_id: e.target.value }))}
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white cursor-pointer"
+                    value={selectedCityName}
+                    onChange={(e) => handleCityChange(e.target.value)}
+                    disabled={!selectedCountry}
+                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <option value="" disabled className="text-gray-400 bg-white">
-                    Select a city...
+                    {selectedCountry ? 'Select a city...' : 'Select a country first'}
                   </option>
-                  {cities.map((city) => (
-                      <option key={city.id} value={city.id.toString()} className="text-black bg-white">
-                        {city.name}
+                  {cityOptions.map((cityName) => (
+                      <option key={cityName} value={cityName} className="text-black bg-white">
+                        {cityName}
                       </option>
                   ))}
                 </select>
