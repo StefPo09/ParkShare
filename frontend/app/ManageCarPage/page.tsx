@@ -96,7 +96,7 @@ export default function ManageCarsPage() {
                         cars.map((car) => (
                             <div
                                 key={car.id}
-                                onClick={() => router.push(ROUTES.EDIT_CAR)}
+                                onClick={() => router.push(`${ROUTES.EDIT_CAR}?id=${car.id}`)}
                                 className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
                             >
                                 <div className="flex items-center space-x-4">
@@ -115,8 +115,8 @@ export default function ManageCarsPage() {
 
                                     {/* Informații Mașină */}
                                     <div>
-                                        <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
-                                        <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
+                                        <h2 className="text-lg font-bold leading-snug">{car.brand}</h2>
+                                        <p className="text-sm font-medium text-slate-200/80">{car.license_plate} - {car.model}</p>
                                     </div>
                                 </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef, ChangeEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import {
@@ -11,34 +11,63 @@ import {
   Key,
   Home,
   Car,
-  ChevronDown
+  CheckCircle2
 } from 'lucide-react';
 
 export default function EditCarPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const carId = searchParams.get('id');
   const { t } = useLanguage();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
-  // Stări pentru modul de editare și valorile mașinii[cite: 4]
   const [carImage, setCarImage] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const [values, setValues] = useState({
-    name: 'Personal car name 2',
-    plate: 'DT 123 RAL',
-    model: 'sedan', // Aliniat cu optiunile din select
-    document: 'Document.pdf',
+    name: '',
+    plate: '',
+    model: '',
+    document: '',
   });
 
-  // Stare pentru bara de navigare de jos
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
+  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+  useEffect(() => {
+    if (!carId) return;
+
+    fetch(`${API}/api/cars/${carId}`, { credentials: 'include' })
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch car data');
+          return res.json();
+        })
+        .then((data) => {
+          if (data.car) {
+            setValues((prev) => ({
+              ...prev,
+              name: data.car.brand || '',
+              plate: data.car.license_plate || '',
+              model: data.car.model || '',
+            }));
+            if (data.car.image_url) {
+              setCarImage(`${API}${data.car.image_url}`);
+            }
+          }
+        })
+        .catch((err) => console.error('Error fetching car:', err));
+  }, [carId, API]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setSelectedImageFile(file);
     const objectUrl = URL.createObjectURL(file);
     setCarImage(objectUrl);
     setIsPhotoModalOpen(false);
@@ -54,6 +83,7 @@ export default function EditCarPage() {
 
   const handleDeletePhoto = () => {
     setCarImage(null);
+    setSelectedImageFile(null);
     setIsPhotoModalOpen(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -81,11 +111,45 @@ export default function EditCarPage() {
     if (documentInputRef.current) documentInputRef.current.value = '';
   };
 
+  const handleSaveChanges = async () => {
+    if (!carId) return;
+
+    const formData = new FormData();
+    formData.append('brand', values.name);
+    formData.append('model', values.model);
+    formData.append('license_plate', values.plate);
+
+    if (selectedImageFile) {
+      formData.append('image', selectedImageFile);
+    }
+
+    try {
+      const res = await fetch(`${API}/api/cars/${carId}`, {
+        method: 'PATCH',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        setIsSuccessModalOpen(true);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update car');
+      }
+    } catch (err) {
+      console.error('Error saving car:', err);
+    }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setIsSuccessModalOpen(false);
+    router.push(ROUTES.MANAGE_CAR);
+  };
+
   return (
       <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
         <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
 
-          {/* --- Header --- */}
           <header className="flex items-center justify-between px-5 pt-5">
             <div className="flex-1 text-center">
               <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
@@ -101,10 +165,8 @@ export default function EditCarPage() {
             </button>
           </header>
 
-          {/* --- Main Content Area --- */}
           <main className="flex-1 px-4 pt-4 overflow-y-auto space-y-4 pb-24">
 
-            {/* Zona Foto Cerc */}
             <div className="mb-4 flex justify-center">
               <button
                   type="button"
@@ -133,13 +195,11 @@ export default function EditCarPage() {
               </button>
             </div>
 
-            {/* --- SECȚIUNEA FORMULAR (Stil Payment/AddCar) --- */}
             <div className="space-y-4 px-2">
               <h3 className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#114B43] dark:text-[#2dd4bf] pl-1">
                 {t('carSpecifications')}
               </h3>
 
-              {/* Câmp Car Name */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="car-name" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   {t('carName')}
@@ -154,7 +214,6 @@ export default function EditCarPage() {
                 />
               </div>
 
-              {/* Câmp Registration Plate */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="car-plate" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   {t('registrationPlate')}
@@ -169,28 +228,20 @@ export default function EditCarPage() {
                 />
               </div>
 
-              {/* Select Car Model */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="car-model" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   {t('carModel')}
                 </label>
-                <div className="relative w-full">
-                  <select
-                      id="car-model"
-                      value={values.model}
-                      onChange={(e) => updateValue('model', e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none appearance-none cursor-pointer dark:border-white/10 dark:bg-[#011b1b] dark:text-white"
-                  >
-                    <option value="" disabled hidden className="bg-white text-slate-400 dark:bg-[#011b1b] dark:text-slate-500">{t('carModel')}...</option>
-                    <option value="sedan" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">Sedan</option>
-                    <option value="suv" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">SUV</option>
-                    <option value="hatchback" className="bg-white text-slate-900 dark:bg-[#011b1b] dark:text-white">Hatchback</option>
-                  </select>
-                  <ChevronDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-[#42565d] dark:text-[#9db0b6] pointer-events-none" />
-                </div>
+                <input
+                    id="car-model"
+                    type="text"
+                    value={values.model}
+                    onChange={(e) => updateValue('model', e.target.value)}
+                    placeholder="e.g. Audi A4"
+                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                />
               </div>
 
-              {/* Câmp Legal Documents (PDF Upload) */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
@@ -244,11 +295,10 @@ export default function EditCarPage() {
               </div>
             </div>
 
-            {/* --- Buton Salvare Date --- */}
             <div className="px-2 pt-4">
               <button
                   type="button"
-                  onClick={() => alert(t('success'))}
+                  onClick={handleSaveChanges}
                   className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67]"
               >
                 {t('saveChanges')}
@@ -256,7 +306,6 @@ export default function EditCarPage() {
             </div>
           </main>
 
-          {/* --- Bottom Navigation Bar --- */}
           <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
             <button
                 onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
@@ -277,7 +326,7 @@ export default function EditCarPage() {
             </button>
 
             <button
-                onClick={() => { setActiveTab('car'); router.push(ROUTES.EDIT_CAR); }}
+                onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                 className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                 }`}
@@ -288,7 +337,36 @@ export default function EditCarPage() {
 
         </div>
 
-        {/* Pop-up modern pentru opțiuni foto mașină[cite: 4] */}
+        {/* Modal de Succes */}
+        {isSuccessModalOpen && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 animate-fadeIn">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center transform scale-100 transition-transform duration-300">
+
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400 mb-4 animate-bounce">
+                  <CheckCircle2 className="h-10 w-10 stroke-[2.2]" />
+                </div>
+
+                <h3 className="text-2xl font-bold tracking-tight text-[#121212] dark:text-white">
+                  {t('success')}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-medium">
+                  {t('Changes were successfully saved!')}
+                </p>
+
+                <div className="mt-6">
+                  <button
+                      type="button"
+                      onClick={handleCloseSuccessModal}
+                      className="w-full py-3.5 px-4 cursor-pointer rounded-2xl bg-emerald-500 text-white text-base font-bold shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-600 transition active:scale-[0.98]"
+                  >
+                    Awesome
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+
+        {/* Modal Opțiuni Poză */}
         {isPhotoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
               <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -328,7 +406,7 @@ export default function EditCarPage() {
             </div>
         )}
 
-        {/* Pop-up informativ pentru Legal Documents[cite: 4] */}
+        {/* Modal Informații Documente */}
         {isInfoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
               <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">

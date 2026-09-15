@@ -120,6 +120,11 @@ class ParkingSpot(db.Model):
     is_available = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    start_hour = db.Column(db.String(10), nullable=True, default='14:00')
+    end_hour = db.Column(db.String(10), nullable=True, default='18:00')
+    price_currency = db.Column(db.String(10), nullable=False, default='RON')
+    is_on_sale = db.Column(db.Boolean, default=False)
+
     owner = db.relationship('User', back_populates='parking_spots')
     city = db.relationship('City', back_populates='spots')
     bookings = db.relationship('Booking', back_populates='spot', cascade='all, delete-orphan')
@@ -132,7 +137,12 @@ class ParkingSpot(db.Model):
             'title': self.title,
             'address': self.address,
             'description': self.description,
+            'start_hour': self.start_hour or '14:00',
+            'end_hour': self.end_hour or '18:00',
             'price_per_day': self.price_per_day,
+            'price_currency': self.price_currency or 'RON',
+            'is_on_sale': self.is_on_sale,
+            'is_available': self.is_available,
             'latitude': self.latitude,
             'longitude': self.longitude,
             'image_url': self.image_url,

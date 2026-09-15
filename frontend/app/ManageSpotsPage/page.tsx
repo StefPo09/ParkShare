@@ -14,7 +14,8 @@ interface SpotItem {
     address: string;
     description?: string;
     price_per_day: number;
-    image_url?: string | null; // NOU
+    price_currency?: string;
+    image_url?: string | null;
 }
 
 export default function ManageSpotsPage() {
@@ -26,7 +27,7 @@ export default function ManageSpotsPage() {
     const [spots, setSpots] = useState<SpotItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'; // NOU: refolosit si pentru imagini
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
     const fetchSpots = useCallback(async () => {
         setIsLoading(true);
@@ -49,9 +50,6 @@ export default function ManageSpotsPage() {
             }
 
             const data = await response.json();
-
-            console.log('My spots:', data.spots);
-
             setSpots(data.spots || []);
         } catch (error) {
             console.error('Failed to fetch spots:', error);
@@ -67,12 +65,10 @@ export default function ManageSpotsPage() {
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative font-sans">
-
             <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[#dfeef0] text-[#121212] dark:bg-[#011b1b] dark:text-white">
 
                 {/* Header */}
                 <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10">
-
                     <button
                         aria-label="Open menu"
                         onClick={() => setIsMenuOpen(true)}
@@ -86,7 +82,6 @@ export default function ManageSpotsPage() {
                     </h1>
 
                     <ProfileMenu />
-
                 </header>
 
                 <NavMenu
@@ -96,7 +91,6 @@ export default function ManageSpotsPage() {
 
                 {/* Spots */}
                 <main className="flex-1 px-4 pt-6 pb-8 overflow-y-auto space-y-4">
-
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
                             Loading spots...
@@ -107,60 +101,59 @@ export default function ManageSpotsPage() {
                             <p>No parking spots yet</p>
                         </div>
                     ) : (
-                        spots.map((spot) => (
-                            <div
-                                key={spot.id}
-                                onClick={() =>
-                                    router.push(
-                                        `${ROUTES.EDIT_SPOT}?id=${spot.id}`
-                                    )
-                                }
-                                className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] cursor-pointer"
-                            >
+                        spots.map((spot) => {
+                            const currency = spot.price_currency || 'RON';
+                            return (
+                                <div
+                                    key={spot.id}
+                                    onClick={() =>
+                                        router.push(
+                                            `${ROUTES.EDIT_SPOT}?id=${spot.id}`
+                                        )
+                                    }
+                                    className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] cursor-pointer"
+                                >
+                                    <div className="flex items-center space-x-4">
+                                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#e8e8e8] flex items-center justify-center">
+                                            {spot.image_url ? (
+                                                <img
+                                                    src={`${API}${spot.image_url}`}
+                                                    alt={spot.title}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <MapPin
+                                                    className="h-8 w-8 text-[#404b51]"
+                                                    strokeWidth={2}
+                                                />
+                                            )}
+                                        </div>
 
-                                <div className="flex items-center space-x-4">
+                                        <div>
+                                            <h2 className="text-lg font-bold leading-snug">
+                                                {spot.title}
+                                            </h2>
 
-                                    {/* SCHIMBARE: afiseaza imaginea reala daca exista */}
-                                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#e8e8e8] flex items-center justify-center">
-                                        {spot.image_url ? (
-                                            <img
-                                                src={`${API}${spot.image_url}`}
-                                                alt={spot.title}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <MapPin
-                                                className="h-8 w-8 text-[#404b51]"
-                                                strokeWidth={2}
-                                            />
-                                        )}
+                                            <p className="text-sm font-medium text-slate-200/80">
+                                                {spot.address}
+                                            </p>
+
+                                            <p className="text-sm font-semibold mt-1">
+                                                {currency === 'RON'
+                                                    ? `${spot.price_per_day} RON/day`
+                                                    : `${currency}${spot.price_per_day}/day`}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <div>
-                                        <h2 className="text-lg font-bold leading-snug">
-                                            {spot.title}
-                                        </h2>
-
-                                        <p className="text-sm font-medium text-slate-200/80">
-                                            {spot.address}
-                                        </p>
-
-                                        <p className="text-sm font-semibold mt-1">
-                                            {spot.price_per_day} RON/day
-                                        </p>
-                                    </div>
-
+                                    <ChevronRight
+                                        className="h-6 w-6 text-white/70"
+                                        strokeWidth={2.2}
+                                    />
                                 </div>
-
-                                <ChevronRight
-                                    className="h-6 w-6 text-white/70"
-                                    strokeWidth={2.2}
-                                />
-
-                            </div>
-                        ))
+                            );
+                        })
                     )}
-
                 </main>
 
                 {/* Add */}
@@ -177,7 +170,6 @@ export default function ManageSpotsPage() {
 
                 {/* Bottom nav */}
                 <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
-
                     <button
                         onClick={() => {
                             setActiveTab('key');
@@ -204,7 +196,6 @@ export default function ManageSpotsPage() {
                     >
                         <Car className="w-6 h-6" />
                     </button>
-
                 </nav>
 
             </div>
