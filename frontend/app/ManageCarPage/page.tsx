@@ -25,6 +25,7 @@ export default function ManageCarsPage() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [cars, setCars] = useState<CarItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'; // NOU
 
@@ -37,11 +38,16 @@ export default function ManageCarsPage() {
                 if (response.ok) {
                     const data = await response.json();
                     setCars(data.cars || []);
-                }
+                        } else {
+                            const errText = `Server returned ${response.status}`;
+                            console.error('Failed to fetch cars:', errText);
+                            setErrorMessage(`Failed to load cars: ${response.statusText || response.status}`);
+                        }
             } catch (error) {
-                console.error('Failed to fetch cars:', error);
+                        console.error('Failed to fetch cars:', error);
+                        setErrorMessage('Failed to fetch cars. Is the backend running and CORS configured?');
             } finally {
-                setIsLoading(false);
+                        setIsLoading(false);
             }
         };
         fetchCars();
@@ -75,9 +81,9 @@ export default function ManageCarsPage() {
 
                 {/* --- Lista de mașini --- */}
                 <main className="flex-1 px-4 pt-6 pb-8 overflow-y-auto space-y-4">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-12 text-[#404b51] dark:text-slate-400">
-                            Loading cars...
+                    {errorMessage && (
+                                            <div className="mb-3 rounded-lg bg-red-500/20 border border-red-500 px-4 py-2 text-red-700 dark:text-red-300 text-sm">
+                                                {errorMessage}
                         </div>
                     ) : cars.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -110,13 +116,19 @@ export default function ManageCarsPage() {
                                         <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
                                         <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
                                     </div>
-                                </div>
 
-                                {/* Săgeată Dreapta */}
-                                <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
-                            </div>
-                        ))
-                    )}
+                                                        {/* Informații Mașină */}
+                                                        <div>
+                                                            <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
+                                                            <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Săgeată Dreapta */}
+                                                    <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
+                                                </div>
+                                            ))
+                                        )}
                 </main>
 
                 {/* --- Buton Add New Car --- */}

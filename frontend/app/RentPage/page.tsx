@@ -115,194 +115,183 @@ const mockSpots: ParkingSpot[] = [
 ];
 
 export default function ParkingRentPage() {
-    const { t } = useLanguage();
-    const [selectedSpot, setSelectedSpot] = useState<ParkingSpot>(mockSpots[0]);
-    const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
-    const [isDarkMode, setIsDarkMode] = useState(false);
+  const { t } = useLanguage();
+  const router = useRouter();
+  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-    // Load Google Maps SDK
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    });
+  const [spots, setSpots] = useState<ParkingSpot[]>([]);
+  const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
+  const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [, setMap] = useState<google.maps.Map | null>(null);
 
-    // Detect browser/system theme preferences
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkMode(mediaQuery.matches);
+  // Load Google Maps SDK
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+  });
 
-        const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
-    }, []);
+  // Detect system color preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsDarkMode(mediaQuery.matches);
 
-    const [map, setMap] = useState<google.maps.Map | null>(null);
+    const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
-    const onLoad = useCallback((mapInstance: google.maps.Map) => {
-        setMap(mapInstance);
-    }, []);
+  // Fetch available parking spots
+  useEffect(() => {
+    const fetchSpots = async () => {
+      try {
+        const response = await fetch(`${API}/api/spots?available_only=true`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const fetchedSpots: ParkingSpot[] = data.spots || [];
+          setSpots(fetchedSpots);
+          if (fetchedSpots.length > 0) {
+            setSelectedSpot(fetchedSpots[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch spots:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSpots();
+  }, []);
 
-    const onUnmount = useCallback(() => {
-        setMap(null);
-    }, []);
+  const onLoad = useCallback((mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
+  }, []);
 
-    const router = useRouter();
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
 
-    return (
-        <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
-            <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
+  const handleBookSpot = async () => {
+    if (!selectedSpot || !startDate || !endDate) {
+      setBookingError('Please select dates');
+      return;
+    }
 
-                {/* --- Top Header Navigation --- */}
-                <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10">
-                    <button
-                        aria-label="Open menu"
-                        onClick={() => setIsMenuOpen(true)}
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
-                    >
-                        <Menu className="w-6 h-6" strokeWidth={2.2} />
-                    </button>
+    setIsBooking(true);
+    setBookingError(null);
 
-                    <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-                        {t('parkShare')}
-                    </h1>
+    try {
+      const response = await fetch(`${API}/api/bookings`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spot_id: selectedSpot.id,
+          start_date: startDate,
+          end_date: endDate,
+        }),
+      });
 
-                    <ProfileMenu />
-                </header>
+      if (!response.ok) {
+        const error = await response.json();
+        setBookingError(error.error || 'Booking failed');
+        return;
+      }
 
-                <NavMenu
-                    isOpen={isMenuOpen}
-                    onClose={() => setIsMenuOpen(false)}
-                />
+      alert('Booking created successfully!');
+      setStartDate('');
+      setEndDate('');
+    } catch {
+      setBookingError('An error occurred. Please try again.');
+    } finally {
+      setIsBooking(false);
+    }
+  };
 
-                {/* --- Google Maps Container --- */}
-                <main className="relative flex-1 bg-[#e8e8e8] dark:bg-[#121c1a] overflow-hidden">
-                    {isLoaded ? (
-                        <GoogleMap
-                            mapContainerStyle={containerStyle}
-                            center={mapCenter}
-                            zoom={14}
-                            onLoad={onLoad}
-                            onUnmount={onUnmount}
-                            options={{
-                                disableDefaultUI: true,
-                                zoomControl: false,
-                                styles: isDarkMode ? darkMapStyle : [],
-                            }}
-                        >
-                            {mockSpots.map((spot) => {
-                                const isSelected = selectedSpot.id === spot.id;
+  return (
+    <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
+      <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
 
-                                const redPinSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="%23ef4444" stroke="%23dc2626" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>`;
-                                const greyPinSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="%2342565d" stroke="%2364748b" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>`;
+        {/* --- Top Header Navigation --- */}
+        <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10">
+          <button
+            aria-label="Open menu"
+            onClick={() => setIsMenuOpen(true)}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
+          >
+            <Menu className="w-6 h-6" strokeWidth={2.2} />
+          </button>
 
-                                return (
-                                    <MarkerF
-                                        key={spot.id}
-                                        position={{ lat: spot.lat, lng: spot.lng }}
-                                        onClick={() => setSelectedSpot(spot)}
-                                        label={{
-                                            text: `$${spot.price}/h`,
-                                            color: isSelected ? '#ffffff' : '#121212',
-                                            fontSize: '11px',
-                                            fontWeight: 'bold',
-                                            className: isSelected
-                                                ? 'bg-black px-2 py-0.5 rounded-full shadow'
-                                                : 'bg-white px-2 py-0.5 rounded-full shadow border border-black/10',
-                                        }}
-                                        icon={{
-                                            url: isSelected ? redPinSvg : greyPinSvg,
-                                            anchor: isLoaded ? new window.google.maps.Point(18, 36) : undefined,
-                                        }}
-                                    />
-                                );
-                            })}
-                        </GoogleMap>
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-[#6f797d] dark:text-[#9db0b6]">
-                            {t('loadingMap')}
-                        </div>
-                    )}
-                </main>
+          <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
+            {t('parkShare')}
+          </h1>
 
-                {/* --- Bottom Drawer / Rental Details --- */}
-                <section className="bg-white/40 dark:bg-[#011b1b]/95 border-t border-black/5 dark:border-white/10 backdrop-blur-md rounded-t-4xl p-5 shadow-[0_-15px_30px_rgba(15,32,35,0.08)] transition-colors duration-300 z-20">
-                    <div className="w-12 h-1.5 bg-black/10 dark:bg-white/10 rounded-full mx-auto mb-4" />
+          <ProfileMenu />
+        </header>
 
-                    <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 shadow-[inset_0_2px_10px_rgba(15,23,42,0.08)] border border-black/5 dark:border-white/5">
-                        <Image
-                            src={selectedSpot.image}
-                            alt={selectedSpot.address}
-                            fill
-                            className="object-cover"
-                        />
-                        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-1.5 bg-black/20 px-2 py-1 rounded-full backdrop-blur-xs">
-                            <span className="w-2 h-2 rounded-full bg-white" />
-                            <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                            <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                            <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                        </div>
-                    </div>
+        <NavMenu
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+        />
 
-                    <h2 className="text-[20px] font-bold tracking-tight text-[#121212] dark:text-white mb-1">
-                        {selectedSpot.address}
-                    </h2>
+        {/* --- Google Maps Container --- */}
+        <main className="relative flex-1 bg-[#e8e8e8] dark:bg-[#121c1a] overflow-hidden">
+          {isLoaded ? (
+            <GoogleMap
+              mapContainerStyle={containerStyle}
+              center={selectedSpot ? { lat: selectedSpot.latitude, lng: selectedSpot.longitude } : mapCenter}
+              zoom={14}
+              onLoad={onLoad}
+              onUnmount={onUnmount}
+              options={{
+                disableDefaultUI: true,
+                zoomControl: false,
+                styles: isDarkMode ? darkMapStyle : [],
+              }}
+            >
+              {spots.map((spot) => {
+                const isSelected = selectedSpot?.id === spot.id;
 
-                    <div className="flex items-center space-x-4 text-[13px] font-medium text-[#42565d] dark:text-[#d6e7ea] mb-5">
-                        <div className="flex items-center space-x-1.5">
-                            <Clock className="w-4 h-4 text-[#6f797d] dark:text-[#9db0b6]" strokeWidth={2} />
-                            <span>{selectedSpot.availability}</span>
-                        </div>
-                        <div className="flex items-center space-x-1.5">
-                            <MapPin className="w-4 h-4 text-[#6f797d] dark:text-[#9db0b6]" strokeWidth={2} />
-                            <span>{selectedSpot.distance}</span>
-                        </div>
-                    </div>
+                const redPinSvg = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="#ef4444" stroke="#dc2626" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>'
+                )}`;
+                const greyPinSvg = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="#42565d" stroke="#64748b" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>'
+                )}`;
 
-                    <div className="flex items-center justify-between mt-2 pb-20">
-                        <div className="flex items-baseline space-x-0.5">
-                            <span className="text-[26px] font-extrabold tracking-tight text-[#121212] dark:text-white">
-                                ${selectedSpot.price}
-                            </span>
-                            <span className="text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">/ hour</span>
-                        </div>
-
-                        <button onClick={() => router.push(ROUTES.PAYMENT)}
-                                className="px-8 py-3.5 cursor-pointer bg-[#0f4c81] hover:bg-[#0c3e67] text-white font-semibold text-base rounded-2xl shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition-all active:scale-95">
-                            Rent
-                        </button>
-                    </div>
-                </section>
-
-                {/* --- Bottom Navigation Bar --- */}
-                <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
-                    <button
-                        onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
-                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
-                            activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-                        }`}
-                    >
-                        <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
-                    </button>
-
-                    <button
-                        onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
-                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
-                            activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-                        }`}
-                    >
-                        <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-                    </button>
-
-                    <button
-                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
-                        className={`p-1.5 transition-all cursor-pointer rounded-full ${
-                            activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
-                        }`}
-                    >
-                        <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-                    </button>
-                </nav>
+                return (
+                  <MarkerF
+                    key={spot.id}
+                    position={{ lat: spot.latitude, lng: spot.longitude }}
+                    onClick={() => setSelectedSpot(spot)}
+                    label={{
+                      text: `$${spot.price_per_day}/d`,
+                      color: isSelected ? '#ffffff' : '#121212',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      className: isSelected
+                        ? 'bg-black px-2 py-0.5 rounded-full shadow'
+                        : 'bg-white px-2 py-0.5 rounded-full shadow border border-black/10',
+                    }}
+                    icon={{
+                      url: isSelected ? redPinSvg : greyPinSvg,
+                      anchor: isLoaded ? new window.google.maps.Point(18, 36) : undefined,
+                    }}
+                  />
+                );
+              })}
+            </GoogleMap>
+          ) : (
+            <div className="flex items-center justify-center h-full text-[#6f797d] dark:text-[#9db0b6]">
+              {t('loadingMap')}
             </div>
         </div>
     );

@@ -19,6 +19,19 @@ auth = Blueprint('auth', __name__)
 
 def user_response(user):
     pd = getattr(user, 'personal_details', None)
+    if pd is not None:
+        personal_country = getattr(pd, 'country', None) or user.country
+        personal_city = getattr(pd, 'city', None) or user.city
+        first_name = getattr(pd, 'first_name', None)
+        last_name = getattr(pd, 'last_name', None)
+        date_of_birth = pd.date_of_birth.isoformat() if getattr(pd, 'date_of_birth', None) else None
+    else:
+        personal_country = user.country
+        personal_city = user.city
+        first_name = None
+        last_name = None
+        date_of_birth = None
+
     return {
         'id': user.id,
         'email': user.email,
@@ -26,11 +39,11 @@ def user_response(user):
         'role': user.role,
         'phone_country_code': user.phone_country_code,
         'phone': user.phone,
-        'country': (pd.country if pd else None) or user.country,
-        'city': (pd.city if pd else None) or user.city,
-        'first_name': pd.first_name if pd else None,
-        'last_name': pd.last_name if pd else None,
-        'date_of_birth': pd.date_of_birth.isoformat() if pd and pd.date_of_birth else None,
+        'country': personal_country,
+        'city': personal_city,
+        'first_name': first_name,
+        'last_name': last_name,
+        'date_of_birth': date_of_birth,
     }
 
 
@@ -41,6 +54,7 @@ def api_register():
     password = data.get('password') or ''
     first_name = (data.get('first_name') or '').strip()
     last_name = (data.get('last_name') or '').strip()
+    display_name = (data.get('name') or '').strip()
     phone_country_code = (data.get('phone_country_code') or '').strip()
     phone = (data.get('phone') or '').strip()
     country = (data.get('country') or '').strip()
@@ -49,14 +63,21 @@ def api_register():
 
     if not email:
         return jsonify({'error': 'Email is required.'}), 400
-    if password and len(password) < 8:
+    if not password:
+        return jsonify({'error': 'Password is required.'}), 400
+    if len(password) < 8:
         return jsonify({'error': 'Password must be at least 8 characters.'}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'An account with that email already exists.'}), 409
 
+    if display_name and not (first_name or last_name):
+        name_parts = display_name.split()
+        first_name = name_parts[0]
+        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
     user = User(
         email=email,
-        password=generate_password_hash(password,  method='pbkdf2:sha256') if password else None,
+        password=generate_password_hash(password) if password else None,
         phone_country_code=phone_country_code or None,
         phone=phone or None,
         country=country or None,
@@ -64,6 +85,9 @@ def api_register():
     )
     if first_name or last_name:
         user.name = ((first_name or '') + ' ' + (last_name or '')).strip()
+    elif display_name:
+        user.name = display_name
+
     db.session.add(user)
     db.session.commit()
 
@@ -244,7 +268,7 @@ def register_post():
         if len(password) < 8:
             flash('Password must be at least 8 characters.')
             return redirect(url_for('auth.register', email=email))
-        user.password = generate_password_hash(password,  method='pbkdf2:sha256')
+        user.password = generate_password_hash(password)
     user.phone_country_code = phone_country_code or None
     user.phone = phone or None
     user.country = country or user.country
@@ -314,42 +338,9 @@ def reset_password_post(token):
         return redirect(url_for('auth.login'))
 
     new_password = request.form.get('password')
-    user.password = generate_password_hash(new_password,  method='pbkdf2:sha256')
+    user.password = generate_password_hash(new_password)
     user.reset_token = None
     user.reset_token_expires = None
     db.session.commit()
     flash('Your password has been reset successfully! Please log in.')
     return redirect(url_for('auth.login'))
-
-@auth.route('/api/user/personal-details', methods=['PATCH'])
-@login_required
-def update_personal_details():
-    data = request.get_json(silent=True) or {}
-    pd = PersonalDetails.query.filter_by(user_id=current_user.id).first()
-    if not pd:
-        pd = PersonalDetails(user_id=current_user.id)
-        db.session.add(pd)
-
-    if 'first_name' in data:
-        pd.first_name = (data.get('first_name') or '').strip() or None
-    if 'last_name' in data:
-        pd.last_name = (data.get('last_name') or '').strip() or None
-    if 'date_of_birth' in data:
-        dob = (data.get('date_of_birth') or '').strip()
-        if dob:
-            try:
-                parsed = datetime.strptime(dob, '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({'error': 'Invalid date format, expected YYYY-MM-DD.'}), 400
-            age = (datetime.utcnow().date() - parsed).days / 365.25
-            if age < 18 or age > 120:
-                return jsonify({'error': 'Invalid date of birth.'}), 400
-            pd.date_of_birth = parsed
-        else:
-            pd.date_of_birth = None
-
-    if pd.first_name or pd.last_name:
-        current_user.name = ((pd.first_name or '') + ' ' + (pd.last_name or '')).strip()
-
-    db.session.commit()
-    return jsonify({'user': user_response(current_user)}), 200
