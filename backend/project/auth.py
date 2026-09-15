@@ -127,6 +127,40 @@ def api_current_user():
     return jsonify({'user': user_response(current_user)}), 200
 
 
+@auth.route('/api/user/personal-details', methods=['PATCH'])
+@login_required
+def update_personal_details():
+    data = request.get_json(silent=True) or {}
+
+    first_name = (data.get('first_name') or '').strip()
+    last_name = (data.get('last_name') or '').strip()
+    dob = (data.get('date_of_birth') or '').strip()
+
+    pd = PersonalDetails.query.filter_by(user_id=current_user.id).first()
+    if not pd:
+        pd = PersonalDetails(user_id=current_user.id)
+        db.session.add(pd)
+
+    if 'first_name' in data:
+        pd.first_name = first_name or None
+    if 'last_name' in data:
+        pd.last_name = last_name or None
+    if 'date_of_birth' in data:
+        if dob:
+            try:
+                pd.date_of_birth = datetime.strptime(dob, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+        else:
+            pd.date_of_birth = None
+
+    name_parts = [pd.first_name or '', pd.last_name or '']
+    current_user.name = ' '.join(part for part in name_parts if part).strip() or None
+
+    db.session.commit()
+    return jsonify({'user': user_response(current_user)}), 200
+
+
 @auth.route('/api/auth/logout', methods=['POST'])
 def api_logout():
     logout_user()

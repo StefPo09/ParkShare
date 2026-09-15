@@ -153,7 +153,9 @@ export default function ProfilePage() {
   };
 
   const handleSaveField = async (field: 'firstName' | 'lastName' | 'birthDate') => {
-    if (field === 'birthDate' && (calculateAge(tempValue) < 18 || calculateAge(tempValue) > 120)) {
+    const value = tempValue.trim();
+
+    if (field === 'birthDate' && (calculateAge(value) < 18 || calculateAge(value) > 120)) {
       return;
     }
 
@@ -168,12 +170,13 @@ export default function ProfilePage() {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [fieldMap[field]]: tempValue }),
+        body: JSON.stringify({ [fieldMap[field]]: value }),
       });
       if (!res.ok) throw new Error('Save failed');
 
       const data = await res.json();
       setProfile((prev) => ({ ...prev, ...mapApiUserToProfile(data.user), avatarUrl: prev.avatarUrl }));
+      setTempValue('');
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
       setEditingField(null);
@@ -220,6 +223,9 @@ export default function ProfilePage() {
       });
       if (!res.ok && res.status !== 404) throw new Error('Delete failed');
       setProfile((prev) => ({ ...prev, avatarUrl: '' }));
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
     } catch (err) {
       console.error('Failed to delete profile picture:', err);
     } finally {
