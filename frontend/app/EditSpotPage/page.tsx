@@ -472,7 +472,7 @@ export default function EditSpotPage() {
                             {t('success')}
                         </h3>
                         <p className="mt-2 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-medium">
-                            {t('success')}
+                            {t('Changes were successfully saved!')}
                         </p>
 
                         <div className="mt-6">

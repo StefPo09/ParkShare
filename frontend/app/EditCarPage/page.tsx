@@ -10,7 +10,8 @@ import {
   CircleHelp,
   Key,
   Home,
-  Car
+  Car,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function EditCarPage() {
@@ -26,6 +27,7 @@ export default function EditCarPage() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const [values, setValues] = useState({
     name: '',
@@ -128,16 +130,20 @@ export default function EditCarPage() {
         credentials: 'include',
       });
 
-      const data = await res.json();
       if (res.ok) {
-        alert(t('success'));
-        router.push(ROUTES.MANAGE_CAR);
+        setIsSuccessModalOpen(true);
       } else {
+        const data = await res.json();
         alert(data.error || 'Failed to update car');
       }
     } catch (err) {
       console.error('Error saving car:', err);
     }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setIsSuccessModalOpen(false);
+    router.push(ROUTES.MANAGE_CAR);
   };
 
   return (
@@ -222,7 +228,6 @@ export default function EditCarPage() {
                 />
               </div>
 
-              {/* Modificat: Input text simplu în loc de select dropdown */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="car-model" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   {t('carModel')}
@@ -332,6 +337,36 @@ export default function EditCarPage() {
 
         </div>
 
+        {/* Modal de Succes */}
+        {isSuccessModalOpen && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 animate-fadeIn">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center transform scale-100 transition-transform duration-300">
+
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400 mb-4 animate-bounce">
+                  <CheckCircle2 className="h-10 w-10 stroke-[2.2]" />
+                </div>
+
+                <h3 className="text-2xl font-bold tracking-tight text-[#121212] dark:text-white">
+                  {t('success')}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-medium">
+                  {t('Changes were successfully saved!')}
+                </p>
+
+                <div className="mt-6">
+                  <button
+                      type="button"
+                      onClick={handleCloseSuccessModal}
+                      className="w-full py-3.5 px-4 cursor-pointer rounded-2xl bg-emerald-500 text-white text-base font-bold shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-600 transition active:scale-[0.98]"
+                  >
+                    Awesome
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+
+        {/* Modal Opțiuni Poză */}
         {isPhotoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
               <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -371,6 +406,7 @@ export default function EditCarPage() {
             </div>
         )}
 
+        {/* Modal Informații Documente */}
         {isInfoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
               <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
