@@ -23,7 +23,7 @@ def _allowed_image(filename: str) -> bool:
 
 def _save_uploaded_image(file_storage, prefix: str) -> str:
     """Salvează fișierul primit in app.config['UPLOAD_DIR'] și returnează numele generat."""
-    ext = file_storage.filename.rsplit('.', 1)[1].lower()
+    ext = file_storage.filename.rsplit('.', 1)[1].lower() if '.' in file_storage.filename else 'bin'
     filename = f"{prefix}_{uuid.uuid4().hex}.{ext}"
     upload_dir = current_app.config['UPLOAD_DIR']
     os.makedirs(upload_dir, exist_ok=True)
@@ -100,7 +100,7 @@ def get_car(car_id):
 @parking.route('/api/cars', methods=['POST'])
 @login_required
 def create_car():
-    # multipart/form-data acum, nu JSON — ca să putem primi fișierul de imagine
+    # multipart/form-data acum, nu JSON — ca să putem primi fișiere
     brand = (request.form.get('brand') or '').strip()
     model = (request.form.get('model') or '').strip()
     license_plate = (request.form.get('license_plate') or '').strip()
@@ -260,7 +260,6 @@ def get_spot(spot_id):
 @parking.route('/api/spots', methods=['POST'])
 @login_required
 def create_spot():
-    # multipart/form-data acum, nu JSON — ca să putem primi fișierul de imagine
     city_id = request.form.get('city_id')
     title = (request.form.get('title') or '').strip()
     address = (request.form.get('address') or '').strip()
@@ -290,6 +289,17 @@ def create_spot():
             return jsonify({'error': 'Invalid image type. Use png, jpg, jpeg or webp.'}), 400
         image_filename = _save_uploaded_image(image_file, 'spot')
 
+    document_filename = None
+    doc_file = request.files.get('document')
+    if doc_file and doc_file.filename:
+        document_filename = _save_uploaded_image(doc_file, 'doc')
+
+    start_hour = request.form.get('start_hour') or request.form.get('start_time') or '08:00'
+    end_hour = request.form.get('end_hour') or request.form.get('end_time') or '17:00'
+    price_currency = request.form.get('price_currency') or 'RON'
+    is_on_sale_raw = request.form.get('is_on_sale')
+    is_on_sale = str(is_on_sale_raw).lower() in ['true', '1', 'on sale']
+
     spot = ParkingSpot(
         user_id=current_user.id,
         city_id=city.id,
@@ -301,6 +311,11 @@ def create_spot():
         longitude=request.form.get('longitude'),
         is_available=True,
         image_url=image_filename,
+        document_url=document_filename,
+        start_hour=start_hour,
+        end_hour=end_hour,
+        price_currency=price_currency,
+        is_on_sale=is_on_sale,
     )
     db.session.add(spot)
     try:
@@ -354,7 +369,6 @@ def update_spot(spot_id):
     if 'longitude' in request.form:
         spot.longitude = request.form.get('longitude') or None
 
-    # FIX: Aceste verificari trebuie sa fie ALINIATE LA STÂNGA, nu indentate sub longitude!
     if 'start_hour' in request.form or 'start_time' in request.form:
         val = request.form.get('start_hour') or request.form.get('start_time')
         if val:
@@ -374,7 +388,6 @@ def update_spot(spot_id):
         val = request.form.get('is_on_sale')
         spot.is_on_sale = str(val).lower() in ['true', '1', 'on sale']
 
-    # Imagine nouă -> șterge fișierul vechi de pe disc, salvează pe cel nou
     image_file = request.files.get('image')
     if image_file and image_file.filename:
         if not _allowed_image(image_file.filename):
@@ -395,7 +408,7 @@ def delete_spot(spot_id):
         return jsonify({'error': 'Spot not found or you do not own it.'}), 404
 
     _delete_image_file(spot.image_url)
-    db.session.delete(spot)  # cascade șterge automat și booking-urile aferente
+    db.session.delete(spot)
     db.session.commit()
     return jsonify({'message': 'Spot deleted successfully.'}), 200
 

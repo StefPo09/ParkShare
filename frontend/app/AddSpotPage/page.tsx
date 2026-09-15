@@ -13,12 +13,19 @@ import {
   Key,
   Home,
   Car,
-  CheckCircle2
+  CheckCircle2,
+  Pencil
 } from 'lucide-react';
 
 interface City {
   id: number;
   name: string;
+}
+
+interface SpotPhoto {
+  id: string;
+  url: string;
+  file: File | null;
 }
 
 export default function AddSpotPage() {
@@ -28,9 +35,12 @@ export default function AddSpotPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
-  const [spotImage, setSpotImage] = useState<string | null>(null);
-  const [spotImageFile, setSpotImageFile] = useState<File | null>(null); // NOU: fișierul real, pentru upload
+  const MAX_SPOT_PHOTOS = 5;
+  const [spotPhotos, setSpotPhotos] = useState<SpotPhoto[]>([]);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [photoMode, setPhotoMode] = useState<'add' | 'replace'>('add');
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [showDeletePhotoModal, setShowDeletePhotoModal] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +53,7 @@ export default function AddSpotPage() {
   const [citySearch, setCitySearch] = useState('');
   const [isCountryOpen, setIsCountryOpen] = useState(false);
   const [isCityOpen, setIsCityOpen] = useState(false);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   const [values, setValues] = useState({
     country: '',
@@ -60,6 +71,35 @@ export default function AddSpotPage() {
 
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
 
+  const normalizeCityName = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/['\u2019`]/g, '')
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+  const resolveCityId = (cityName: string, countryName: string, cityList: City[] = cities) => {
+    if (!cityName.trim()) return '';
+
+    const normalizedSelectedCity = normalizeCityName(cityName);
+    const cityMatch = cityList.find((city) => normalizeCityName(city.name || '') === normalizedSelectedCity);
+    if (cityMatch) return String(cityMatch.id);
+
+    const countryCities = cityGroups[countryName] || [];
+    const fallbackName = countryCities.find(
+      (candidate) => normalizeCityName(candidate) === normalizedSelectedCity
+    );
+    if (!fallbackName) return '';
+
+    const fallbackMatch = cityList.find(
+      (city) => normalizeCityName(city.name || '') === normalizeCityName(fallbackName)
+    );
+    return fallbackMatch ? String(fallbackMatch.id) : '';
+  };
+
   useEffect(() => {
     const fetchCities = async () => {
       try {
@@ -68,22 +108,13 @@ export default function AddSpotPage() {
         });
         if (response.ok) {
           const data = await response.json();
-          const apiCities = data.cities || [];
+          const apiCities: City[] = data.cities || [];
           setCities(apiCities);
 
-          if (selectedCountry) {
-            const optionList = cityGroups[selectedCountry] || [];
-            const currentCityMatch = optionList.find(
-              (cityName) => cityName.toLowerCase() === selectedCityName.toLowerCase()
-            );
-
-            if (currentCityMatch && apiCities.length > 0) {
-              const backendMatch = apiCities.find(
-                (city) => city.name?.trim().toLowerCase() === currentCityMatch.trim().toLowerCase()
-              );
-              if (backendMatch) {
-                setValues((v) => ({ ...v, city_id: backendMatch.id.toString() }));
-              }
+          if (selectedCityName) {
+            const matchedId = resolveCityId(selectedCityName, selectedCountry, apiCities);
+            if (matchedId) {
+              setValues((v) => ({ ...v, city_id: matchedId }));
             }
           }
         }
@@ -103,39 +134,78 @@ export default function AddSpotPage() {
   );
 
   const canSubmit =
-      values.country.trim().length > 0 &&
-      values.city_id.trim().length > 0 &&
-      values.name.trim().length > 0 &&
-      values.address.trim().length > 0 &&
-      values.rentalPriceAmount.trim().length > 0 &&
-      values.document.trim().length > 0 &&
-      !!spotImage;
+    values.country.trim().length > 0 &&
+    selectedCountry.trim().length > 0 &&
+    selectedCityName.trim().length > 0 &&
+    values.name.trim().length > 0 &&
+    values.address.trim().length > 0 &&
+    values.rentalPriceAmount.trim().length > 0 &&
+    values.document.trim().length > 0 &&
+    spotPhotos.length > 0;
 
   const isAddSpotDisabled = !canSubmit || isLoading;
+  const activePhoto = spotPhotos[activePhotoIndex] || null;
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const objectUrl = URL.createObjectURL(file);
-    setSpotImage(objectUrl);
-    setSpotImageFile(file); // NOU
+
+    if (photoMode === 'replace' && activePhoto) {
+      setSpotPhotos((photos) =>
+        photos.map((photo, index) =>
+          index === activePhotoIndex ? { ...photo, url: objectUrl, file } : photo
+        )
+      );
+    } else if (spotPhotos.length < MAX_SPOT_PHOTOS) {
+      const newPhoto: SpotPhoto = { id: `${Date.now()}-${Math.random()}`, url: objectUrl, file };
+      setSpotPhotos((photos) => {
+        const nextPhotos = [...photos, newPhoto];
+        setActivePhotoIndex(Math.max(nextPhotos.length - 1, 0));
+        return nextPhotos;
+      });
+    }
+
+    setPhotoMode('add');
     setIsPhotoModalOpen(false);
+    setShowDeletePhotoModal(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handlePhotoAreaClick = () => {
-    if (spotImage) {
+    if (spotPhotos.length > 0) {
       setIsPhotoModalOpen(true);
     } else {
+      setPhotoMode('add');
       fileInputRef.current?.click();
     }
   };
 
   const handleDeletePhoto = () => {
-    setSpotImage(null);
-    setSpotImageFile(null); // NOU
+    const remainingPhotos = spotPhotos.filter((_, index) => index !== activePhotoIndex);
+    setSpotPhotos(remainingPhotos);
+    setActivePhotoIndex((prev) => {
+      if (remainingPhotos.length === 0) return 0;
+      return Math.min(prev, remainingPhotos.length - 1);
+    });
     setIsPhotoModalOpen(false);
+    setShowDeletePhotoModal(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const openPhotoPickerForAdd = () => {
+    if (spotPhotos.length >= MAX_SPOT_PHOTOS) return;
+    setPhotoMode('add');
+    setIsPhotoModalOpen(false);
+    fileInputRef.current?.click();
+  };
+
+  const openPhotoPickerForReplace = () => {
+    if (!activePhoto) return;
+    setPhotoMode('replace');
+    setIsPhotoModalOpen(false);
+    fileInputRef.current?.click();
   };
 
   const handleDocumentFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -149,6 +219,7 @@ export default function AddSpotPage() {
       return;
     }
 
+    setDocumentFile(file);
     setValues((current) => ({ ...current, document: file.name }));
   };
 
@@ -164,10 +235,8 @@ export default function AddSpotPage() {
 
   const handleCityChange = (cityName: string) => {
     setSelectedCityName(cityName);
-    const match = cities.find(
-      (city) => city.name.trim().toLowerCase() === cityName.trim().toLowerCase()
-    );
-    setValues((current) => ({ ...current, city_id: match ? String(match.id) : '' }));
+    const resolvedId = resolveCityId(cityName, selectedCountry);
+    setValues((current) => ({ ...current, city_id: resolvedId }));
   };
 
   const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -188,45 +257,146 @@ export default function AddSpotPage() {
   };
 
   const handleRemoveDocument = () => {
+    setDocumentFile(null);
     setValues((current) => ({ ...current, document: '' }));
     if (documentInputRef.current) documentInputRef.current.value = '';
   };
 
+  const parseResponseError = async (res: Response) => {
+    try {
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        return data.error || data.message || `Error ${res.status}: ${res.statusText}`;
+      } catch {
+        return text || `Server error (${res.status})`;
+      }
+    } catch {
+      return `Server error (${res.status})`;
+    }
+  };
+
   const handleAddSpotSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      setErrorMessage('Please complete all required fields.');
+      return;
+    }
 
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      let finalCityId =
+        values.city_id.trim().length > 0
+          ? values.city_id
+          : resolveCityId(selectedCityName, values.country) || resolveCityId(selectedCityName, selectedCountry);
 
-      // SCHIMBARE: FormData in loc de JSON, ca sa putem trimite si imaginea
+      if (!finalCityId) {
+        let createCityResponse: Response;
+        try {
+          createCityResponse = await fetch(`${API}/api/cities`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: selectedCityName,
+              country: selectedCountry || values.country,
+            }),
+          });
+        } catch (fetchErr: any) {
+          setErrorMessage(`Cannot connect to server (${fetchErr?.message || 'Network error'}). Please check backend.`);
+          setIsLoading(false);
+          return;
+        }
+
+        if (createCityResponse.status === 409) {
+          const citiesResponse = await fetch(`${API}/api/cities`, { credentials: 'include' });
+          if (citiesResponse.ok) {
+            const citiesData = await citiesResponse.json();
+            const fetchedCities: City[] = citiesData.cities || [];
+            setCities(fetchedCities);
+            const existingCity = fetchedCities.find(
+              (city) => normalizeCityName(city.name || '') === normalizeCityName(selectedCityName)
+            );
+            finalCityId = existingCity ? String(existingCity.id) : '';
+          }
+        } else if (!createCityResponse.ok) {
+          const errMsg = await parseResponseError(createCityResponse);
+          setErrorMessage(errMsg || 'Failed to resolve or create the selected city.');
+          setIsLoading(false);
+          return;
+        } else {
+          const cityData = await createCityResponse.json();
+          if (cityData.city) {
+            finalCityId = String(cityData.city.id);
+            setCities((prev) => [...prev, cityData.city]);
+          }
+        }
+
+        if (finalCityId) {
+          setValues((current) => ({ ...current, city_id: finalCityId }));
+        }
+      }
+
+      if (!finalCityId) {
+        setErrorMessage('Could not find or create the selected city. Please select a valid city.');
+        setIsLoading(false);
+        return;
+      }
+
       const formData = new FormData();
-      formData.append('city_id', values.city_id);
+      formData.append('city_id', finalCityId);
       formData.append('title', values.name);
       formData.append('address', values.address);
+      formData.append('start_hour', values.startHour);
+      formData.append('end_hour', values.endHour);
+      formData.append('start_time', values.startHour);
+      formData.append('end_time', values.endHour);
       if (values.extraInfo) formData.append('description', values.extraInfo);
       formData.append('price_per_day', values.rentalPriceAmount);
-      if (spotImageFile) formData.append('image', spotImageFile);
+      formData.append('price_currency', values.rentalPriceCurrency);
+      formData.append('is_on_sale', String(values.sellingInfo === 'On sale'));
 
-      const response = await fetch(`${API}/api/spots`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData, // NU pune manual header-ul Content-Type — browserul seteaza boundary-ul corect
+      if (documentFile) {
+        formData.append('document', documentFile);
+      }
+
+      const primaryPhoto = spotPhotos.find((photo) => photo.file);
+      if (primaryPhoto?.file) {
+        formData.append('image', primaryPhoto.file);
+      }
+
+      spotPhotos.forEach((photo) => {
+        if (photo.file) {
+          formData.append('images', photo.file);
+        }
       });
 
+      let response: Response;
+      try {
+        response = await fetch(`${API}/api/spots`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+      } catch (fetchErr: any) {
+        setErrorMessage(`Cannot connect to server (${fetchErr?.message || 'Network error'}).`);
+        setIsLoading(false);
+        return;
+      }
+
       if (!response.ok) {
-        const error = await response.json();
-        setErrorMessage(error.error || 'Failed to create parking spot.');
+        const errMsg = await parseResponseError(response);
+        setErrorMessage(errMsg || 'Failed to create parking spot.');
         setIsLoading(false);
         return;
       }
 
       setIsLoading(false);
       setIsSuccessModalOpen(true);
-    } catch (err) {
-      setErrorMessage('An error occurred. Please try again.');
+    } catch (err: any) {
+      console.error('Add spot submission error:', err);
+      setErrorMessage(err?.message ? `Error: ${err.message}` : 'An error occurred while submitting. Please try again.');
       setIsLoading(false);
     }
   };
@@ -261,30 +431,100 @@ export default function AddSpotPage() {
 
             {/* Photo Area */}
             <div className="relative flex flex-col items-center justify-center mb-2">
-              <div className="relative group w-full max-w-70 h-55">
-                <button
+              <div className="relative group flex w-full max-w-80 items-center justify-center gap-2 h-60">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+
+                {spotPhotos.length > 0 && activePhoto ? (
+                  <>
+                    {activePhotoIndex > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setActivePhotoIndex((prev) => Math.max(prev - 1, 0))}
+                        className="relative h-32 w-16 overflow-hidden rounded-2xl border border-white/40 bg-black/5 shadow-sm transition-transform duration-300 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5"
+                        aria-label="Previous photo"
+                      >
+                        <img
+                          src={spotPhotos[activePhotoIndex - 1].url}
+                          alt="Previous spot photo"
+                          className="h-full w-full object-cover opacity-75"
+                        />
+                      </button>
+                    )}
+
+                    <div className="relative h-55 w-full max-w-70 overflow-hidden rounded-[32px] border border-white/40 bg-[#cce5e7] shadow-lg transition-all duration-300 dark:border-white/10 dark:bg-white/5">
+                      <div className="absolute inset-0 transition-transform duration-300 ease-out">
+                        <button
+                          type="button"
+                          onClick={handlePhotoAreaClick}
+                          className="relative h-full w-full cursor-pointer overflow-hidden"
+                          aria-label="Spot photo options"
+                        >
+                          <img src={activePhoto.url} alt="Parking Spot" className="h-full w-full object-cover" />
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowDeletePhotoModal(true)}
+                        className="absolute bottom-3 left-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-red-500 shadow-[0_4px_12px_rgba(0,0,0,0.18)] border border-black/5 transition-transform active:scale-95"
+                        aria-label="Delete current photo"
+                      >
+                        <X className="h-5 w-5" strokeWidth={2.6} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={openPhotoPickerForReplace}
+                        className="absolute bottom-3 right-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-[#121212] shadow-[0_4px_12px_rgba(0,0,0,0.18)] border border-black/5 transition-transform active:scale-95"
+                        aria-label="Change current photo"
+                      >
+                        <Pencil className="h-4 w-4" strokeWidth={2.2} />
+                      </button>
+                    </div>
+
+                    {activePhotoIndex < spotPhotos.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setActivePhotoIndex((prev) => Math.min(prev + 1, spotPhotos.length - 1))}
+                        className="relative h-32 w-16 overflow-hidden rounded-2xl border border-white/40 bg-black/5 shadow-sm transition-transform duration-300 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5"
+                        aria-label="Next photo"
+                      >
+                        <img
+                          src={spotPhotos[activePhotoIndex + 1].url}
+                          alt="Next spot photo"
+                          className="h-full w-full object-cover opacity-75"
+                        />
+                      </button>
+                    ) : spotPhotos.length < MAX_SPOT_PHOTOS ? (
+                      <button
+                        type="button"
+                        onClick={openPhotoPickerForAdd}
+                        className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-full border border-dashed border-[#0f4c81]/50 bg-white/70 text-[#0f4c81] shadow-sm transition hover:scale-105 dark:border-[#2dd4bf]/60 dark:bg-[#032a2a] dark:text-[#2dd4bf]"
+                        aria-label="Add photo"
+                      >
+                        <span className="text-3xl leading-none">+</span>
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <button
                     type="button"
                     onClick={handlePhotoAreaClick}
-                    className="relative h-full w-full cursor-pointer overflow-hidden rounded-4xl border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    className="relative h-55 w-full max-w-70 cursor-pointer overflow-hidden rounded-[32px] border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                     aria-label="Spot photo options"
-                >
-                  <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileChange}
-                  />
-
-                  {spotImage ? (
-                      <img src={spotImage} alt="Parking Spot" className="h-full w-full object-cover" />
-                  ) : (
-                      <div className="flex flex-col items-center justify-center h-full gap-2 text-[#404b51] dark:text-[#8ba2a6]">
-                        <Upload className="h-8 w-8 stroke-[1.8]" />
-                        <span className="text-sm font-medium">{t('spotPhoto')}</span>
-                      </div>
-                  )}
-                </button>
+                  >
+                    <div className="flex h-full flex-col items-center justify-center gap-2 text-[#404b51] dark:text-[#8ba2a6]">
+                      <Upload className="h-8 w-8 stroke-[1.8]" />
+                      <span className="text-sm font-medium">{t('spotPhoto')}</span>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -690,19 +930,30 @@ export default function AddSpotPage() {
                 </p>
 
                 <div className="mt-5 space-y-3">
+                  {spotPhotos.length < MAX_SPOT_PHOTOS && (
+                    <button
+                      type="button"
+                      onClick={openPhotoPickerForAdd}
+                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#0f4c81] text-white text-sm font-bold shadow-sm hover:bg-[#0c3e67] transition active:scale-[0.98]"
+                    >
+                      Add Another Photo
+                    </button>
+                  )}
+                  {activePhoto && (
+                    <button
+                      type="button"
+                      onClick={openPhotoPickerForReplace}
+                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[0.98] dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/15"
+                    >
+                      {t('changePhoto')}
+                    </button>
+                  )}
                   <button
                       type="button"
                       onClick={() => {
                         setIsPhotoModalOpen(false);
-                        fileInputRef.current?.click();
+                        setShowDeletePhotoModal(true);
                       }}
-                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[0.98] dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/15"
-                  >
-                    {t('changePhoto')}
-                  </button>
-                  <button
-                      type="button"
-                      onClick={handleDeletePhoto}
                       className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98] dark:bg-red-600/80 dark:hover:bg-red-600"
                   >
                     {t('deletePhoto')}
@@ -712,7 +963,38 @@ export default function AddSpotPage() {
             </div>
         )}
 
-        {/* PDF Info Modal */}
+        {/* Delete Confirmation Modal */}
+        {showDeletePhotoModal && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+            <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
+                Delete Photo?
+              </h3>
+              <p className="mt-2 text-sm text-[#404b51] dark:text-slate-300 font-medium">
+                Are you sure you want to delete this photo from your spot?
+              </p>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeletePhotoModal(false)}
+                  className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-slate-200 text-[#121212] text-sm font-bold shadow-sm hover:bg-slate-300 transition active:scale-[0.98] dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeletePhoto}
+                  className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98]"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Info Modal */}
         {isInfoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
               <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
@@ -732,8 +1014,8 @@ export default function AddSpotPage() {
                 <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
                   {t('legalDocuments')}
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-normal">
-                  {t('documentHelp')} {t('proofOfOwnershipSpot')}
+                <p className="mt-3 text-3 font-normal leading-relaxed text-[#404b51] dark:text-slate-300">
+                  {t('proofOfOwnershipSpot')}
                 </p>
 
                 <div className="mt-5">
