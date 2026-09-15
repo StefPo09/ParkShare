@@ -111,6 +111,8 @@ export default function AddSpotPage() {
       values.document.trim().length > 0 &&
       !!spotImage;
 
+  const isAddSpotDisabled = !canSubmit || isLoading;
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -595,12 +597,12 @@ export default function AddSpotPage() {
               )}
               <button
                   type="button"
-                  disabled={!canSubmit || isLoading}
+                  disabled={isAddSpotDisabled}
                   onClick={handleAddSpotSubmit}
-                  className={`flex w-full cursor-pointer items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:scale-[1.01] active:scale-[0.99] ${
-                      canSubmit && !isLoading
-                          ? 'bg-[#0f4c81] text-white hover:bg-[#0c3e67]'
-                          : 'bg-[#0f4c81]/45 text-white cursor-not-allowed shadow-none'
+                  className={`flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition ${
+                      isAddSpotDisabled
+                          ? 'cursor-not-allowed bg-[#0f4c81]/45 text-white shadow-none'
+                          : 'cursor-pointer bg-[#0f4c81] text-white hover:scale-[1.01] hover:bg-[#0c3e67] active:scale-[0.99]'
                   }`}
               >
                 {isLoading ? 'Loading...' : t('addSpot')}
