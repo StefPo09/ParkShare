@@ -81,10 +81,12 @@ export default function ManageCarsPage() {
 
                 {/* --- Lista de mașini --- */}
                 <main className="flex-1 px-4 pt-6 pb-8 overflow-y-auto space-y-4">
-                    {errorMessage && (
-                                            <div className="mb-3 rounded-lg bg-red-500/20 border border-red-500 px-4 py-2 text-red-700 dark:text-red-300 text-sm">
-                                                {errorMessage}
+                    {errorMessage ? (
+                        <div className="mb-3 rounded-lg bg-red-500/20 border border-red-500 px-4 py-2 text-red-700 dark:text-red-300 text-sm">
+                            {errorMessage}
                         </div>
+                    ) : isLoading ? (
+                        <div className="py-12 text-center text-sm text-slate-500">{t('loading')}</div>
                     ) : cars.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <Car className="h-12 w-12 text-[#404b51] dark:text-slate-400 mb-2" />
@@ -116,19 +118,13 @@ export default function ManageCarsPage() {
                                         <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
                                         <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
                                     </div>
+                                </div>
 
-                                                        {/* Informații Mașină */}
-                                                        <div>
-                                                            <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
-                                                            <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Săgeată Dreapta */}
-                                                    <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
-                                                </div>
-                                            ))
-                                        )}
+                                {/* Săgeată Dreapta */}
+                                <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
+                            </div>
+                        ))
+                    )}
                 </main>
 
                 {/* --- Buton Add New Car --- */}

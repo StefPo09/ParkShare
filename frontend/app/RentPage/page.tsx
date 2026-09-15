@@ -156,7 +156,20 @@ export default function ParkingRentPage() {
         });
         if (response.ok) {
           const data = await response.json();
-          const fetchedSpots: ParkingSpot[] = data.spots || [];
+          const rawSpots = data.spots || [];
+
+          // Normalize server spot shape to local ParkingSpot interface
+          const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
+            id: s.id ?? s._id ?? String(s.id ?? ''),
+            price: s.price_per_day ?? s.price ?? 0,
+            address: s.address ?? s.location ?? '',
+            availability: s.availability ?? s.available_hours ?? '',
+            distance: s.distance ?? '',
+            image: s.image ?? s.photo ?? '',
+            lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
+            lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
+          }));
+
           setSpots(fetchedSpots);
           if (fetchedSpots.length > 0) {
             setSelectedSpot(fetchedSpots[0]);
@@ -247,7 +260,7 @@ export default function ParkingRentPage() {
           {isLoaded ? (
             <GoogleMap
               mapContainerStyle={containerStyle}
-              center={selectedSpot ? { lat: selectedSpot.latitude, lng: selectedSpot.longitude } : mapCenter}
+              center={selectedSpot ? { lat: selectedSpot.lat, lng: selectedSpot.lng } : mapCenter}
               zoom={14}
               onLoad={onLoad}
               onUnmount={onUnmount}
@@ -270,16 +283,13 @@ export default function ParkingRentPage() {
                 return (
                   <MarkerF
                     key={spot.id}
-                    position={{ lat: spot.latitude, lng: spot.longitude }}
+                    position={{ lat: spot.lat, lng: spot.lng }}
                     onClick={() => setSelectedSpot(spot)}
                     label={{
-                      text: `$${spot.price_per_day}/d`,
+                      text: `$${spot.price}/d`,
                       color: isSelected ? '#ffffff' : '#121212',
                       fontSize: '11px',
                       fontWeight: 'bold',
-                      className: isSelected
-                        ? 'bg-black px-2 py-0.5 rounded-full shadow'
-                        : 'bg-white px-2 py-0.5 rounded-full shadow border border-black/10',
                     }}
                     icon={{
                       url: isSelected ? redPinSvg : greyPinSvg,
@@ -293,6 +303,9 @@ export default function ParkingRentPage() {
             <div className="flex items-center justify-center h-full text-[#6f797d] dark:text-[#9db0b6]">
               {t('loadingMap')}
             </div>
-        </div>
-    );
+          )}
+        </main>
+      </div>
+    </div>
+  );
 }
