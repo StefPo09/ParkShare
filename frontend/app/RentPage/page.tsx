@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from '../../constants/routes';
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
 import {
     Menu,
     MapPin,
@@ -129,7 +129,9 @@ export default function ParkingRentPage() {
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [, setMap] = useState<google.maps.Map | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   // Load Google Maps SDK
   const { isLoaded } = useJsApiLoader({
@@ -147,6 +149,57 @@ export default function ParkingRentPage() {
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationPermissionDenied(true);
+      return;
+    }
+
+    const storageKey = 'parkshare-location-permission';
+    const storedPermission = window.localStorage.getItem(storageKey);
+
+    const requestLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const nextLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(nextLocation);
+          setLocationPermissionDenied(false);
+          window.localStorage.setItem(storageKey, 'granted');
+        },
+        () => {
+          setLocationPermissionDenied(true);
+          window.localStorage.setItem(storageKey, 'denied');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 600000,
+        }
+      );
+    };
+
+    if (storedPermission === 'granted') {
+      requestLocation();
+      return;
+    }
+
+    if (storedPermission === 'denied') {
+      setLocationPermissionDenied(true);
+      return;
+    }
+
+    requestLocation();
+  }, []);
+
+  useEffect(() => {
+    if (!map || !userLocation) return;
+    map.panTo(userLocation);
+    map.setZoom(13);
+  }, [map, userLocation]);
+
   // Fetch available parking spots
   useEffect(() => {
     const fetchSpots = async () => {
@@ -154,39 +207,62 @@ export default function ParkingRentPage() {
         const response = await fetch(`${API}/api/spots?available_only=true`, {
           credentials: 'include',
         });
-        if (response.ok) {
-          const data = await response.json();
-          const rawSpots = data.spots || [];
 
-          // Normalize server spot shape to local ParkingSpot interface
-          const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
-            id: s.id ?? s._id ?? String(s.id ?? ''),
-            price: s.price_per_day ?? s.price ?? 0,
-            address: s.address ?? s.location ?? '',
-            availability: s.availability ?? s.available_hours ?? '',
-            distance: s.distance ?? '',
-            image: s.image ?? s.photo ?? '',
-            lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
-            lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
-          }));
-
-          setSpots(fetchedSpots);
-          if (fetchedSpots.length > 0) {
-            setSelectedSpot(fetchedSpots[0]);
-          }
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
         }
+
+        const data = await response.json();
+        const rawSpots = Array.isArray(data?.spots) ? data.spots : [];
+
+        const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
+          id: s.id ?? s._id ?? String(s.id ?? ''),
+          price: s.price_per_day ?? s.price ?? 0,
+          address: s.address ?? s.location ?? '',
+          availability: s.availability ?? s.available_hours ?? '',
+          distance: s.distance ?? '',
+          image: s.image ?? s.photo ?? '',
+          lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
+          lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
+        }));
+
+        const spotsToUse = fetchedSpots.length > 0 ? fetchedSpots : mockSpots;
+        const normalizedSpots = userLocation
+          ? [...spotsToUse].sort((a, b) => {
+              const distanceA = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
+              const distanceB = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+              return distanceA - distanceB;
+            })
+          : spotsToUse;
+
+        setSpots(normalizedSpots);
+        setSelectedSpot(normalizedSpots[0] ?? null);
       } catch (error) {
-        console.error('Failed to fetch spots:', error);
+        console.warn('Falling back to mock parking spots:', error);
+        const fallbackSpots = userLocation
+          ? [...mockSpots].sort((a, b) => {
+              const distanceA = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
+              const distanceB = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+              return distanceA - distanceB;
+            })
+          : mockSpots;
+
+        setSpots(fallbackSpots);
+        setSelectedSpot(fallbackSpots[0] ?? null);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchSpots();
-  }, []);
+  }, [API, userLocation]);
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-  }, []);
+    if (userLocation) {
+      mapInstance.panTo(userLocation);
+    }
+  }, [userLocation]);
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -229,6 +305,8 @@ export default function ParkingRentPage() {
     }
   };
 
+  const mapCenterTarget = userLocation ?? (selectedSpot ? { lat: selectedSpot.lat, lng: selectedSpot.lng } : mapCenter);
+
   return (
     <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
       <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
@@ -260,7 +338,7 @@ export default function ParkingRentPage() {
           {isLoaded ? (
             <GoogleMap
               mapContainerStyle={containerStyle}
-              center={selectedSpot ? { lat: selectedSpot.lat, lng: selectedSpot.lng } : mapCenter}
+              center={mapCenterTarget}
               zoom={14}
               onLoad={onLoad}
               onUnmount={onUnmount}
@@ -270,6 +348,22 @@ export default function ParkingRentPage() {
                 styles: isDarkMode ? darkMapStyle : [],
               }}
             >
+              {userLocation && (
+                <Circle
+                  center={userLocation}
+                  radius={22}
+                  options={{
+                    strokeColor: '#1e90ff',
+                    strokeOpacity: 0.9,
+                    strokeWeight: 2,
+                    fillColor: '#1e90ff',
+                    fillOpacity: 0.18,
+                    clickable: false,
+                    zIndex: 20,
+                  }}
+                />
+              )}
+
               {spots.map((spot) => {
                 const isSelected = selectedSpot?.id === spot.id;
 
@@ -305,6 +399,35 @@ export default function ParkingRentPage() {
             </div>
           )}
         </main>
+
+        <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+          <button
+            onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+            className={`p-1.5 transition-all cursor-pointer rounded-full ${
+              activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+          </button>
+        </nav>
       </div>
     </div>
   );

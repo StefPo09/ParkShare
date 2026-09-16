@@ -45,6 +45,18 @@ def create_app():
         }.items():
             if col_name not in user_columns:
                 db.session.execute(text(ddl))
+
+        spot_columns = {column['name'] for column in inspect(db.engine).get_columns('parking_spot')}
+        for col_name, ddl in {
+            'start_hour': "ALTER TABLE parking_spot ADD COLUMN start_hour VARCHAR(10) DEFAULT '14:00'",
+            'end_hour': "ALTER TABLE parking_spot ADD COLUMN end_hour VARCHAR(10) DEFAULT '18:00'",
+            'price_currency': "ALTER TABLE parking_spot ADD COLUMN price_currency VARCHAR(10) DEFAULT 'RON'",
+            'is_on_sale': "ALTER TABLE parking_spot ADD COLUMN is_on_sale BOOLEAN DEFAULT 0",
+            'document_url': "ALTER TABLE parking_spot ADD COLUMN document_url VARCHAR(255)",
+        }.items():
+            if col_name not in spot_columns:
+                db.session.execute(text(ddl))
+
         db.session.commit()
 
     @login_manager.user_loader
@@ -61,5 +73,3 @@ def create_app():
     app.register_blueprint(parking_blueprint)
 
     return app
-
-
