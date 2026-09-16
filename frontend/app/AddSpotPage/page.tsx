@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
+import React, { useState, useRef, ChangeEvent, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import { countryOptions } from '../../data/address/countries';
 import { cityGroups } from '../../data/address/generatedCities';
+import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
 import {
   X,
   Upload,
@@ -14,7 +15,9 @@ import {
   Home,
   Car,
   CheckCircle2,
-  Pencil
+  Pencil,
+  MapPin,
+  Locate
 } from 'lucide-react';
 
 interface City {
@@ -27,6 +30,50 @@ interface SpotPhoto {
   url: string;
   file: File | null;
 }
+
+// Custom dark map style to match dark UI theme
+const darkMapStyle: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#091d19' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#091d19' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#74928d' }] },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#a0ece0' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#53827a' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry',
+    stylers: [{ color: '#0e2b25' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#163a33' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#091d19' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: '#204f46' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#040d0b' }],
+  },
+];
+
+const defaultMapCenter = { lat: 44.4323, lng: 26.1063 };
 
 export default function AddSpotPage() {
   const router = useRouter();
@@ -55,6 +102,18 @@ export default function AddSpotPage() {
   const [isCityOpen, setIsCityOpen] = useState(false);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
 
+  // Map & Location states
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+
+  // Load Google Maps SDK
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+  });
+
   const [values, setValues] = useState({
     country: '',
     city_id: '',
@@ -70,6 +129,106 @@ export default function AddSpotPage() {
   });
 
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
+
+  // Detect dark mode
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsDarkMode(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  const reverseGeocode = useCallback((coords: { lat: number; lng: number }) => {
+    if (typeof window === 'undefined' || !window.google || !window.google.maps) return;
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ location: coords }, (results, status) => {
+      if (status === 'OK' && results && results[0]) {
+        const formattedAddress = results[0].formatted_address;
+        setValues((current) => ({ ...current, address: formattedAddress }));
+
+        let foundCountry = '';
+        let foundCity = '';
+
+        results[0].address_components.forEach((comp) => {
+          if (comp.types.includes('country')) {
+            foundCountry = comp.long_name;
+          }
+          if (
+            comp.types.includes('locality') ||
+            comp.types.includes('postal_town') ||
+            comp.types.includes('administrative_area_level_2')
+          ) {
+            if (!foundCity) foundCity = comp.long_name;
+          }
+        });
+
+        if (foundCountry) {
+          const matchCountry = countryOptions.find(
+            (c) => c.toLowerCase() === foundCountry.toLowerCase()
+          );
+          if (matchCountry) {
+            setSelectedCountry(matchCountry);
+            setValues((current) => ({ ...current, country: matchCountry }));
+          }
+        }
+
+        if (foundCity) {
+          setSelectedCityName(foundCity);
+        }
+      }
+    });
+  }, []);
+
+  const handleGetCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setUserLocation(coords);
+        setSelectedLocation(coords);
+        if (map) {
+          map.panTo(coords);
+          map.setZoom(16);
+        }
+        reverseGeocode(coords);
+      },
+      (error) => {
+        console.warn('Geolocation error or permission denied:', error);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [map, reverseGeocode]);
+
+  useEffect(() => {
+    handleGetCurrentLocation();
+  }, [handleGetCurrentLocation]);
+
+  const handleMapClick = (e: google.maps.MapMouseEvent) => {
+    if (!e.latLng) return;
+    const coords = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+    setSelectedLocation(coords);
+    reverseGeocode(coords);
+  };
+
+  const handleMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
+    if (!e.latLng) return;
+    const coords = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+    setSelectedLocation(coords);
+    reverseGeocode(coords);
+  };
+
+  const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
+  }, []);
+
+  const onMapUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
 
   const normalizeCityName = (value: string) =>
     value
@@ -139,6 +298,7 @@ export default function AddSpotPage() {
     selectedCityName.trim().length > 0 &&
     values.name.trim().length > 0 &&
     values.address.trim().length > 0 &&
+    selectedLocation !== null &&
     values.rentalPriceAmount.trim().length > 0 &&
     values.document.trim().length > 0 &&
     spotPhotos.length > 0;
@@ -278,7 +438,7 @@ export default function AddSpotPage() {
 
   const handleAddSpotSubmit = async () => {
     if (!canSubmit) {
-      setErrorMessage('Please complete all required fields.');
+      setErrorMessage('Please complete all required fields and select a spot location on the map.');
       return;
     }
 
@@ -356,6 +516,11 @@ export default function AddSpotPage() {
       formData.append('price_per_day', values.rentalPriceAmount);
       formData.append('price_currency', values.rentalPriceCurrency);
       formData.append('is_on_sale', String(values.sellingInfo === 'On sale'));
+
+      if (selectedLocation) {
+        formData.append('latitude', String(selectedLocation.lat));
+        formData.append('longitude', String(selectedLocation.lng));
+      }
 
       if (documentFile) {
         formData.append('document', documentFile);
@@ -666,19 +831,93 @@ export default function AddSpotPage() {
                 />
               </div>
 
-              {/* Address */}
+              {/* Address (ReadOnly - set strictly via Google Maps pin placement) */}
               <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                 <label htmlFor="spot-address" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   {t('address')}
                 </label>
-                <input
-                    id="spot-address"
-                    type="text"
-                    value={values.address}
-                    onChange={(e) => updateValue('address', e.target.value)}
-                    placeholder="Parking spot address"
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
-                />
+                <div className="w-full rounded-xl border border-black/10 bg-white/30 px-3 py-2 text-[18px] font-medium text-[#121212] dark:border-white/10 dark:bg-white/5 dark:text-white min-h-[44px] flex items-center select-none cursor-not-allowed opacity-90">
+                  {values.address ? (
+                    <span>{values.address}</span>
+                  ) : (
+                    <span className="text-[#6f797d] dark:text-[#9db0b6] text-base italic font-normal">
+                      Select pin on map to set address
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Precise Location Map Box */}
+              <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5 space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea] flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#0f4c81] dark:text-[#2dd4bf]" />
+                    Precise Location on Map
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-[#0f4c81] dark:text-[#2dd4bf] bg-white/60 dark:bg-white/10 px-2.5 py-1 rounded-xl border border-black/10 dark:border-white/10 hover:bg-white/90 dark:hover:bg-white/20 transition cursor-pointer active:scale-95"
+                  >
+                    <Locate className="w-3 h-3" />
+                    My Location
+                  </button>
+                </div>
+
+                <div className="relative w-full h-60 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 shadow-inner bg-[#e8e8e8] dark:bg-[#121c1a]">
+                  {isLoaded ? (
+                    <GoogleMap
+                      mapContainerStyle={{ width: '100%', height: '100%' }}
+                      center={selectedLocation || userLocation || defaultMapCenter}
+                      zoom={selectedLocation || userLocation ? 16 : 13}
+                      onLoad={onMapLoad}
+                      onUnmount={onMapUnmount}
+                      onClick={handleMapClick}
+                      options={{
+                        disableDefaultUI: true,
+                        zoomControl: true,
+                        styles: isDarkMode ? darkMapStyle : [],
+                      }}
+                    >
+                      {userLocation && (
+                        <Circle
+                          center={userLocation}
+                          radius={20}
+                          options={{
+                            strokeColor: '#1e90ff',
+                            strokeOpacity: 0.8,
+                            strokeWeight: 2,
+                            fillColor: '#1e90ff',
+                            fillOpacity: 0.2,
+                            clickable: false,
+                            zIndex: 1,
+                          }}
+                        />
+                      )}
+
+                      {selectedLocation && (
+                        <MarkerF
+                          position={selectedLocation}
+                          draggable={true}
+                          onDragEnd={handleMarkerDragEnd}
+                          icon={{
+                            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+                              '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="#ef4444" stroke="#dc2626" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>'
+                            )}`,
+                            anchor: isLoaded ? new window.google.maps.Point(18, 36) : undefined,
+                          }}
+                        />
+                      )}
+                    </GoogleMap>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">
+                      {t('loadingMap')}
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-[#6f797d] dark:text-[#9db0b6] px-1 italic">
+                  Click on the map or drag the pin to set the exact spot location.
+                </p>
               </div>
 
               {/* Time Available */}
@@ -740,7 +979,7 @@ export default function AddSpotPage() {
                       onChange={handlePriceChange}
                       onBlur={handlePriceBlur}
                       placeholder="0.00"
-                      className="w-full flex-1 rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                      className="w-full flex-1 rounded-xl border border-black/10 bg-[#fff] bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
                   />
                   <select
                       aria-label="Currency"
@@ -912,119 +1151,116 @@ export default function AddSpotPage() {
         {/* Photo Options Modal */}
         {isPhotoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5">
                 <button
                     type="button"
                     onClick={() => setIsPhotoModalOpen(false)}
-                    className="absolute right-4 top-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/5 text-[#121212] hover:bg-black/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition"
-                    aria-label="Cancel"
+                    className="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-[#404b51] hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10"
                 >
-                  <X className="h-4 w-4" strokeWidth={2.5} />
+                  <X className="h-5 w-5" strokeWidth={2.2} />
                 </button>
 
-                <h3 className="mt-2 text-xl font-bold tracking-tight text-[#121212] dark:text-white">
+                <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
                   {t('spotPhoto')}
                 </h3>
-                <p className="mt-1 text-sm text-[#404b51] dark:text-slate-400">
-                  {t('whatWouldYouLikeToDo')}
+                <p className="mt-1 text-xs text-[#6f797d] dark:text-[#9db0b6]">
+                  Select an action for your spot photos.
                 </p>
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 space-y-2.5">
                   {spotPhotos.length < MAX_SPOT_PHOTOS && (
-                    <button
-                      type="button"
-                      onClick={openPhotoPickerForAdd}
-                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#0f4c81] text-white text-sm font-bold shadow-sm hover:bg-[#0c3e67] transition active:scale-[0.98]"
-                    >
-                      Add Another Photo
-                    </button>
+                      <button
+                          type="button"
+                          onClick={openPhotoPickerForAdd}
+                          className="flex w-full cursor-pointer items-center justify-between rounded-2xl bg-white/80 px-4 py-3 text-sm font-semibold text-[#121212] shadow-sm border border-black/5 transition hover:bg-white dark:bg-white/10 dark:text-white dark:border-white/10 dark:hover:bg-white/20"
+                      >
+                        <span>Add another photo</span>
+                        <span className="text-xs font-normal text-[#6f797d] dark:text-[#9db0b6]">{spotPhotos.length}/{MAX_SPOT_PHOTOS}</span>
+                      </button>
                   )}
-                  {activePhoto && (
-                    <button
+
+                  <button
                       type="button"
                       onClick={openPhotoPickerForReplace}
-                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-white border border-black/15 text-sm font-bold shadow-sm text-[#121212] hover:bg-slate-50 transition active:scale-[0.98] dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/15"
-                    >
-                      {t('changePhoto')}
-                    </button>
-                  )}
+                      className="flex w-full cursor-pointer items-center justify-between rounded-2xl bg-white/80 px-4 py-3 text-sm font-semibold text-[#121212] shadow-sm border border-black/5 transition hover:bg-white dark:bg-white/10 dark:text-white dark:border-white/10 dark:hover:bg-white/20"
+                  >
+                    <span>Replace current photo</span>
+                    <Pencil className="h-4 w-4 text-[#404b51] dark:text-slate-300" />
+                  </button>
+
                   <button
                       type="button"
                       onClick={() => {
                         setIsPhotoModalOpen(false);
                         setShowDeletePhotoModal(true);
                       }}
-                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98] dark:bg-red-600/80 dark:hover:bg-red-600"
+                      className="flex w-full cursor-pointer items-center justify-between rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500 border border-red-500/20 transition hover:bg-red-500 hover:text-white"
                   >
-                    {t('deletePhoto')}
+                    <span>Delete photo</span>
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
               </div>
             </div>
         )}
 
-        {/* Delete Confirmation Modal */}
+        {/* Delete Photo Confirmation Modal */}
         {showDeletePhotoModal && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-            <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
-              <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
-                Delete Photo?
-              </h3>
-              <p className="mt-2 text-sm text-[#404b51] dark:text-slate-300 font-medium">
-                Are you sure you want to delete this photo from your spot?
-              </p>
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5">
+                <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
+                  Delete photo?
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-[#404b51] dark:text-slate-300 font-medium">
+                  Are you sure you want to remove photo {activePhotoIndex + 1}?
+                </p>
 
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowDeletePhotoModal(false)}
-                  className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-slate-200 text-[#121212] text-sm font-bold shadow-sm hover:bg-slate-300 transition active:scale-[0.98] dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeletePhoto}
-                  className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-sm hover:bg-red-600 transition active:scale-[0.98]"
-                >
-                  Delete
-                </button>
+                <div className="mt-6 flex gap-3">
+                  <button
+                      type="button"
+                      onClick={() => setShowDeletePhotoModal(false)}
+                      className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-white/70 text-[#121212] text-sm font-semibold border border-black/10 transition hover:bg-white dark:bg-white/10 dark:text-white dark:border-white/10 dark:hover:bg-white/20"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                      type="button"
+                      onClick={handleDeletePhoto}
+                      className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-sm font-bold shadow-md hover:bg-red-600 transition active:scale-[0.98]"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
         )}
 
-        {/* Info Modal */}
+        {/* Legal Documents Info Modal */}
         {isInfoModalOpen && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5">
                 <button
                     type="button"
                     onClick={() => setIsInfoModalOpen(false)}
-                    className="absolute right-4 top-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-black/5 text-[#121212] hover:bg-black/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition"
-                    aria-label="Close information"
+                    className="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-[#404b51] hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10"
                 >
-                  <X className="h-4 w-4" strokeWidth={2.5} />
+                  <X className="h-5 w-5" strokeWidth={2.2} />
                 </button>
-
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-white/10 dark:text-white mb-3">
-                  <CircleHelp className="h-6 w-6" strokeWidth={2.2} />
-                </div>
 
                 <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
                   {t('legalDocuments')}
                 </h3>
-                <p className="mt-3 text-3 font-normal leading-relaxed text-[#404b51] dark:text-slate-300">
-                  {t('proofOfOwnershipSpot')}
+                <p className="mt-2 text-xs leading-relaxed text-[#404b51] dark:text-slate-300 font-medium">
+                  {t('legalDocInfoMessage')}
                 </p>
 
-                <div className="mt-5">
+                <div className="mt-6">
                   <button
                       type="button"
                       onClick={() => setIsInfoModalOpen(false)}
-                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#0f4c81] text-white text-sm font-bold shadow-sm hover:bg-[#0c3e67] transition active:scale-[0.98]"
+                      className="w-full py-3 px-4 cursor-pointer rounded-2xl bg-[#0f4c81] text-white text-sm font-bold shadow-md hover:bg-[#0c3e67] transition active:scale-[0.98]"
                   >
-                    {t('understood')}
+                    {t('gotIt')}
                   </button>
                 </div>
               </div>
