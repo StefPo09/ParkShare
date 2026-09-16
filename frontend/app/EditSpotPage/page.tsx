@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useRef, ChangeEvent, useEffect, Suspense } from 'react';
+import React, { useState, useRef, ChangeEvent, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
+import { countryOptions } from '../../data/address/countries';
+import { cityGroups } from '../../data/address/generatedCities';
+import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
 import {
     X,
     Upload,
@@ -12,14 +15,66 @@ import {
     Home,
     Car,
     CheckCircle2,
-    Pencil
+    Pencil,
+    MapPin,
+    Locate
 } from 'lucide-react';
+
+interface City {
+    id: number;
+    name: string;
+    country?: string;
+}
 
 interface SpotPhoto {
     id: string;
     url: string;
     file: File | null;
 }
+
+// Custom dark map style to match dark UI theme
+const darkMapStyle: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#091d19' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#091d19' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#74928d' }] },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#a0ece0' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#53827a' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry',
+    stylers: [{ color: '#0e2b25' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#163a33' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#091d19' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: '#204f46' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#040d0b' }],
+  },
+];
+
+const defaultMapCenter = { lat: 44.4323, lng: 26.1063 };
 
 export default function EditSpotPage() {
     return (
@@ -49,8 +104,33 @@ function EditSpotPageContent() {
     const [isDocumentRemoved, setIsDocumentRemoved] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const [countries, setCountries] = useState<string[]>(countryOptions);
+    const [cities, setCities] = useState<City[]>([]);
+    const [selectedCountry, setSelectedCountry] = useState('');
+    const [selectedCityName, setSelectedCityName] = useState('');
+    const [countrySearch, setCountrySearch] = useState('');
+    const [citySearch, setCitySearch] = useState('');
+    const [isCountryOpen, setIsCountryOpen] = useState(false);
+    const [isCityOpen, setIsCityOpen] = useState(false);
+
+    // Map & Location states
+    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [map, setMap] = useState<google.maps.Map | null>(null);
+
+    // Load Google Maps SDK
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    });
 
     const [values, setValues] = useState({
+        country: '',
+        city_id: '',
         name: '',
         address: '',
         startHour: '14:00',
@@ -67,7 +147,132 @@ function EditSpotPageContent() {
 
     const activePhoto = spotPhotos[activePhotoIndex] || null;
 
-    // Încărcare date loc de parcare (inclusiv pozele și orele)
+    // Detect dark mode
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        setIsDarkMode(mediaQuery.matches);
+
+        const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+        mediaQuery.addEventListener('change', handler);
+        return () => mediaQuery.removeEventListener('change', handler);
+    }, []);
+
+    const reverseGeocode = useCallback((coords: { lat: number; lng: number }) => {
+        if (typeof window === 'undefined' || !window.google || !window.google.maps) return;
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location: coords }, (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+                const formattedAddress = results[0].formatted_address;
+                setValues((current) => ({ ...current, address: formattedAddress }));
+
+                let foundCountry = '';
+                let foundCity = '';
+
+                results[0].address_components.forEach((comp) => {
+                    if (comp.types.includes('country')) {
+                        foundCountry = comp.long_name;
+                    }
+                    if (
+                        comp.types.includes('locality') ||
+                        comp.types.includes('postal_town') ||
+                        comp.types.includes('administrative_area_level_2')
+                    ) {
+                        if (!foundCity) foundCity = comp.long_name;
+                    }
+                });
+
+                if (foundCountry) {
+                    const matchCountry = countryOptions.find(
+                        (c) => c.toLowerCase() === foundCountry.toLowerCase()
+                    );
+                    if (matchCountry) {
+                        setSelectedCountry(matchCountry);
+                        setValues((current) => ({ ...current, country: matchCountry }));
+                    }
+                }
+
+                if (foundCity) {
+                    setSelectedCityName(foundCity);
+                }
+            }
+        });
+    }, []);
+
+    const handleGetCurrentLocation = useCallback(() => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const coords = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+                setUserLocation(coords);
+                setSelectedLocation(coords);
+                if (map) {
+                    map.panTo(coords);
+                    map.setZoom(16);
+                }
+                reverseGeocode(coords);
+            },
+            (error) => {
+                console.warn('Geolocation error or permission denied:', error);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }, [map, reverseGeocode]);
+
+    const handleMapClick = (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng) return;
+        const coords = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        setSelectedLocation(coords);
+        reverseGeocode(coords);
+    };
+
+    const handleMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng) return;
+        const coords = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        setSelectedLocation(coords);
+        reverseGeocode(coords);
+    };
+
+    const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
+        setMap(mapInstance);
+    }, []);
+
+    const onMapUnmount = useCallback(() => {
+        setMap(null);
+    }, []);
+
+    const normalizeCityName = (value: string) =>
+        value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/['\u2019`]/g, '')
+            .replace(/[^a-zA-Z0-9\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+
+    const resolveCityId = (cityName: string, countryName: string, cityList: City[] = cities) => {
+        if (!cityName.trim()) return '';
+
+        const normalizedSelectedCity = normalizeCityName(cityName);
+        const cityMatch = cityList.find((city) => normalizeCityName(city.name || '') === normalizedSelectedCity);
+        if (cityMatch) return String(cityMatch.id);
+
+        const countryCities = cityGroups[countryName] || [];
+        const fallbackName = countryCities.find(
+            (candidate) => normalizeCityName(candidate) === normalizedSelectedCity
+        );
+        if (!fallbackName) return '';
+
+        const fallbackMatch = cityList.find(
+            (city) => normalizeCityName(city.name || '') === normalizeCityName(fallbackName)
+        );
+        return fallbackMatch ? String(fallbackMatch.id) : '';
+    };
+
+    // Load spot data (including city, coordinates, images, and documents)
     useEffect(() => {
         if (!spotId) return;
 
@@ -76,11 +281,12 @@ function EditSpotPageContent() {
                 if (!res.ok) throw new Error('Failed to fetch spot');
                 return res.json();
             })
-            .then((data) => {
+            .then(async (data) => {
                 if (data.spot) {
                     const spot = data.spot;
                     setValues((prev) => ({
                         ...prev,
+                        city_id: spot.city_id ? String(spot.city_id) : '',
                         name: spot.title || '',
                         address: spot.address || '',
                         startHour: spot.start_hour || spot.start_time || '14:00',
@@ -91,13 +297,80 @@ function EditSpotPageContent() {
                         sellingInfo: spot.is_on_sale ? 'On sale' : 'Not on sale',
                         document: spot.document_name || (spot.document_url ? 'Legal Document.pdf' : ''),
                     }));
+
+                    if (spot.latitude && spot.longitude) {
+                        setSelectedLocation({ lat: spot.latitude, lng: spot.longitude });
+                    }
+
                     if (spot.image_url) {
                         setSpotPhotos([{ id: 'existing-image', url: `${API}${spot.image_url}`, file: null }]);
+                    }
+
+                    if (spot.city_id) {
+                        try {
+                            const cityRes = await fetch(`${API}/api/cities/${spot.city_id}`, { credentials: 'include' });
+                            if (cityRes.ok) {
+                                const cityData = await cityRes.json();
+                                if (cityData.city) {
+                                    if (cityData.city.country) {
+                                        setSelectedCountry(cityData.city.country);
+                                        setValues((v) => ({ ...v, country: cityData.city.country }));
+                                    }
+                                    setSelectedCityName(cityData.city.name);
+                                }
+                            }
+                        } catch (cityErr) {
+                            console.error('Failed to fetch spot city info:', cityErr);
+                        }
                     }
                 }
             })
             .catch((err) => console.error('Error fetching spot:', err));
     }, [spotId, API]);
+
+    useEffect(() => {
+        const fetchCities = async () => {
+            try {
+                const response = await fetch(`${API}/api/cities`, {
+                    credentials: 'include',
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const apiCities: City[] = data.cities || [];
+                    setCities(apiCities);
+
+                    if (selectedCityName) {
+                        const matchedId = resolveCityId(selectedCityName, selectedCountry, apiCities);
+                        if (matchedId) {
+                            setValues((v) => ({ ...v, city_id: matchedId }));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch cities:', error);
+            }
+        };
+        fetchCities();
+    }, [API, selectedCountry, selectedCityName]);
+
+    const cityOptions = selectedCountry ? cityGroups[selectedCountry] || [] : [];
+    const filteredCountries = countries.filter((country) =>
+        country.toLowerCase().includes(countrySearch.trim().toLowerCase())
+    );
+    const filteredCities = cityOptions.filter((cityName) =>
+        cityName.toLowerCase().includes(citySearch.trim().toLowerCase())
+    );
+
+    const canSubmit =
+        values.country.trim().length > 0 &&
+        selectedCountry.trim().length > 0 &&
+        selectedCityName.trim().length > 0 &&
+        values.name.trim().length > 0 &&
+        values.address.trim().length > 0 &&
+        selectedLocation !== null &&
+        values.rentalPriceAmount.trim().length > 0;
+
+    const isSaveDisabled = !canSubmit || isLoading;
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -181,6 +454,18 @@ function EditSpotPageContent() {
         setValues((current) => ({ ...current, [key]: value }));
     };
 
+    const handleCountryChange = (country: string) => {
+        setSelectedCountry(country);
+        setSelectedCityName('');
+        setValues((current) => ({ ...current, country, city_id: '' }));
+    };
+
+    const handleCityChange = (cityName: string) => {
+        setSelectedCityName(cityName);
+        const resolvedId = resolveCityId(cityName, selectedCountry);
+        setValues((current) => ({ ...current, city_id: resolvedId }));
+    };
+
     const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
@@ -204,47 +489,99 @@ function EditSpotPageContent() {
         if (documentInputRef.current) documentInputRef.current.value = '';
     };
 
-    // Salvare modificări cu pozele și documentul PDF
+    // Save changes with photos, documents, and map location coordinates
     const handleRentSubmit = async () => {
         if (!spotId) return;
 
-        const formData = new FormData();
-        formData.append('title', values.name);
-        formData.append('address', values.address);
-
-        formData.append('start_hour', values.startHour);
-        formData.append('end_hour', values.endHour);
-        formData.append('start_time', values.startHour);
-        formData.append('end_time', values.endHour);
-
-        formData.append('description', values.extraInfo);
-        formData.append('price_per_day', values.rentalPriceAmount);
-        formData.append('price_currency', values.rentalPriceCurrency);
-
-        const isOnSale = values.sellingInfo === 'On sale';
-        formData.append('is_on_sale', String(isOnSale));
-        formData.append('selling_info', values.sellingInfo);
-
-        const primaryPhoto = spotPhotos.find((photo) => photo.file);
-        if (primaryPhoto?.file) {
-            formData.append('image', primaryPhoto.file);
-        } else if (spotPhotos.length === 0) {
-            formData.append('remove_image', 'true');
-        }
-
-        spotPhotos.forEach((photo) => {
-            if (photo.file) {
-                formData.append('images', photo.file);
-            }
-        });
-
-        if (selectedDocumentFile) {
-            formData.append('document', selectedDocumentFile);
-        } else if (isDocumentRemoved) {
-            formData.append('remove_document', 'true');
-        }
+        setIsLoading(true);
+        setErrorMessage(null);
 
         try {
+            let finalCityId =
+                values.city_id.trim().length > 0
+                    ? values.city_id
+                    : resolveCityId(selectedCityName, values.country) || resolveCityId(selectedCityName, selectedCountry);
+
+            if (!finalCityId && selectedCityName) {
+                let createCityResponse: Response;
+                try {
+                    createCityResponse = await fetch(`${API}/api/cities`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: selectedCityName,
+                            country: selectedCountry || values.country,
+                        }),
+                    });
+                } catch (fetchErr: any) {
+                    setErrorMessage(`Cannot connect to server (${fetchErr?.message || 'Network error'}).`);
+                    setIsLoading(false);
+                    return;
+                }
+
+                if (createCityResponse.status === 409) {
+                    const citiesResponse = await fetch(`${API}/api/cities`, { credentials: 'include' });
+                    if (citiesResponse.ok) {
+                        const citiesData = await citiesResponse.json();
+                        const fetchedCities: City[] = citiesData.cities || [];
+                        setCities(fetchedCities);
+                        const existingCity = fetchedCities.find(
+                            (city) => normalizeCityName(city.name || '') === normalizeCityName(selectedCityName)
+                        );
+                        finalCityId = existingCity ? String(existingCity.id) : '';
+                    }
+                } else if (createCityResponse.ok) {
+                    const cityData = await createCityResponse.json();
+                    if (cityData.city) {
+                        finalCityId = String(cityData.city.id);
+                        setCities((prev) => [...prev, cityData.city]);
+                    }
+                }
+            }
+
+            const formData = new FormData();
+            if (finalCityId) formData.append('city_id', finalCityId);
+            formData.append('title', values.name);
+            formData.append('address', values.address);
+
+            formData.append('start_hour', values.startHour);
+            formData.append('end_hour', values.endHour);
+            formData.append('start_time', values.startHour);
+            formData.append('end_time', values.endHour);
+
+            formData.append('description', values.extraInfo);
+            formData.append('price_per_day', values.rentalPriceAmount);
+            formData.append('price_currency', values.rentalPriceCurrency);
+
+            const isOnSale = values.sellingInfo === 'On sale';
+            formData.append('is_on_sale', String(isOnSale));
+            formData.append('selling_info', values.sellingInfo);
+
+            if (selectedLocation) {
+                formData.append('latitude', String(selectedLocation.lat));
+                formData.append('longitude', String(selectedLocation.lng));
+            }
+
+            const primaryPhoto = spotPhotos.find((photo) => photo.file);
+            if (primaryPhoto?.file) {
+                formData.append('image', primaryPhoto.file);
+            } else if (spotPhotos.length === 0) {
+                formData.append('remove_image', 'true');
+            }
+
+            spotPhotos.forEach((photo) => {
+                if (photo.file) {
+                    formData.append('images', photo.file);
+                }
+            });
+
+            if (selectedDocumentFile) {
+                formData.append('document', selectedDocumentFile);
+            } else if (isDocumentRemoved) {
+                formData.append('remove_document', 'true');
+            }
+
             const res = await fetch(`${API}/api/spots/${spotId}`, {
                 method: 'PATCH',
                 body: formData,
@@ -252,13 +589,24 @@ function EditSpotPageContent() {
             });
 
             if (res.ok) {
+                setIsLoading(false);
                 setIsSuccessModalOpen(true);
             } else {
-                const data = await res.json();
-                alert(data.error || 'Failed to update spot');
+                const text = await res.text();
+                let errMsg = 'Failed to update spot';
+                try {
+                    const data = JSON.parse(text);
+                    errMsg = data.error || data.message || errMsg;
+                } catch {
+                    errMsg = text || errMsg;
+                }
+                setErrorMessage(errMsg);
+                setIsLoading(false);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error updating spot:', err);
+            setErrorMessage(err?.message || 'An error occurred while saving changes.');
+            setIsLoading(false);
         }
     };
 
@@ -392,6 +740,124 @@ function EditSpotPageContent() {
                             {t('spotSpecifications')}
                         </h3>
 
+                        {/* Country Selection */}
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                            <label className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                Country
+                            </label>
+                            <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCountryOpen((prev) => !prev)}
+                                    className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] dark:text-white"
+                                >
+                                    <span className={values.country ? 'text-[#121212] dark:text-white' : 'text-[#6f797d] dark:text-[#9db0b6]'}>
+                                        {values.country || 'Select a country...'}
+                                    </span>
+                                    <span className="text-base text-[#42565d] dark:text-[#d6e7ea]">{isCountryOpen ? '▴' : '▾'}</span>
+                                </button>
+
+                                {isCountryOpen && (
+                                    <div className="border-t border-black/10 p-2 dark:border-white/10">
+                                        <input
+                                            type="text"
+                                            value={countrySearch}
+                                            onChange={(e) => setCountrySearch(e.target.value)}
+                                            placeholder="Search country..."
+                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-[#032a2a] dark:text-white dark:placeholder:text-[#9db0b6]"
+                                        />
+                                        <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+                                            {filteredCountries.length > 0 ? (
+                                                filteredCountries.map((country) => (
+                                                    <button
+                                                        key={country}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleCountryChange(country);
+                                                            setCountrySearch('');
+                                                            setIsCountryOpen(false);
+                                                        }}
+                                                        className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                                                            values.country === country
+                                                                ? 'bg-[#dfeef0] text-[#0f4c81] dark:bg-white/10 dark:text-[#2dd4bf]'
+                                                                : 'text-[#121212] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
+                                                        }`}
+                                                    >
+                                                        <span>{country}</span>
+                                                        {values.country === country && <span>✓</span>}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="px-3 py-2 text-sm text-[#6f797d] dark:text-[#9db0b6]">
+                                                    No countries found
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* City Selection */}
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                            <label className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
+                                City
+                            </label>
+                            <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                                <button
+                                    type="button"
+                                    onClick={() => selectedCountry && setIsCityOpen((prev) => !prev)}
+                                    disabled={!selectedCountry}
+                                    className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] disabled:cursor-not-allowed disabled:opacity-60 dark:text-white"
+                                >
+                                    <span className={selectedCityName ? 'text-[#121212] dark:text-white' : 'text-[#6f797d] dark:text-[#9db0b6]'}>
+                                        {selectedCityName || (selectedCountry ? 'Select a city...' : 'Select a country first')}
+                                    </span>
+                                    <span className="text-base text-[#42565d] dark:text-[#d6e7ea]">{isCityOpen ? '▴' : '▾'}</span>
+                                </button>
+
+                                {isCityOpen && selectedCountry && (
+                                    <div className="border-t border-black/10 p-2 dark:border-white/10">
+                                        <input
+                                            type="text"
+                                            value={citySearch}
+                                            onChange={(e) => setCitySearch(e.target.value)}
+                                            placeholder="Search city..."
+                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-[#032a2a] dark:text-white dark:placeholder:text-[#9db0b6]"
+                                        />
+                                        <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+                                            {filteredCities.length > 0 ? (
+                                                filteredCities.map((cityName) => (
+                                                    <button
+                                                        key={cityName}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleCityChange(cityName);
+                                                            setCitySearch('');
+                                                            setIsCityOpen(false);
+                                                        }}
+                                                        className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                                                            selectedCityName === cityName
+                                                                ? 'bg-[#dfeef0] text-[#0f4c81] dark:bg-white/10 dark:text-[#2dd4bf]'
+                                                                : 'text-[#121212] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
+                                                        }`}
+                                                    >
+                                                        <span>{cityName}</span>
+                                                        {selectedCityName === cityName && <span>✓</span>}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="px-3 py-2 text-sm text-[#6f797d] dark:text-[#9db0b6]">
+                                                    No cities found
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Name */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-name" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 {t('spotName')}
@@ -406,20 +872,96 @@ function EditSpotPageContent() {
                             />
                         </div>
 
+                        {/* Address (ReadOnly - set strictly via Google Maps pin placement) */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-address" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 {t('address')}
                             </label>
-                            <input
-                                id="spot-address"
-                                type="text"
-                                value={values.address}
-                                onChange={(e) => updateValue('address', e.target.value)}
-                                placeholder="Parking spot address"
-                                className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
-                            />
+                            <div className="w-full rounded-xl border border-black/10 bg-white/30 px-3 py-2 text-[18px] font-medium text-[#121212] dark:border-white/10 dark:bg-white/5 dark:text-white min-h-[44px] flex items-center select-none cursor-not-allowed opacity-90">
+                                {values.address ? (
+                                    <span>{values.address}</span>
+                                ) : (
+                                    <span className="text-[#6f797d] dark:text-[#9db0b6] text-base italic font-normal">
+                                        Select pin on map to set address
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
+                        {/* Precise Location Map Box */}
+                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5 space-y-2">
+                            <div className="flex items-center justify-between px-1">
+                                <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea] flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-[#0f4c81] dark:text-[#2dd4bf]" />
+                                    Precise Location on Map
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={handleGetCurrentLocation}
+                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#0f4c81] dark:text-[#2dd4bf] bg-white/60 dark:bg-white/10 px-2.5 py-1 rounded-xl border border-black/10 dark:border-white/10 hover:bg-white/90 dark:hover:bg-white/20 transition cursor-pointer active:scale-95"
+                                >
+                                    <Locate className="w-3 h-3" />
+                                    My Location
+                                </button>
+                            </div>
+
+                            <div className="relative w-full h-60 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 shadow-inner bg-[#e8e8e8] dark:bg-[#121c1a]">
+                                {isLoaded ? (
+                                    <GoogleMap
+                                        mapContainerStyle={{ width: '100%', height: '100%' }}
+                                        center={selectedLocation || userLocation || defaultMapCenter}
+                                        zoom={selectedLocation || userLocation ? 16 : 13}
+                                        onLoad={onMapLoad}
+                                        onUnmount={onMapUnmount}
+                                        onClick={handleMapClick}
+                                        options={{
+                                            disableDefaultUI: true,
+                                            zoomControl: true,
+                                            styles: isDarkMode ? darkMapStyle : [],
+                                        }}
+                                    >
+                                        {userLocation && (
+                                            <Circle
+                                                center={userLocation}
+                                                radius={20}
+                                                options={{
+                                                    strokeColor: '#1e90ff',
+                                                    strokeOpacity: 0.8,
+                                                    strokeWeight: 2,
+                                                    fillColor: '#1e90ff',
+                                                    fillOpacity: 0.2,
+                                                    clickable: false,
+                                                    zIndex: 1,
+                                                }}
+                                            />
+                                        )}
+
+                                        {selectedLocation && (
+                                            <MarkerF
+                                                position={selectedLocation}
+                                                draggable={true}
+                                                onDragEnd={handleMarkerDragEnd}
+                                                icon={{
+                                                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+                                                        '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="#ef4444" stroke="#dc2626" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>'
+                                                    )}`,
+                                                    anchor: isLoaded ? new window.google.maps.Point(18, 36) : undefined,
+                                                }}
+                                            />
+                                        )}
+                                    </GoogleMap>
+                                ) : (
+                                    <div className="flex h-full items-center justify-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">
+                                        {t('loadingMap')}
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-[#6f797d] dark:text-[#9db0b6] px-1 italic">
+                                Click on the map or drag the pin to set the exact spot location.
+                            </p>
+                        </div>
+
+                        {/* Time Available */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <span className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 {t('timeAvailable')}
@@ -432,7 +974,7 @@ function EditSpotPageContent() {
                                         type="time"
                                         value={values.startHour}
                                         onChange={(e) => updateValue('startHour', e.target.value)}
-                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white scheme-light dark:scheme-dark"
+                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
                                     />
                                 </div>
                                 <div>
@@ -442,15 +984,16 @@ function EditSpotPageContent() {
                                         type="time"
                                         value={values.endHour}
                                         onChange={(e) => updateValue('endHour', e.target.value)}
-                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white scheme-light dark:scheme-dark"
+                                        className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[16px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
                                     />
                                 </div>
                             </div>
                         </div>
 
+                        {/* Extra Info */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-extra" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
-                                {t('extraInfo')}
+                                {t('extraInfoOptional')}
                             </label>
                             <input
                                 id="spot-extra"
@@ -462,6 +1005,7 @@ function EditSpotPageContent() {
                             />
                         </div>
 
+                        {/* Rental Price */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-price" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 {t('rentalPrice')}
@@ -494,6 +1038,7 @@ function EditSpotPageContent() {
                             </div>
                         </div>
 
+                        {/* Selling Info */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label htmlFor="spot-selling" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                 Selling info
@@ -513,6 +1058,7 @@ function EditSpotPageContent() {
                             </select>
                         </div>
 
+                        {/* Legal Documents */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <div className="mb-2 flex items-center justify-between gap-2">
                                 <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
@@ -564,13 +1110,24 @@ function EditSpotPageContent() {
                         </div>
                     </div>
 
+                    {/* Submit Button */}
                     <div className="px-2 pt-4">
+                        {errorMessage && (
+                            <div className="mb-3 rounded-lg bg-red-500/20 border border-red-500 px-4 py-2 text-red-700 dark:text-red-300 text-sm">
+                                {errorMessage}
+                            </div>
+                        )}
                         <button
                             type="button"
+                            disabled={isSaveDisabled}
                             onClick={handleRentSubmit}
-                            className="flex w-full cursor-pointer items-center justify-center rounded-2xl bg-[#0f4c81] px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:bg-[#0c3e67] hover:scale-[1.01] active:scale-[0.99]"
+                            className={`flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition ${
+                                isSaveDisabled
+                                    ? 'cursor-not-allowed bg-[#0f4c81]/45 text-white shadow-none'
+                                    : 'cursor-pointer bg-[#0f4c81] text-white hover:scale-[1.01] hover:bg-[#0c3e67] active:scale-[0.99]'
+                            }`}
                         >
-                            {t('saveChanges')}
+                            {isLoading ? 'Saving...' : t('saveChanges')}
                         </button>
                     </div>
                 </main>

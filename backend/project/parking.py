@@ -298,6 +298,17 @@ def create_spot():
     is_on_sale_raw = request.form.get('is_on_sale')
     is_on_sale = str(is_on_sale_raw).lower() in ['true', '1', 'on sale']
 
+    lat_raw = request.form.get('latitude')
+    lng_raw = request.form.get('longitude')
+    try:
+        lat_val = float(lat_raw) if lat_raw is not None and lat_raw != '' else None
+    except (ValueError, TypeError):
+        lat_val = None
+    try:
+        lng_val = float(lng_raw) if lng_raw is not None and lng_raw != '' else None
+    except (ValueError, TypeError):
+        lng_val = None
+
     spot = ParkingSpot(
         user_id=current_user.id,
         city_id=city.id,
@@ -305,8 +316,8 @@ def create_spot():
         address=address,
         description=description or None,
         price_per_day=price_value,
-        latitude=request.form.get('latitude'),
-        longitude=request.form.get('longitude'),
+        latitude=lat_val,
+        longitude=lng_val,
         is_available=True,
         image_url=image_filename,
         document_url=document_filename,
@@ -362,10 +373,18 @@ def update_spot(spot_id):
         spot.price_per_day = price_value
 
     if 'latitude' in request.form:
-        spot.latitude = request.form.get('latitude') or None
+        lat_raw = request.form.get('latitude')
+        try:
+            spot.latitude = float(lat_raw) if lat_raw is not None and lat_raw != '' else None
+        except (ValueError, TypeError):
+            spot.latitude = None
 
     if 'longitude' in request.form:
-        spot.longitude = request.form.get('longitude') or None
+        lng_raw = request.form.get('longitude')
+        try:
+            spot.longitude = float(lng_raw) if lng_raw is not None and lng_raw != '' else None
+        except (ValueError, TypeError):
+            spot.longitude = None
 
     if 'start_hour' in request.form or 'start_time' in request.form:
         val = request.form.get('start_hour') or request.form.get('start_time')
