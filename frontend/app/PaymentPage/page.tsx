@@ -18,6 +18,18 @@ import {
     Car,
 } from 'lucide-react';
 
+const carModelOptions = [
+    { value: 'sedan', label: 'Sedan' },
+    { value: 'suv', label: 'SUV' },
+    { value: 'hatchback', label: 'Hatchback' },
+    { value: 'coupe', label: 'Coupe' },
+    { value: 'wagon', label: 'Wagon' },
+    { value: 'convertible', label: 'Convertible' },
+    { value: 'minivan', label: 'Minivan' },
+    { value: 'pickup', label: 'Pickup Truck' },
+    { value: 'electric', label: 'Electric / EV' },
+];
+
 export default function PaymentPage() {
     const router = useRouter();
 
@@ -25,6 +37,8 @@ export default function PaymentPage() {
 
     const [plate, setPlate] = useState('');
     const [carModel, setCarModel] = useState('');
+    const [isCarModelOpen, setIsCarModelOpen] = useState(false);
+    const [userCars, setUserCars] = useState<Array<{ brand: string; model: string; license_plate: string }>>([]);
     const [showHelpModal, setShowHelpModal] = useState(false);
 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -50,12 +64,28 @@ export default function PaymentPage() {
             );
     }, []);
 
-    const isCarInfoValid =
-        plate.trim() !== '' && carModel !== '';
+    useEffect(() => {
+        fetch('/api/cars', { credentials: 'include' })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (data && data.cars && data.cars.length > 0) {
+                    setUserCars(data.cars);
+                }
+            })
+            .catch(() => {});
+    }, []);
+
+    const isCarInfoValid = plate.trim() !== '' && carModel !== '';
 
     const handleUseOwnCar = () => {
-        setPlate('B 123 ABC');
-        setCarModel('sedan');
+        if (userCars.length > 0) {
+            const firstCar = userCars[0];
+            setPlate(firstCar.license_plate);
+            setCarModel(firstCar.model.toLowerCase());
+        } else {
+            setPlate('B 123 ABC');
+            setCarModel('sedan');
+        }
     };
 
     const handlePaymentSuccess = () => {
@@ -139,6 +169,9 @@ export default function PaymentPage() {
     if (!mounted) {
         return null;
     }
+
+    const selectedCarModelLabel =
+        carModelOptions.find((opt) => opt.value === carModel.toLowerCase())?.label || carModel;
 
     return (
         <div className="relative min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b]">
@@ -233,42 +266,60 @@ export default function PaymentPage() {
                             />
                         </div>
 
+                        {/* Custom Dropdown for Car Model */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label
-                                htmlFor="car-model"
+                                htmlFor="car-model-btn"
                                 className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]"
                             >
                                 Car model
                             </label>
 
-                            <div className="relative w-full">
-                                <select
-                                    id="car-model"
-                                    value={carModel}
-                                    onChange={(e) => setCarModel(e.target.value)}
-                                    className="
-                                        w-full cursor-pointer
-                                        appearance-none rounded-xl
-                                        border border-black/10
-                                        bg-white/60 px-3 py-2
-                                        text-[18px] font-medium
-                                        text-[#121212] outline-none
-                                        dark:border-white/10
-                                        dark:bg-white/5
-                                        dark:text-white
-                                    "
+                            <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                                <button
+                                    id="car-model-btn"
+                                    type="button"
+                                    onClick={() => setIsCarModelOpen((prev) => !prev)}
+                                    className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] dark:text-white"
                                 >
-                                    <option value="" disabled hidden>
-                                        Car model...
-                                    </option>
-                                    <option value="sedan">Sedan</option>
-                                    <option value="suv">SUV</option>
-                                    <option value="hatchback">
-                                        Hatchback
-                                    </option>
-                                </select>
+                                    <span
+                                        className={
+                                            carModel
+                                                ? 'text-[#121212] dark:text-white'
+                                                : 'text-[#6f797d] dark:text-[#9db0b6]'
+                                        }
+                                    >
+                                        {carModel ? selectedCarModelLabel : 'Car model...'}
+                                    </span>
+                                    <ChevronDown
+                                        className={`h-5 w-5 text-[#42565d] transition-transform duration-200 dark:text-[#9db0b6] ${
+                                            isCarModelOpen ? 'rotate-180' : ''
+                                        }`}
+                                    />
+                                </button>
 
-                                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#42565d] dark:text-[#9db0b6]" />
+                                {isCarModelOpen && (
+                                    <div className="max-h-52 space-y-1 overflow-y-auto border-t border-black/10 p-2 dark:border-white/10">
+                                        {carModelOptions.map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    setCarModel(option.value);
+                                                    setIsCarModelOpen(false);
+                                                }}
+                                                className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-base font-medium transition ${
+                                                    carModel.toLowerCase() === option.value
+                                                        ? 'bg-[#dfeef0] text-[#0f4c81] dark:bg-white/10 dark:text-[#2dd4bf]'
+                                                        : 'text-[#121212] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
+                                                }`}
+                                            >
+                                                <span>{option.label}</span>
+                                                {carModel.toLowerCase() === option.value && <span>✓</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
