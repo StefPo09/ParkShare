@@ -16,15 +16,45 @@ import {
     Key,
     Home,
     Car,
+    Plus,
 } from 'lucide-react';
+
+interface CarItem {
+    id: number;
+    brand: string;
+    model: string;
+    license_plate: string;
+    year?: number;
+    color?: string;
+    image_url?: string | null;
+}
+
+const carModelOptions = [
+    { value: 'sedan', label: 'Sedan' },
+    { value: 'suv', label: 'SUV' },
+    { value: 'hatchback', label: 'Hatchback' },
+    { value: 'coupe', label: 'Coupe' },
+    { value: 'wagon', label: 'Wagon' },
+    { value: 'convertible', label: 'Convertible' },
+    { value: 'minivan', label: 'Minivan' },
+    { value: 'pickup', label: 'Pickup Truck' },
+    { value: 'electric', label: 'Electric / EV' },
+];
 
 export default function PaymentPage() {
     const router = useRouter();
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
 
     const [plate, setPlate] = useState('');
     const [carModel, setCarModel] = useState('');
+    const [isCarModelOpen, setIsCarModelOpen] = useState(false);
+    
+    const [userCars, setUserCars] = useState<CarItem[]>([]);
+    const [showCarsModal, setShowCarsModal] = useState(false);
+    const [isLoadingCars, setIsLoadingCars] = useState(false);
+    
     const [showHelpModal, setShowHelpModal] = useState(false);
 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -50,12 +80,36 @@ export default function PaymentPage() {
             );
     }, []);
 
-    const isCarInfoValid =
-        plate.trim() !== '' && carModel !== '';
+    const fetchUserCars = async () => {
+        setIsLoadingCars(true);
+        try {
+            const res = await fetch(`${API}/api/cars`, { credentials: 'include' });
+            if (res.ok) {
+                const data = await res.json();
+                setUserCars(data.cars || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch user cars:', err);
+        } finally {
+            setIsLoadingCars(false);
+        }
+    };
 
-    const handleUseOwnCar = () => {
-        setPlate('B 123 ABC');
-        setCarModel('sedan');
+    useEffect(() => {
+        fetchUserCars();
+    }, [API]);
+
+    const isCarInfoValid = plate.trim() !== '' && carModel !== '';
+
+    const handleUseOwnCarClick = () => {
+        fetchUserCars();
+        setShowCarsModal(true);
+    };
+
+    const handleSelectCar = (car: CarItem) => {
+        setPlate(car.license_plate);
+        setCarModel(car.model);
+        setShowCarsModal(false);
     };
 
     const handlePaymentSuccess = () => {
@@ -139,6 +193,9 @@ export default function PaymentPage() {
     if (!mounted) {
         return null;
     }
+
+    const selectedCarModelLabel =
+        carModelOptions.find((opt) => opt.value === carModel.toLowerCase())?.label || carModel;
 
     return (
         <div className="relative min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b]">
@@ -233,49 +290,67 @@ export default function PaymentPage() {
                             />
                         </div>
 
+                        {/* Custom Dropdown for Car Model */}
                         <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
                             <label
-                                htmlFor="car-model"
+                                htmlFor="car-model-btn"
                                 className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]"
                             >
                                 Car model
                             </label>
 
-                            <div className="relative w-full">
-                                <select
-                                    id="car-model"
-                                    value={carModel}
-                                    onChange={(e) => setCarModel(e.target.value)}
-                                    className="
-                                        w-full cursor-pointer
-                                        appearance-none rounded-xl
-                                        border border-black/10
-                                        bg-white/60 px-3 py-2
-                                        text-[18px] font-medium
-                                        text-[#121212] outline-none
-                                        dark:border-white/10
-                                        dark:bg-white/5
-                                        dark:text-white
-                                    "
+                            <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                                <button
+                                    id="car-model-btn"
+                                    type="button"
+                                    onClick={() => setIsCarModelOpen((prev) => !prev)}
+                                    className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] dark:text-white"
                                 >
-                                    <option value="" disabled hidden>
-                                        Car model...
-                                    </option>
-                                    <option value="sedan">Sedan</option>
-                                    <option value="suv">SUV</option>
-                                    <option value="hatchback">
-                                        Hatchback
-                                    </option>
-                                </select>
+                                    <span
+                                        className={
+                                            carModel
+                                                ? 'text-[#121212] dark:text-white'
+                                                : 'text-[#6f797d] dark:text-[#9db0b6]'
+                                        }
+                                    >
+                                        {carModel ? selectedCarModelLabel : 'Car model...'}
+                                    </span>
+                                    <ChevronDown
+                                        className={`h-5 w-5 text-[#42565d] transition-transform duration-200 dark:text-[#9db0b6] ${
+                                            isCarModelOpen ? 'rotate-180' : ''
+                                        }`}
+                                    />
+                                </button>
 
-                                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#42565d] dark:text-[#9db0b6]" />
+                                {isCarModelOpen && (
+                                    <div className="max-h-52 space-y-1 overflow-y-auto border-t border-black/10 p-2 dark:border-white/10">
+                                        {carModelOptions.map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    setCarModel(option.value);
+                                                    setIsCarModelOpen(false);
+                                                }}
+                                                className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-base font-medium transition ${
+                                                    carModel.toLowerCase() === option.value
+                                                        ? 'bg-[#dfeef0] text-[#0f4c81] dark:bg-white/10 dark:text-[#2dd4bf]'
+                                                        : 'text-[#121212] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
+                                                }`}
+                                            >
+                                                <span>{option.label}</span>
+                                                {carModel.toLowerCase() === option.value && <span>✓</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <div className="mt-3 pl-1">
                             <button
                                 type="button"
-                                onClick={handleUseOwnCar}
+                                onClick={handleUseOwnCarClick}
                                 className="
                                     inline-flex cursor-pointer
                                     items-center gap-1
@@ -407,6 +482,90 @@ export default function PaymentPage() {
                     </button>
                 </nav>
             </div>
+
+            {/* Saved Cars Selection Modal */}
+            {showCarsModal && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
+                    <div className="relative w-full max-w-85 rounded-3xl border border-white/40 bg-white/90 p-6 text-center shadow-[0_20px_50px_rgba(0,0,0,0.25)] transition-colors duration-300 dark:border-white/5 dark:bg-[#022525]/90">
+                        <button
+                            type="button"
+                            onClick={() => setShowCarsModal(false)}
+                            className="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-[#404b51] hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10"
+                            aria-label="Close"
+                        >
+                            <X className="h-5 w-5" strokeWidth={2.2} />
+                        </button>
+
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-[#2dd4bf]/10 dark:text-[#2dd4bf] mb-2">
+                            <Car className="h-6 w-6" strokeWidth={2.2} />
+                        </div>
+
+                        <h3 className="text-xl font-bold tracking-tight text-[#121212] dark:text-white">
+                            Select Your Car
+                        </h3>
+                        <p className="mt-1 text-xs text-[#6f797d] dark:text-[#9db0b6]">
+                            Choose a car from your profile to auto-complete details.
+                        </p>
+
+                        <div className="mt-4 max-h-64 space-y-2.5 overflow-y-auto px-1 text-left">
+                            {isLoadingCars ? (
+                                <div className="py-8 text-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">
+                                    Loading your saved cars...
+                                </div>
+                            ) : userCars.length === 0 ? (
+                                <div className="py-6 text-center">
+                                    <p className="text-sm font-medium text-[#42565d] dark:text-[#9db0b6] mb-3">
+                                        No saved cars found in your profile.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowCarsModal(false);
+                                            router.push(ROUTES.ADD_CAR);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#0f4c81] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#0c3e67] transition cursor-pointer"
+                                    >
+                                        <Plus className="h-4 w-4" strokeWidth={2.2} />
+                                        Add New Car
+                                    </button>
+                                </div>
+                            ) : (
+                                userCars.map((car) => (
+                                    <button
+                                        key={car.id}
+                                        type="button"
+                                        onClick={() => handleSelectCar(car)}
+                                        className="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-black/5 bg-white/70 p-3 text-left shadow-sm transition hover:scale-[1.01] hover:bg-white hover:shadow-md dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15"
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-black/10 bg-[#e8e8e8] dark:border-white/10 dark:bg-white/10 flex items-center justify-center">
+                                                {car.image_url ? (
+                                                    <img
+                                                        src={`${API}${car.image_url}`}
+                                                        alt={`${car.brand} ${car.model}`}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <Car className="h-5 w-5 text-[#0f4c81] dark:text-[#2dd4bf]" strokeWidth={2} />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-[#121212] dark:text-white leading-tight">
+                                                    {car.brand} {car.model}
+                                                </h4>
+                                                <p className="text-xs font-semibold text-[#0f4c81] dark:text-[#2dd4bf]">
+                                                    {car.license_plate}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="h-4 w-4 text-[#6f797d] dark:text-[#9db0b6]" strokeWidth={2.2} />
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showHelpModal && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
