@@ -45,4 +45,4 @@ Thumbs.db
 .idea/dictionaries/
 
 # Local backend uploads
-backend/uploads
+backend/uploadsbackend/uploads/
