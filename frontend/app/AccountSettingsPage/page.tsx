@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import {
@@ -20,7 +21,6 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-
 import { countryOptions, countryFlags } from '../../data/address/countries';
 import { useLanguage } from '../components/LanguageProvider';
 import { phoneCountryOptions } from '../../data/address/phonePrefixes';
@@ -37,15 +37,26 @@ type CountryPhoneEntry = {
   maxLength: number;
 };
 
-const initialProfile: ProfileState = {
-  email: 'johndoe@gmail.com',
-  phone: '+1 5551234567',
-  country: 'United States',
-  city: 'Boston',
-  firstName: 'John',
-  lastName: 'Doe',
+type ApiUser = {
+  email: string;
+  phone_country_code: string | null;
+  phone: string | null;
+  country: string | null;
+  city: string | null;
+  first_name: string | null;
+  last_name: string | null;
 };
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+const emptyProfile: ProfileState = {
+  email: '',
+  phone: '',
+  country: '',
+  city: '',
+  firstName: '',
+  lastName: '',
+};
 
 const fieldIcons: Record<FieldKey, typeof Mail> = {
   email: Mail,
@@ -54,35 +65,6 @@ const fieldIcons: Record<FieldKey, typeof Mail> = {
   city: MapPin,
   firstName: UserRound,
   lastName: UserRound,
-};
-
-const avatarGradients = [
-  'from-[#0f4c81] via-[#3d7cb3] to-[#9ad7db]',
-  'from-[#0f7c67] via-[#2fb38d] to-[#b9eedb]',
-  'from-[#b63636] via-[#e06b6b] to-[#fecaca]',
-  'from-[#d98c1d] via-[#f5b939] to-[#fef3c7]',
-  'from-[#c85d29] via-[#ef8e4f] to-[#fed7aa]',
-  'from-[#6939b6] via-[#9063d7] to-[#ddd6fe]',
-  'from-[#d84f8f] via-[#ec7abb] to-[#fbcfe8]',
-] as const;
-
-/* Country / flags / phone prefixes / city groups moved to separate files in the same folder.
-   Files:
-     - ./countries
-     - ./phonePrefixes
-     - ./cities
-*/
-
-
-const getAvatarGradient = (firstName: string, lastName: string) => {
-  const source = `${firstName}${lastName}`.toLowerCase();
-  let hash = 0;
-
-  for (let i = 0; i < source.length; i += 1) {
-    hash = source.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return avatarGradients[Math.abs(hash) % avatarGradients.length];
 };
 
 const isValidEmail = (value: string) => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\.[a-zA-Z]{2,})?$/.test(value.trim());
@@ -96,12 +78,16 @@ const getPhoneMeta = (code: string) => phoneCountryOptions.find((entry) => entry
 
 export default function AccountSettingsPage() {
   const router = useRouter();
-  const [savedProfile, setSavedProfile] = useState<ProfileState>(initialProfile);
-  const [draftProfile, setDraftProfile] = useState<ProfileState>(initialProfile);
+  const { t } = useLanguage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [savedProfile, setSavedProfile] = useState<ProfileState>(emptyProfile);
+  const [draftProfile, setDraftProfile] = useState<ProfileState>(emptyProfile);
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [editingField, setEditingField] = useState<FieldKey | null>(null);
   const [tempValue, setTempValue] = useState('');
   const [phonePrefix, setPhonePrefix] = useState('+1');
-  const [phoneDigits, setPhoneDigits] = useState('5551234567');
+  const [phoneDigits, setPhoneDigits] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [changedFields, setChangedFields] = useState<Record<FieldKey, boolean>>({
     email: false,
@@ -114,10 +100,11 @@ export default function AccountSettingsPage() {
   const [countrySearch, setCountrySearch] = useState('');
   const [citySearch, setCitySearch] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
-  const { t } = useLanguage();
+  const [isLoading, setIsLoading] = useState(true);
 
-  const fieldLabels = React.useMemo(() => ({
+  const fieldLabels = useMemo(() => ({
     email: t('labelEmail'),
     phone: t('labelPhone'),
     country: t('labelCountry'),
@@ -126,19 +113,61 @@ export default function AccountSettingsPage() {
     lastName: t('labelLastName'),
   }) as Record<FieldKey, string>, [t]);
 
-  const avatarGradient = useMemo(
-    () => getAvatarGradient(draftProfile.firstName, draftProfile.lastName),
-    [draftProfile.firstName, draftProfile.lastName],
-  );
+  const avatarGradient = useMemo(() => {
+    const source = `${draftProfile.firstName}${draftProfile.lastName}`.toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < source.length; i += 1) hash = source.charCodeAt(i) + ((hash << 5) - hash);
+    return ['from-[#0f4c81] via-[#3d7cb3] to-[#9ad7db]', 'from-[#0f7c67] via-[#2fb38d] to-[#b9eedb]'][Math.abs(hash) % 2];
+  }, [draftProfile.firstName, draftProfile.lastName]);
 
   const initials = `${draftProfile.firstName?.[0] ?? ''}${draftProfile.lastName?.[0] ?? ''}`.toUpperCase();
   const hasUnsavedChanges = Object.values(changedFields).some(Boolean);
-  const filteredCountryOptions = countryOptions.filter((country) =>
-    country.toLowerCase().includes(countrySearch.toLowerCase()),
-  );
-  const filteredCityOptions = getCountryCityOptions(draftProfile.country).filter((city) =>
-    city.toLowerCase().includes(citySearch.toLowerCase()),
-  );
+  const filteredCountryOptions = countryOptions.filter((country) => country.toLowerCase().includes(countrySearch.toLowerCase()));
+  const filteredCityOptions = getCountryCityOptions(draftProfile.country).filter((city) => city.toLowerCase().includes(citySearch.toLowerCase()));
+
+  const loadProfilePicture = async () => {
+    const res = await fetch(`${API_BASE_URL}/api/user/profile-picture/download`, { credentials: 'include' });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    setAvatarUrl(URL.createObjectURL(blob));
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' });
+        if (res.status === 401) {
+          router.push('/login');
+          return;
+        }
+        if (!res.ok) throw new Error(`Unexpected status ${res.status}`);
+        const data = await res.json();
+        const u: ApiUser = data.user;
+        const nextProfile: ProfileState = {
+          email: u.email || '',
+          phone: [u.phone_country_code, u.phone].filter(Boolean).join(' '),
+          country: u.country || '',
+          city: u.city || '',
+          firstName: u.first_name || '',
+          lastName: u.last_name || '',
+        };
+        if (cancelled) return;
+        setSavedProfile(nextProfile);
+        setDraftProfile(nextProfile);
+        await loadProfilePicture();
+      } catch (e) {
+        console.error('Failed to load account settings:', e);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const beginEditing = (field: FieldKey) => {
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -156,145 +185,177 @@ export default function AccountSettingsPage() {
     }
 
     if (field === 'city') {
-      const availableCities = getCountryCityOptions(draftProfile.country);
-      const safeCity = availableCities.includes(draftProfile.city) ? draftProfile.city : (availableCities[0] ?? '');
-      setTempValue(safeCity);
+      const cities = getCountryCityOptions(draftProfile.country);
+      setTempValue(cities.includes(draftProfile.city) ? draftProfile.city : (cities[0] ?? ''));
       return;
     }
 
     setTempValue(draftProfile[field]);
   };
 
-  const resetPhoneEditing = () => {
-    const previousPrefix = phoneCountryOptions.find((entry) => draftProfile.phone.startsWith(entry.code))?.code ?? '+1';
-    setPhonePrefix(previousPrefix);
-    setPhoneDigits(draftProfile.phone.replace(previousPrefix, '').replace(/\D/g, ''));
-  };
-
-  const commitEdit = (field: FieldKey) => {
-    const previousValue = savedProfile[field];
-    let nextValue = tempValue.trim();
+  const commitEdit = async (field: FieldKey) => {
+    const nextValue = tempValue.trim();
+    let payload: Record<string, string> = {};
 
     if (field === 'email') {
       if (!isValidEmail(nextValue)) {
         setFieldErrors((prev) => ({ ...prev, email: 'Please enter a valid email address.' }));
         return;
       }
-    }
-
-    if (field === 'phone') {
-      const selectedMeta = getPhoneMeta(phonePrefix);
+      payload = { email: nextValue };
+    } else if (field === 'phone') {
+      const meta = getPhoneMeta(phonePrefix);
       const sanitized = phoneDigits.replace(/\D/g, '');
-      const candidateValue = `${phonePrefix} ${sanitized}`;
-
-      if (sanitized.length < selectedMeta.minLength || sanitized.length > selectedMeta.maxLength) {
-        setFieldErrors((prev) => ({
-          ...prev,
-          phone: `This phone number must contain between ${selectedMeta.minLength} and ${selectedMeta.maxLength} digits for ${selectedMeta.country}.`,
-        }));
+      if (sanitized.length < meta.minLength || sanitized.length > meta.maxLength) {
+        setFieldErrors((prev) => ({ ...prev, phone: `Use ${meta.minLength}-${meta.maxLength} digits for ${meta.country}.` }));
         return;
       }
-
-      nextValue = candidateValue;
-    }
-
-    if (field === 'country') {
+      payload = { phone_country_code: phonePrefix, phone: sanitized };
+    } else if (field === 'country') {
       if (!countryOptions.includes(nextValue)) {
         setFieldErrors((prev) => ({ ...prev, country: 'Please choose a valid country.' }));
         return;
       }
       const cities = getCountryCityOptions(nextValue);
-      if (cities[0]) {
-        setDraftProfile((prev) => ({
-          ...prev,
-          country: nextValue,
-          city: cities.includes(prev.city) ? prev.city : cities[0],
-        }));
-      }
-    }
-
-    if (field === 'city') {
+      const nextCity = cities.includes(draftProfile.city) ? draftProfile.city : (cities[0] ?? '');
+      payload = { country: nextValue, city: nextCity };
+    } else if (field === 'city') {
       const cities = getCountryCityOptions(draftProfile.country);
       if (!cities.includes(nextValue)) {
         setFieldErrors((prev) => ({ ...prev, city: 'Please choose a valid city for the selected country.' }));
         return;
       }
-    }
-
-    if (field === 'firstName' || field === 'lastName') {
+      payload = { city: nextValue };
+    } else {
       if (!isValidName(nextValue)) {
-        const fieldName = field === 'firstName' ? 'first name' : 'last name';
-        setFieldErrors((prev) => ({ ...prev, [field]: `Please enter a valid ${fieldName} with letters only.` }));
+        setFieldErrors((prev) => ({ ...prev, [field]: `Please enter a valid ${field === 'firstName' ? 'first name' : 'last name'}.` }));
         return;
       }
+      payload = { [field === 'firstName' ? 'first_name' : 'last_name']: nextValue };
     }
 
-    const isActualChange = nextValue !== previousValue;
-
-    setDraftProfile((prev) => ({ ...prev, [field]: nextValue }));
-    setChangedFields((prev) => ({ ...prev, [field]: isActualChange }));
-
-    setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
-    setEditingField(null);
-    setTempValue('');
-    resetPhoneEditing();
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/personal-details`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      const data = await res.json();
+      const u: ApiUser = data.user;
+      const nextProfile: ProfileState = {
+        email: u.email || '',
+        phone: [u.phone_country_code, u.phone].filter(Boolean).join(' '),
+        country: u.country || '',
+        city: u.city || '',
+        firstName: u.first_name || '',
+        lastName: u.last_name || '',
+      };
+      setSavedProfile(nextProfile);
+      setDraftProfile(nextProfile);
+      setChangedFields({ email: false, phone: false, country: false, city: false, firstName: false, lastName: false });
+      setEditingField(null);
+      setTempValue('');
+      setShowSuccessModal(true);
+    } catch (e) {
+      console.error('Failed to save field:', e);
+    }
   };
 
-  const handleSaveChanges = () => {
-    if (!hasUnsavedChanges) return;
-
-    const updatedProfile = { ...savedProfile } as ProfileState;
-
-    (Object.keys(changedFields) as FieldKey[]).forEach((field) => {
-      if (changedFields[field]) {
-        updatedProfile[field] = draftProfile[field];
-      }
-    });
-
-    setSavedProfile(updatedProfile);
-    setDraftProfile(updatedProfile);
-    setChangedFields({
-      email: false,
-      phone: false,
-      country: false,
-      city: false,
-      firstName: false,
-      lastName: false,
-    });
-    setFieldErrors({});
+  const handleSaveChanges = async () => {
+    const dirtyFields = (Object.keys(changedFields) as FieldKey[]).filter((field) => changedFields[field]);
+    for (const field of dirtyFields) {
+      setEditingField(field);
+      setTempValue(draftProfile[field]);
+      await commitEdit(field);
+    }
     setShowSuccessModal(true);
   };
 
-  const handleCloseSuccessModal = () => {
-    setShowSuccessModal(false);
+  const handleDeleteAvatar = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 404) throw new Error('Delete failed');
+      setAvatarUrl('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (e) {
+      console.error('Failed to delete profile picture:', e);
+    }
   };
+
+  const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('picture', file);
+      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      await loadProfilePicture();
+    } catch (err) {
+      console.error('Failed to upload profile picture:', err);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#dfeef0] dark:bg-[#011b1b]" />;
+  }
 
   return (
     <div className="relative min-h-screen bg-[#dfeef0] px-0 py-0 text-[#121212] dark:bg-[#011b1b] dark:text-white">
       <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.24),transparent_48%)] bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_36%)] dark:bg-[#011b1b] dark:text-white">
         <header className="flex items-center justify-between px-5 pt-5">
           <div className="flex-1 text-center">
-            <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
-            {t('account_settings_title')}
-            </h1>
+            <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">{t('account_settings_title')}</h1>
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => router.back()}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
-          >
+          <button type="button" aria-label="Close" onClick={() => router.back()} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5">
             <X className="h-7 w-7" strokeWidth={2.2} />
           </button>
         </header>
 
+        {showSuccessModal && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-70 rounded-2xl border border-black/5 bg-white/90 p-6 text-center shadow-xl dark:border-white/10 dark:bg-[#0a1d1d]">
+              <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-[#0f4c81]" strokeWidth={2} />
+              <h3 className="mb-1 text-lg font-bold text-[#121212] dark:text-white">{t('success')}</h3>
+              <p className="mb-5 text-[14px] text-[#42565d] dark:text-[#dfeef0]/80">{t('changesSaved')}</p>
+              <button type="button" onClick={() => setShowSuccessModal(false)} className="w-full rounded-xl bg-[#0f4c81] px-2.5 py-2.5 text-sm font-semibold text-white">
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+
         <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-6 no-scrollbar">
           <div className="flex flex-col items-center pt-2">
             <div className="relative mb-4">
-              <div className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-white/50 shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)] bg-gradient-to-br ${avatarGradient} text-white`}>
-                <span className="text-2xl font-bold tracking-[0.12em] text-white">{initials}</span>
+              <div className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-white/50 bg-gradient-to-br ${avatarUrl ? 'bg-white' : avatarGradient} text-white shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)]`}>
+                {avatarUrl ? (
+                  <Image src={avatarUrl} alt="Profile avatar" width={128} height={128} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-bold tracking-[0.12em] text-white">{initials}</span>
+                )}
               </div>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUploadAvatar} className="hidden" />
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 cursor-pointer rounded-full bg-white p-2 text-[#121212] shadow">
+                <PencilLine className="h-4 w-4" />
+              </button>
             </div>
+
+            {avatarUrl && (
+              <button type="button" onClick={() => setShowDeleteModal(true)} className="mb-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-red-500 px-3 py-1.5 text-xs font-semibold text-white">
+                <X className="h-3.5 w-3.5" />
+                Delete photo
+              </button>
+            )}
 
             <h2 className="text-[24px] font-bold tracking-tight text-[#121212] dark:text-white text-center leading-tight">
               {draftProfile.firstName} {draftProfile.lastName}
@@ -309,139 +370,51 @@ export default function AccountSettingsPage() {
               const errorText = fieldErrors[field];
 
               return (
-                <div
-                  key={field}
-                  className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/20 px-3 py-3 shadow-[0_1px_0_rgba(0,0,0,0.02)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5"
-                >
+                <div key={field} className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/20 px-3 py-3 shadow-[0_1px_0_rgba(0,0,0,0.02)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf3f7] text-[#0f4c81] dark:bg-[#062a2d] dark:text-[#7dd3fc]">
                       <Icon className="h-4 w-4" strokeWidth={2.2} />
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#42565d] dark:text-[#dfeef0]/75">
-                        {fieldLabels[field]}
-                      </p>
-
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#42565d] dark:text-[#dfeef0]/75">{fieldLabels[field]}</p>
                       {isEditing ? (
                         <div className="mt-1 w-full">
-                          {field === 'phone' ? (
+                          {field === 'country' ? (
+                            <div className="space-y-2">
+                              <input value={countrySearch} onChange={(e) => setCountrySearch(e.target.value)} placeholder={t('searchCountryPlaceholder')} className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]" />
+                              <div className="max-h-52 overflow-y-auto rounded-lg border border-black/10 bg-white/80 p-1">
+                                {filteredCountryOptions.map((country) => (
+                                  <button key={country} type="button" onClick={() => { setTempValue(country); setDraftProfile((prev) => ({ ...prev, country })); setEditingField(null); setChangedFields((prev) => ({ ...prev, country: country !== savedProfile.country })); }} className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium">
+                                    <span className="flex items-center gap-2"><span>{getCountryFlag(country)}</span><span>{country}</span></span>
+                                    <span className="text-xs font-bold">✓</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : field === 'city' ? (
+                            <div className="space-y-2">
+                              <input value={citySearch} onChange={(e) => setCitySearch(e.target.value)} placeholder={t('searchCityPlaceholder')} className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]" />
+                              <div className="max-h-52 overflow-y-auto rounded-lg border border-black/10 bg-white/80 p-1">
+                                {filteredCityOptions.map((city) => (
+                                  <button key={city} type="button" onClick={() => { setTempValue(city); setDraftProfile((prev) => ({ ...prev, city })); setEditingField(null); setChangedFields((prev) => ({ ...prev, city: city !== savedProfile.city })); }} className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium">
+                                    <span>{city}</span>
+                                    <span className="text-xs font-bold">✓</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : field === 'phone' ? (
                             <div className="space-y-2">
                               <div className="grid grid-cols-[38%_62%] gap-2">
-                                <select
-                                  value={phonePrefix}
-                                  onChange={(e) => setPhonePrefix(e.target.value)}
-                                  className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
-                                >
+                                <select value={phonePrefix} onChange={(e) => setPhonePrefix(e.target.value)} className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]">
                                   {phoneCountryOptions.map((entry) => (
                                     <option key={`${entry.code}-${entry.country}`} value={entry.code}>
                                       {entry.flag} {entry.country} ({entry.code})
                                     </option>
                                   ))}
                                 </select>
-
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  value={phoneDigits}
-                                  onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, '').slice(0, getPhoneMeta(phonePrefix).maxLength))}
-                                  className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
-                                  placeholder={t('phone_number_label')}
-                                />
-                              </div>
-                              {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
-                            </div>
-                          ) : field === 'country' ? (
-                            <div className="space-y-2">
-                              <div className="overflow-hidden rounded-lg border border-black/10 bg-white/80 shadow-inner dark:border-white/10 dark:bg-[#021a1b]">
-                                <div className="border-b border-black/5 bg-white/60 p-1.5 dark:border-white/10 dark:bg-[#031d1d]">
-                                  <input
-                                    type="text"
-                                    value={countrySearch}
-                                    onChange={(e) => setCountrySearch(e.target.value)}
-                                    placeholder={t('searchCountryPlaceholder')}
-                                    className="w-full rounded-md bg-transparent px-2.5 py-2 text-[15px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:text-white"
-                                  />
-                                </div>
-                                <div className="max-h-52 overflow-y-auto p-1">
-                                  {filteredCountryOptions.length > 0 ? (
-                                    filteredCountryOptions.map((country) => (
-                                      <button
-                                        key={country}
-                                        type="button"
-                                        onClick={() => {
-                                          const cities = getCountryCityOptions(country);
-                                          const nextCity = cities.includes(draftProfile.city) ? draftProfile.city : cities[0] ?? draftProfile.city;
-
-                                          setTempValue(country);
-                                          setDraftProfile((prev) => ({
-                                            ...prev,
-                                            country,
-                                            city: nextCity,
-                                          }));
-                                          setChangedFields((prev) => ({ ...prev, country: country !== savedProfile.country, city: nextCity !== savedProfile.city || prev.city }));
-                                          setEditingField(null);
-                                          setCountrySearch('');
-                                        }}
-                                        className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium transition ${
-                                          tempValue === country
-                                            ? 'bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]'
-                                            : 'text-[#121212] hover:bg-[#0f4c81]/5 dark:text-white dark:hover:bg-white/5'
-                                        }`}
-                                      >
-                                        <span className="flex items-center gap-2">
-                                          <span>{getCountryFlag(country)}</span>
-                                          <span>{country}</span>
-                                        </span>
-                                        {tempValue === country && <span className="text-xs font-bold">✓</span>}
-                                      </button>
-                                    ))
-                                  ) : (
-                                    <div className="px-2.5 py-3 text-sm text-slate-400">{t('noCountriesFound')}</div>
-                                  )}
-                                </div>
-                              </div>
-                              {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
-                            </div>
-                          ) : field === 'city' ? (
-                            <div className="space-y-2">
-                              <div className="overflow-hidden rounded-lg border border-black/10 bg-white/80 shadow-inner dark:border-white/10 dark:bg-[#021a1b]">
-                                <div className="border-b border-black/5 bg-white/60 p-1.5 dark:border-white/10 dark:bg-[#031d1d]">
-                                  <input
-                                    type="text"
-                                    value={citySearch}
-                                    onChange={(e) => setCitySearch(e.target.value)}
-                                    placeholder={t('searchCityPlaceholder')}
-                                    className="w-full rounded-md bg-transparent px-2.5 py-2 text-[15px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:text-white"
-                                  />
-                                </div>
-                                <div className="max-h-52 overflow-y-auto p-1">
-                                  {filteredCityOptions.length > 0 ? (
-                                    filteredCityOptions.map((city) => (
-                                      <button
-                                        key={city}
-                                        type="button"
-                                        onClick={() => {
-                                          setTempValue(city);
-                                          setDraftProfile((prev) => ({ ...prev, city }));
-                                          setChangedFields((prev) => ({ ...prev, city: city !== savedProfile.city }));
-                                          setEditingField(null);
-                                          setCitySearch('');
-                                        }}
-                                        className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium transition ${
-                                          tempValue === city
-                                            ? 'bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]'
-                                            : 'text-[#121212] hover:bg-[#0f4c81]/5 dark:text-white dark:hover:bg-white/5'
-                                        }`}
-                                      >
-                                        <span>{city}</span>
-                                        {tempValue === city && <span className="text-xs font-bold">✓</span>}
-                                      </button>
-                                    ))
-                                  ) : (
-                                    <div className="px-2.5 py-3 text-sm text-slate-400">{t('noCitiesFound')}</div>
-                                  )}
-                                </div>
+                                <input value={phoneDigits} onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, '').slice(0, getPhoneMeta(phonePrefix).maxLength))} className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]" />
                               </div>
                               {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
                             </div>
@@ -450,17 +423,8 @@ export default function AccountSettingsPage() {
                               <input
                                 type="text"
                                 value={tempValue}
-                                onChange={(e) => {
-                                  const next = e.target.value;
-                                  if (field === 'email') {
-                                    setTempValue(next);
-                                  } else if (field === 'firstName' || field === 'lastName') {
-                                    setTempValue(next.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ' -]/g, ''));
-                                  } else {
-                                    setTempValue(next);
-                                  }
-                                }}
-                                className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-[#021a1b] dark:text-white"
+                                onChange={(e) => setTempValue(field === 'firstName' || field === 'lastName' ? e.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ' -]/g, '') : e.target.value)}
+                                className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]"
                                 autoFocus
                               />
                               {errorText && <p className="text-[11px] font-medium text-red-500">{errorText}</p>}
@@ -468,40 +432,20 @@ export default function AccountSettingsPage() {
                           )}
                         </div>
                       ) : (
-                        <p className="truncate text-[16px] font-semibold text-[#121212] dark:text-white">
-                          {value}
-                        </p>
+                        <p className="truncate text-[16px] font-semibold text-[#121212] dark:text-white">{value}</p>
                       )}
                     </div>
                   </div>
 
-                  {isEditing && field !== 'country' && field !== 'city' ? (
-                    <button
-                      type="button"
-                      onClick={() => commitEdit(field)}
-                      className="ml-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#0f4c81] text-white transition hover:bg-[#0d3d68]"
-                      aria-label={`Save ${fieldLabels[field]}`}
-                    >
-                      <Check className="h-4 w-4" strokeWidth={2.5} />
-                    </button>
-                  ) : field === 'country' || field === 'city' ? (
-                    isEditing ? null : (
-                      <button
-                        type="button"
-                        onClick={() => beginEditing(field)}
-                        className="ml-2 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#0f4c81]/20 bg-[#0f4c81]/5 px-2.5 py-1.5 text-[12px] font-semibold text-[#0f4c81] transition hover:bg-[#0f4c81]/10 dark:border-[#7dd3fc]/30 dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]"
-                      >
-                        <PencilLine className="h-3.5 w-3.5" strokeWidth={2.3} />
-                        {t('change_label')}
+                  {isEditing ? (
+                    field === 'country' || field === 'city' ? null : (
+                      <button type="button" onClick={() => commitEdit(field)} className="ml-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#0f4c81] text-white" aria-label={`Save ${fieldLabels[field]}`}>
+                        <Check className="h-4 w-4" strokeWidth={2.5} />
                       </button>
                     )
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => beginEditing(field)}
-                      className="ml-2 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#0f4c81]/20 bg-[#0f4c81]/5 px-2.5 py-1.5 text-[12px] font-semibold text-[#0f4c81] transition hover:bg-[#0f4c81]/10 dark:border-[#7dd3fc]/30 dark:bg-[#7dd3fc]/10 dark:text-[#dff7ff]"
-                    >
-                      <PencilLine className="h-3.5 w-3.5" strokeWidth={2.3} />
+                    <button type="button" onClick={() => beginEditing(field)} className="ml-2 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#cfe9f7] bg-gradient-to-r from-[#eef9ff] via-[#dff2ff] to-[#ffffff] px-2.5 py-1.5 text-[12px] font-semibold text-[#0f4c81] shadow-[0_6px_18px_rgba(59,130,246,0.14)] transition hover:brightness-[1.02] hover:shadow-[0_8px_22px_rgba(59,130,246,0.18)]">
+                      <PencilLine className="h-3.5 w-3.5 text-[#3b82f6]" strokeWidth={2.3} />
                       {t('change_label')}
                     </button>
                   )}
@@ -511,18 +455,7 @@ export default function AccountSettingsPage() {
           </div>
 
           <div className="rounded-[22px] border border-black/5 bg-white/20 p-3 dark:border-white/10 dark:bg-white/5">
-            <div className="mb-2 flex items-center gap-2 px-1">
-              <ShieldCheck className="h-5 w-5 text-[#0f4c81] dark:text-[#7dd3fc]" strokeWidth={2.2} />
-              <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-[#42565d] dark:text-[#dfeef0]">
-                Security
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => router.push(ROUTES.CHANGE_PASSWORD)}
-              className="group flex w-full cursor-pointer items-center justify-between rounded-2xl border border-black/10 bg-white/50 px-3 py-3 text-left transition hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/5"
-            >
+            <button type="button" onClick={() => router.push(ROUTES.CHANGE_PASSWORD)} className="group flex w-full cursor-pointer items-center justify-between rounded-2xl border border-black/10 bg-white/50 px-3 py-3 text-left transition hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/5">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eaf3f7] text-[#0f4c81] dark:bg-[#062a2d] dark:text-[#7dd3fc]">
                   <Lock className="h-4 w-4" strokeWidth={2.2} />
@@ -532,83 +465,62 @@ export default function AccountSettingsPage() {
                   <p className="text-[12px] text-[#42565d] dark:text-[#dfeef0]/70">{t('update_login_password')}</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-400 transition group-hover:text-[#0f4c81] dark:group-hover:text-[#7dd3fc]" />
+              <ChevronRight className="h-5 w-5 text-slate-400" />
             </button>
           </div>
 
           {hasUnsavedChanges && (
-            <button
-              type="button"
-              onClick={handleSaveChanges}
-              className="w-full cursor-pointer rounded-2xl bg-[#0f4c81] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition active:scale-[0.99]"
-            >
+            <button type="button" onClick={handleSaveChanges} className="w-full cursor-pointer rounded-2xl bg-[#0f4c81] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition active:scale-[0.99]">
               {t('saveChanges')}
             </button>
           )}
         </main>
 
         <nav className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-black/5 bg-[#dfeef0] py-4 dark:border-white/10 dark:bg-[#011b1b]">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('key');
-              router.push(ROUTES.RENT);
-            }}
-            className={`cursor-pointer rounded-full p-1.5 transition-all ${
-              activeTab === 'key' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
+          <button type="button" onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'key' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
             <Key className="h-6 w-6 -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
           </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('home');
-              router.push(ROUTES.HOME);
-            }}
-            className={`cursor-pointer rounded-full p-1.5 transition-all ${
-              activeTab === 'home' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
+          <button type="button" onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'home' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
             <Home className="h-6 w-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
           </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('car');
-              router.push(ROUTES.MANAGE_CAR);
-            }}
-            className={`cursor-pointer rounded-full p-1.5 transition-all ${
-              activeTab === 'car' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
+          <button type="button" onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'car' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
             <Car className="h-6 w-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
           </button>
         </nav>
-      </div>
 
-      {showSuccessModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-70 rounded-2xl border border-black/5 bg-white/90 p-6 text-center shadow-xl dark:border-white/10 dark:bg-[#0a1d1d]">
-            <div className="mb-3 flex justify-center">
-              <CheckCircle2 className="h-12 w-12 text-[#0f4c81]" strokeWidth={2} />
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+            <div className="w-full max-w-70 rounded-3xl bg-[#dfeef0] p-5 text-center shadow-xl dark:bg-[#0d2a24] border border-black/5 dark:border-white/10 animate-scale-in">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400">
+                <X className="h-6 w-6" strokeWidth={2.2} />
+              </div>
+              <h3 className="text-lg font-bold tracking-tight text-[#121212] dark:text-white mb-1">
+                {t('delete_photo_title')}
+              </h3>
+              <p className="text-xs font-medium text-[#42565d] dark:text-[#9db0b6] mb-5">
+                {t('delete_photo_confirm')}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 h-10 rounded-xl border border-black/10 text-sm font-semibold text-[#121212] dark:border-white/10 dark:text-white cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  onClick={async () => {
+                    await handleDeleteAvatar();
+                    setShowDeleteModal(false);
+                  }}
+                  className="flex-1 h-10 rounded-xl bg-red-500 text-sm font-semibold text-white cursor-pointer hover:bg-red-600 transition shadow-md shadow-red-500/20"
+                >
+                  {t('delete')}
+                </button>
+              </div>
             </div>
-
-            <h3 className="mb-1 text-lg font-bold text-[#121212] dark:text-white">{t('success')}</h3>
-            <p className="mb-5 text-[14px] text-[#42565d] dark:text-[#dfeef0]/80">{t('changesSaved')}</p>
-
-            <button
-              type="button"
-              onClick={handleCloseSuccessModal}
-              className="w-full cursor-pointer rounded-xl bg-[#0f4c81] px-2.5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.98]"
-            >
-              OK
-            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

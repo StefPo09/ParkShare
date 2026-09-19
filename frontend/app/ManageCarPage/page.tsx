@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { Menu, ChevronRight, Plus, Car, Key, Home } from 'lucide-react';
@@ -16,6 +15,7 @@ interface CarItem {
     license_plate: string;
     year?: number;
     color?: string;
+    image_url?: string | null; // NOU
 }
 
 export default function ManageCarsPage() {
@@ -25,25 +25,33 @@ export default function ManageCarsPage() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [cars, setCars] = useState<CarItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'; // NOU
 
     useEffect(() => {
         const fetchCars = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/cars', {
+                const response = await fetch(`${API}/api/cars`, {
                     credentials: 'include',
                 });
                 if (response.ok) {
                     const data = await response.json();
                     setCars(data.cars || []);
-                }
+                        } else {
+                            const errText = `Server returned ${response.status}`;
+                            console.error('Failed to fetch cars:', errText);
+                            setErrorMessage(`Failed to load cars: ${response.statusText || response.status}`);
+                        }
             } catch (error) {
-                console.error('Failed to fetch cars:', error);
+                        console.error('Failed to fetch cars:', error);
+                        setErrorMessage('Failed to fetch cars. Is the backend running and CORS configured?');
             } finally {
-                setIsLoading(false);
+                        setIsLoading(false);
             }
         };
         fetchCars();
-    }, []);
+    }, [API]);
 
     return (
         <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative font-sans">
@@ -73,10 +81,12 @@ export default function ManageCarsPage() {
 
                 {/* --- Lista de mașini --- */}
                 <main className="flex-1 px-4 pt-6 pb-8 overflow-y-auto space-y-4">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-12 text-[#404b51] dark:text-slate-400">
-                            Loading cars...
+                    {errorMessage ? (
+                        <div className="mb-3 rounded-lg bg-red-500/20 border border-red-500 px-4 py-2 text-red-700 dark:text-red-300 text-sm">
+                            {errorMessage}
                         </div>
+                    ) : isLoading ? (
+                        <div className="py-12 text-center text-sm text-slate-500">{t('loading')}</div>
                     ) : cars.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <Car className="h-12 w-12 text-[#404b51] dark:text-slate-400 mb-2" />
@@ -86,19 +96,27 @@ export default function ManageCarsPage() {
                         cars.map((car) => (
                             <div
                                 key={car.id}
-                                onClick={() => router.push(ROUTES.EDIT_CAR)}
+                                onClick={() => router.push(`${ROUTES.EDIT_CAR}?id=${car.id}`)}
                                 className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
                             >
                                 <div className="flex items-center space-x-4">
-                                    {/* Thumbnail Imagine / Icon Mașină */}
+                                    {/* SCHIMBARE: afiseaza imaginea reala daca exista */}
                                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
-                                        <Car className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
+                                        {car.image_url ? (
+                                            <img
+                                                src={`${API}${car.image_url}`}
+                                                alt={`${car.brand} ${car.model}`}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <Car className="h-8 w-8 text-[#404b51]" strokeWidth={2} />
+                                        )}
                                     </div>
 
                                     {/* Informații Mașină */}
                                     <div>
-                                        <h2 className="text-lg font-bold leading-snug">{car.brand} {car.model}</h2>
-                                        <p className="text-sm font-medium text-slate-200/80">{car.license_plate}</p>
+                                        <h2 className="text-lg font-bold leading-snug">{car.brand}</h2>
+                                        <p className="text-sm font-medium text-slate-200/80">{car.license_plate} - {car.model}</p>
                                     </div>
                                 </div>
 
@@ -150,6 +168,7 @@ export default function ManageCarsPage() {
                         <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
                     </button>
                 </nav>
+
             </div>
         </div>
     );

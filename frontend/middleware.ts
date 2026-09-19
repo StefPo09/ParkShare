@@ -8,6 +8,7 @@ const PUBLIC_PATHS = new Set([
   '/RegisterPage',
   '/ForgotPasswordPage',
   '/PasswordResetPage',
+
 ]);
 
 export function middleware(request: NextRequest) {

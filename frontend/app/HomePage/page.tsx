@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
@@ -8,6 +8,7 @@ import { Menu, Search, ChevronRight, Car, Home, Key } from 'lucide-react';
 import ProfileMenu from '../components/ProfileMenu';
 import NavMenu from '../components/NavMenu';
 import { useLanguage } from '../components/LanguageProvider';
+import InteractiveTimer from '../components/InteractiveTimer';
 
 const parkingListings = [
   {
@@ -39,13 +40,58 @@ const parkingListings = [
   },
 ];
 
+type DashboardTimer = {
+  title: string;
+  targetTime: number;
+  status: string;
+};
+
 export default function HomePage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [dashboardTimers, setDashboardTimers] = useState<{
+    reservation: DashboardTimer | null;
+    rental: DashboardTimer | null;
+  }>({
+    reservation: null,
+    rental: null,
+  });
+  const [timerError, setTimerError] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchDashboardTimers = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/dashboard/timers', {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            setTimerError('Log in to view your booking timers.');
+            return;
+          }
+
+          throw new Error('Failed to load timers');
+        }
+
+        const data = await response.json();
+        setDashboardTimers({
+          reservation: data?.reservation ?? null,
+          rental: data?.rental ?? null,
+        });
+        setTimerError(null);
+      } catch (error) {
+        console.warn('Unable to load booking timers:', error);
+        setTimerError('No booking timer data available right now.');
+      }
+    };
+
+    fetchDashboardTimers();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
@@ -136,6 +182,40 @@ export default function HomePage() {
               >
                 <Search className="h-5 w-5 text-white dark:text-[#011b1b]" strokeWidth={2.2} />
               </button>
+            </div>
+
+            <div className="space-y-4">
+              {timerError ? (
+                <div className="rounded-[28px] border border-dashed border-black/10 bg-white/20 p-4 text-sm font-medium text-[#42565d] dark:border-white/10 dark:text-[#dfeef0]">
+                  {timerError}
+                </div>
+              ) : null}
+
+              {dashboardTimers.reservation ? (
+                <InteractiveTimer
+                  title={dashboardTimers.reservation.title}
+                  variant="reservation"
+                  targetTime={dashboardTimers.reservation.targetTime}
+                  defaultMinutes={15}
+                />
+              ) : (
+                <div className="rounded-[28px] border border-dashed border-black/10 bg-white/20 p-4 text-sm font-medium text-[#42565d] dark:border-white/10 dark:text-[#dfeef0]">
+                  No upcoming reservation.
+                </div>
+              )}
+
+              {dashboardTimers.rental ? (
+                <InteractiveTimer
+                  title={dashboardTimers.rental.title}
+                  variant="rental"
+                  targetTime={dashboardTimers.rental.targetTime}
+                  defaultMinutes={45}
+                />
+              ) : (
+                <div className="rounded-[28px] border border-dashed border-black/10 bg-white/20 p-4 text-sm font-medium text-[#42565d] dark:border-white/10 dark:text-[#dfeef0]">
+                  No active rental session.
+                </div>
+              )}
             </div>
 
             <div className="rounded-[28px] border border-black/5 bg-white/20 p-3 shadow-[0_18px_30px_rgba(15,32,35,0.08)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5">

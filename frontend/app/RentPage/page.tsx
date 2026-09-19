@@ -1,88 +1,123 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { ROUTES } from '../../constants/routes';
-import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
+import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
 import {
-  Menu,
-  MapPin,
-  Key,
-  Home,
-  Car,
+    Menu,
+    MapPin,
+    Clock,
+    Key,
+    Home,
+    Car,
 } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
 import { useLanguage } from '../components/LanguageProvider';
 
-// Custom dark map style to match dark UI theme
+// Custom dark map style to match the dark UI theme
 const darkMapStyle: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry', stylers: [{ color: '#091d19' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#091d19' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#74928d' }] },
-  {
-    featureType: 'administrative.locality',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#a0ece0' }],
-  },
-  {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#53827a' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'geometry',
-    stylers: [{ color: '#0e2b25' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#163a33' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#091d19' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry',
-    stylers: [{ color: '#204f46' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#040d0b' }],
-  },
+    { elementType: 'geometry', stylers: [{ color: '#091d19' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#091d19' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#74928d' }] },
+    {
+        featureType: 'administrative.locality',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#a0ece0' }],
+    },
+    {
+        featureType: 'poi',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#53827a' }],
+    },
+    {
+        featureType: 'poi.park',
+        elementType: 'geometry',
+        stylers: [{ color: '#0e2b25' }],
+    },
+    {
+        featureType: 'road',
+        elementType: 'geometry',
+        stylers: [{ color: '#163a33' }],
+    },
+    {
+        featureType: 'road',
+        elementType: 'geometry.stroke',
+        stylers: [{ color: '#091d19' }],
+    },
+    {
+        featureType: 'road.highway',
+        elementType: 'geometry',
+        stylers: [{ color: '#204f46' }],
+    },
+    {
+        featureType: 'water',
+        elementType: 'geometry',
+        stylers: [{ color: '#040d0b' }],
+    },
 ];
 
 const containerStyle = {
-  width: '100%',
-  height: '100%',
+    width: '100%',
+    height: '100%',
 };
 
+// Center position (e.g., San Francisco)
 const mapCenter = {
-  lat: 37.7749,
-  lng: -122.4194,
+    lat: 37.7749,
+    lng: -122.4194,
 };
 
 interface ParkingSpot {
-  id: number;
-  title: string;
-  address: string;
-  price_per_day: number;
-  description?: string;
-  is_available: boolean;
-  latitude: number;
-  longitude: number;
-  user_id: number;
-  city_id: number;
+    id: string;
+    price: number;
+    address: string;
+    availability: string;
+    distance: string;
+    image: string;
+    lat: number;
+    lng: number;
 }
+
+const mockSpots: ParkingSpot[] = [
+    {
+        id: '1',
+        price: 4,
+        address: 'Parking spot address',
+        availability: '14:00-18:00',
+        distance: '100 meters',
+        image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=800&q=80',
+        lat: 37.7749,
+        lng: -122.4194,
+    },
+    {
+        id: '2',
+        price: 3,
+        address: 'Eastside Spot',
+        availability: '10:00-20:00',
+        distance: '350 meters',
+        image: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=800&q=80',
+        lat: 37.7770,
+        lng: -122.4120,
+    },
+    {
+        id: '3',
+        price: 5,
+        address: 'Downtown Garage',
+        availability: '08:00-18:00',
+        distance: '500 meters',
+        image: 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=800&q=80',
+        lat: 37.7710,
+        lng: -122.4250,
+    },
+];
 
 export default function ParkingRentPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const [spots, setSpots] = useState<ParkingSpot[]>([]);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
@@ -94,7 +129,9 @@ export default function ParkingRentPage() {
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [, setMap] = useState<google.maps.Map | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   // Load Google Maps SDK
   const { isLoaded } = useJsApiLoader({
@@ -112,33 +149,120 @@ export default function ParkingRentPage() {
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationPermissionDenied(true);
+      return;
+    }
+
+    const storageKey = 'parkshare-location-permission';
+    const storedPermission = window.localStorage.getItem(storageKey);
+
+    const requestLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const nextLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(nextLocation);
+          setLocationPermissionDenied(false);
+          window.localStorage.setItem(storageKey, 'granted');
+        },
+        () => {
+          setLocationPermissionDenied(true);
+          window.localStorage.setItem(storageKey, 'denied');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 600000,
+        }
+      );
+    };
+
+    if (storedPermission === 'granted') {
+      requestLocation();
+      return;
+    }
+
+    if (storedPermission === 'denied') {
+      setLocationPermissionDenied(true);
+      return;
+    }
+
+    requestLocation();
+  }, []);
+
+  useEffect(() => {
+    if (!map || !userLocation) return;
+    map.panTo(userLocation);
+    map.setZoom(13);
+  }, [map, userLocation]);
+
   // Fetch available parking spots
   useEffect(() => {
     const fetchSpots = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/spots?available_only=true', {
+        const response = await fetch(`${API}/api/spots?available_only=true`, {
           credentials: 'include',
         });
-        if (response.ok) {
-          const data = await response.json();
-          const fetchedSpots: ParkingSpot[] = data.spots || [];
-          setSpots(fetchedSpots);
-          if (fetchedSpots.length > 0) {
-            setSelectedSpot(fetchedSpots[0]);
-          }
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
         }
+
+        const data = await response.json();
+        const rawSpots = Array.isArray(data?.spots) ? data.spots : [];
+
+        const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
+          id: s.id ?? s._id ?? String(s.id ?? ''),
+          price: s.price_per_day ?? s.price ?? 0,
+          address: s.address ?? s.location ?? '',
+          availability: s.availability ?? s.available_hours ?? '',
+          distance: s.distance ?? '',
+          image: s.image ?? s.photo ?? '',
+          lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
+          lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
+        }));
+
+        const spotsToUse = fetchedSpots.length > 0 ? fetchedSpots : mockSpots;
+        const normalizedSpots = userLocation
+          ? [...spotsToUse].sort((a, b) => {
+              const distanceA = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
+              const distanceB = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+              return distanceA - distanceB;
+            })
+          : spotsToUse;
+
+        setSpots(normalizedSpots);
+        setSelectedSpot(normalizedSpots[0] ?? null);
       } catch (error) {
-        console.error('Failed to fetch spots:', error);
+        console.warn('Falling back to mock parking spots:', error);
+        const fallbackSpots = userLocation
+          ? [...mockSpots].sort((a, b) => {
+              const distanceA = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
+              const distanceB = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+              return distanceA - distanceB;
+            })
+          : mockSpots;
+
+        setSpots(fallbackSpots);
+        setSelectedSpot(fallbackSpots[0] ?? null);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchSpots();
-  }, []);
+  }, [API, userLocation]);
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-  }, []);
+    if (userLocation) {
+      mapInstance.panTo(userLocation);
+    }
+  }, [userLocation]);
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -154,7 +278,7 @@ export default function ParkingRentPage() {
     setBookingError(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/bookings', {
+      const response = await fetch(`${API}/api/bookings`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -171,15 +295,17 @@ export default function ParkingRentPage() {
         return;
       }
 
-      alert('Booking created successfully!');
       setStartDate('');
       setEndDate('');
+      router.push(ROUTES.HOME);
     } catch {
       setBookingError('An error occurred. Please try again.');
     } finally {
       setIsBooking(false);
     }
   };
+
+  const mapCenterTarget = userLocation ?? (selectedSpot ? { lat: selectedSpot.lat, lng: selectedSpot.lng } : mapCenter);
 
   return (
     <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative">
@@ -212,7 +338,7 @@ export default function ParkingRentPage() {
           {isLoaded ? (
             <GoogleMap
               mapContainerStyle={containerStyle}
-              center={selectedSpot ? { lat: selectedSpot.latitude, lng: selectedSpot.longitude } : mapCenter}
+              center={mapCenterTarget}
               zoom={14}
               onLoad={onLoad}
               onUnmount={onUnmount}
@@ -222,6 +348,22 @@ export default function ParkingRentPage() {
                 styles: isDarkMode ? darkMapStyle : [],
               }}
             >
+              {userLocation && (
+                <Circle
+                  center={userLocation}
+                  radius={22}
+                  options={{
+                    strokeColor: '#1e90ff',
+                    strokeOpacity: 0.9,
+                    strokeWeight: 2,
+                    fillColor: '#1e90ff',
+                    fillOpacity: 0.18,
+                    clickable: false,
+                    zIndex: 20,
+                  }}
+                />
+              )}
+
               {spots.map((spot) => {
                 const isSelected = selectedSpot?.id === spot.id;
 
@@ -235,16 +377,13 @@ export default function ParkingRentPage() {
                 return (
                   <MarkerF
                     key={spot.id}
-                    position={{ lat: spot.latitude, lng: spot.longitude }}
+                    position={{ lat: spot.lat, lng: spot.lng }}
                     onClick={() => setSelectedSpot(spot)}
                     label={{
-                      text: `$${spot.price_per_day}/d`,
+                      text: `$${spot.price}/d`,
                       color: isSelected ? '#ffffff' : '#121212',
                       fontSize: '11px',
                       fontWeight: 'bold',
-                      className: isSelected
-                        ? 'bg-black px-2 py-0.5 rounded-full shadow'
-                        : 'bg-white px-2 py-0.5 rounded-full shadow border border-black/10',
                     }}
                     icon={{
                       url: isSelected ? redPinSvg : greyPinSvg,
@@ -261,69 +400,6 @@ export default function ParkingRentPage() {
           )}
         </main>
 
-        {/* --- Bottom Drawer / Rental Details --- */}
-        <section className="bg-white/40 dark:bg-[#011b1b]/95 border-t border-black/5 dark:border-white/10 backdrop-blur-md rounded-t-4xl p-5 shadow-[0_-15px_30px_rgba(15,32,35,0.08)] transition-colors duration-300 z-20">
-          <div className="w-12 h-1.5 bg-black/10 dark:bg-white/10 rounded-full mx-auto mb-4" />
-
-          {isLoading ? (
-            <div className="text-center py-8 text-[#42565d] dark:text-[#d6e7ea]">Loading spots...</div>
-          ) : !selectedSpot ? (
-            <div className="text-center py-8 text-[#42565d] dark:text-[#d6e7ea]">No available spots</div>
-          ) : (
-            <>
-              <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 shadow-[inset_0_2px_10px_rgba(15,23,42,0.08)] border border-black/5 dark:border-white/5 bg-[#e8e8e8] dark:bg-[#1a2a28] flex items-center justify-center">
-                <MapPin className="w-12 h-12 text-[#42565d] dark:text-[#d6e7ea]" strokeWidth={2} />
-              </div>
-
-              <h2 className="text-[20px] font-bold tracking-tight text-[#121212] dark:text-white mb-1">
-                {selectedSpot.title}
-              </h2>
-              <p className="text-[13px] font-medium text-[#42565d] dark:text-[#d6e7ea] mb-5">
-                {selectedSpot.address}
-              </p>
-
-              <div className="space-y-3 mb-4">
-                <div>
-                  <label className="text-[12px] font-bold uppercase text-[#42565d] dark:text-[#d6e7ea]">Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-[#121212] dark:text-white outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[12px] font-bold uppercase text-[#42565d] dark:text-[#d6e7ea]">End Date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-[#121212] dark:text-white outline-none"
-                  />
-                </div>
-              </div>
-
-              {bookingError && <div className="mb-3 text-red-700 dark:text-red-300 text-sm">{bookingError}</div>}
-
-              <div className="flex items-center justify-between mt-4 pb-20">
-                <div className="flex items-baseline space-x-0.5">
-                  <span className="text-[26px] font-extrabold tracking-tight text-[#121212] dark:text-white">${selectedSpot.price_per_day}</span>
-                  <span className="text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">/ day</span>
-                </div>
-
-                <button
-                  onClick={handleBookSpot}
-                  disabled={isBooking || !startDate || !endDate}
-                  className="px-8 py-3.5 cursor-pointer bg-[#0f4c81] hover:bg-[#0c3e67] disabled:bg-[#0f4c81]/45 disabled:cursor-not-allowed text-white font-semibold text-base rounded-2xl shadow-[0_12px_24px_rgba(15,76,129,0.24)] transition-all active:scale-95"
-                >
-                  {isBooking ? 'Booking...' : 'Rent'}
-                </button>
-              </div>
-            </>
-          )}
-        </section>
-
-        {/* --- Bottom Navigation Bar --- */}
         <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
           <button
             onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
