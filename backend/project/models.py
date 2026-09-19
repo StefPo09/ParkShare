@@ -149,6 +149,16 @@ class ParkingSpot(db.Model):
             'document_url': f'/api/spots/{self.id}/document' if self.document_url else None,
             'document_name': self.document_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'bookings': [
+                {
+                    'id': b.id,
+                    'start_date': b.start_date.isoformat() if b.start_date else None,
+                    'end_date': b.end_date.isoformat() if b.end_date else None,
+                    'status': b.status,
+                }
+                for b in self.bookings
+                if b.status != 'cancelled'
+            ] if self.bookings else [],
         }
 
 
