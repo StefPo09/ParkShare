@@ -438,6 +438,7 @@ def delete_spot(spot_id):
     if not spot:
         return jsonify({'error': 'Spot not found or you do not own it.'}), 404
 
+    Booking.query.filter_by(spot_id=spot.id).delete(synchronize_session=False)
     _delete_image_file(spot.image_url)
     _delete_image_file(spot.document_url)
     db.session.delete(spot)
