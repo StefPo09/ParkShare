@@ -1,62 +1,68 @@
 from datetime import timedelta
+import os
 
 from flask import Flask
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, text
 
-# Initialize SQLAlchemy instance (outside create_app for import access)
+
 db = SQLAlchemy()
+
 
 def create_app():
     app = Flask(__name__)
-    
-    # Configuration
     app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        os.environ.get('MYSQL_DATABASE_URI') or os.environ.get('DATABASE_URL') or 'sqlite:///db.sqlite'
+    )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-    app.config['SESSION_COOKIE_SECURE'] = False  # Enable in production with HTTPS
-    app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+    app.config['SESSION_COOKIE_SECURE'] = False
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['UPLOAD_DIR'] = os.path.join(os.path.dirname(__file__), '..', 'uploads')
+    os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True)
 
     CORS(app, origins=['http://localhost:3000'], supports_credentials=True)
-    
-    # Initialize extensions with app
     db.init_app(app)
-    
-    # Configure Flask-Login
+
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
-    
-    # User loader function for Flask-Login
-    from .models import User
+
     with app.app_context():
+        from .models import Booking, Car, City, ParkingSpot, PersonalDetails, ProfilePicture, User
         db.create_all()
         user_columns = {column['name'] for column in inspect(db.engine).get_columns('user')}
-        if 'reset_token' not in user_columns:
-            db.session.execute(text('ALTER TABLE user ADD COLUMN reset_token VARCHAR(128)'))
-        if 'reset_token_expires' not in user_columns:
-            db.session.execute(text('ALTER TABLE user ADD COLUMN reset_token_expires DATETIME'))
-        if 'role' not in user_columns:
-            db.session.execute(text("ALTER TABLE user ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
-        if 'phone_country_code' not in user_columns:
-            db.session.execute(text('ALTER TABLE user ADD COLUMN phone_country_code VARCHAR(8)'))
-        if 'phone' not in user_columns:
-            db.session.execute(text('ALTER TABLE user ADD COLUMN phone VARCHAR(30)'))
-        if 'country' not in user_columns:
-            db.session.execute(text('ALTER TABLE user ADD COLUMN country VARCHAR(100)'))
-        if 'city' not in user_columns:
-            db.session.execute(text('ALTER TABLE user ADD COLUMN city VARCHAR(100)'))
+        for col_name, ddl in {
+            'reset_token': 'ALTER TABLE user ADD COLUMN reset_token VARCHAR(128)',
+            'reset_token_expires': 'ALTER TABLE user ADD COLUMN reset_token_expires DATETIME',
+            'role': "ALTER TABLE user ADD COLUMN role VARCHAR(20) DEFAULT 'user'",
+            'phone_country_code': 'ALTER TABLE user ADD COLUMN phone_country_code VARCHAR(8)',
+            'phone': 'ALTER TABLE user ADD COLUMN phone VARCHAR(30)',
+        }.items():
+            if col_name not in user_columns:
+                db.session.execute(text(ddl))
+
+        spot_columns = {column['name'] for column in inspect(db.engine).get_columns('parking_spot')}
+        for col_name, ddl in {
+            'start_hour': "ALTER TABLE parking_spot ADD COLUMN start_hour VARCHAR(10) DEFAULT '14:00'",
+            'end_hour': "ALTER TABLE parking_spot ADD COLUMN end_hour VARCHAR(10) DEFAULT '18:00'",
+            'price_currency': "ALTER TABLE parking_spot ADD COLUMN price_currency VARCHAR(10) DEFAULT 'RON'",
+            'is_on_sale': "ALTER TABLE parking_spot ADD COLUMN is_on_sale BOOLEAN DEFAULT 0",
+            'document_url': "ALTER TABLE parking_spot ADD COLUMN document_url VARCHAR(255)",
+        }.items():
+            if col_name not in spot_columns:
+                db.session.execute(text(ddl))
+
         db.session.commit()
 
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
-    
-    # Register blueprints
+
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint)
 

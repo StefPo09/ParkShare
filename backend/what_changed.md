@@ -110,6 +110,42 @@ All endpoints include proper ownership validation:
 - Users cannot book their own spots
 - Booking price is automatically calculated: `price_per_day × duration_days`
 
+### Step 10: Add Countdown Timers for Reservation and Rental Status
+
+The home page now includes a reusable countdown component that visualizes the user’s real booking timeline. The timer is not a static demo widget; it is connected to app data and changes meaning based on the booking context.
+
+The component supports two visual variants:
+
+- **Reservation timer** → blue/teal theme for the time until a booking starts
+- **Rental timer** → amber/orange theme for time remaining in an active rental session
+
+The timer logic was built as a reusable React component that tracks:
+- current time remaining in `MM:SS`
+- whether the timer is running or paused
+- whether the countdown is complete
+- the progress bar percentage for the active session
+
+The home page now renders two countdown cards:
+
+- `Reservation starts in`
+- `Rental session ends in`
+
+These cards are placed directly on the home screen so users can immediately see upcoming bookings and active rentals.
+
+On the backend, a new protected dashboard endpoint was added to expose the current user’s timeline state:
+
+```text
+GET /api/dashboard/timers
+```
+
+This endpoint returns the next upcoming reservation and the currently active rental session, based on the user’s real `Booking` records. It resolves the nearest future `start_date` and the active `end_date` that is still in progress.
+
+The frontend fetches this data on the home page and renders the corresponding countdowns using real booking timestamps. The fetch includes `credentials: 'include'` so the session cookie is sent with the request.
+
+The booking flow was also connected into this timeline. After a successful reservation is created on the rent page, the user is redirected back to the home page so the booking countdown appears immediately as part of the dashboard state.
+
+The timer design is intentionally semantic: users can distinguish reservation countdowns from rental countdowns by color and label without needing to read extra text. This makes the home page feel more like an active booking dashboard rather than a generic marketing screen.
+
 ## Database
 
 The local SQLite database is stored at:

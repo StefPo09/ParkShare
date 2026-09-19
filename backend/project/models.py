@@ -8,9 +8,9 @@ from . import db
 
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)  # primary keys are required by SQLAlchemy
+    id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(100))
+    password = db.Column(db.String(255))
     name = db.Column(db.String(1000))
     phone_country_code = db.Column(db.String(8), nullable=True)
     phone = db.Column(db.String(30), nullable=True)
@@ -23,12 +23,36 @@ class User(UserMixin, db.Model):
     cars = db.relationship('Car', back_populates='owner', cascade='all, delete-orphan')
     parking_spots = db.relationship('ParkingSpot', back_populates='owner', cascade='all, delete-orphan')
     bookings = db.relationship('Booking', back_populates='user', cascade='all, delete-orphan')
+    personal_details = db.relationship('PersonalDetails', uselist=False, back_populates='user', cascade='all, delete-orphan')
+    profile_picture = db.relationship('ProfilePicture', uselist=False, back_populates='user', cascade='all, delete-orphan')
 
     def has_role(self, role):
         return self.role == role
 
     def is_admin(self):
         return self.role == 'admin'
+
+
+class PersonalDetails(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    first_name = db.Column(db.String(200), nullable=True)
+    last_name = db.Column(db.String(200), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    date_of_birth = db.Column(db.Date, nullable=True)
+
+    user = db.relationship('User', back_populates='personal_details')
+
+
+class ProfilePicture(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    filename = db.Column(db.String(512), nullable=True)
+    content_type = db.Column(db.String(100), nullable=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='profile_picture')
 
 
 class City(db.Model):
@@ -49,6 +73,8 @@ class City(db.Model):
 
 
 class Car(db.Model):
+    __tablename__ = 'car'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     brand = db.Column(db.String(80), nullable=False)
@@ -56,6 +82,8 @@ class Car(db.Model):
     license_plate = db.Column(db.String(30), nullable=False, unique=True)
     year = db.Column(db.Integer, nullable=True)
     color = db.Column(db.String(40), nullable=True)
+    image_url = db.Column(db.String(255), nullable=True)
+    document_url = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     owner = db.relationship('User', back_populates='cars')
@@ -69,11 +97,15 @@ class Car(db.Model):
             'license_plate': self.license_plate,
             'year': self.year,
             'color': self.color,
+            'image_url': f'/api/cars/{self.id}/image' if self.image_url else None,
+            'document_url': self.document_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
 
 class ParkingSpot(db.Model):
+    __tablename__ = 'parking_spot'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     city_id = db.Column(db.Integer, db.ForeignKey('city.id'), nullable=False)
@@ -83,8 +115,15 @@ class ParkingSpot(db.Model):
     price_per_day = db.Column(db.Float, nullable=False, default=0.0)
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
+    image_url = db.Column(db.String(255), nullable=True)
+    document_url = db.Column(db.String(255), nullable=True)
     is_available = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    start_hour = db.Column(db.String(10), nullable=True, default='14:00')
+    end_hour = db.Column(db.String(10), nullable=True, default='18:00')
+    price_currency = db.Column(db.String(10), nullable=False, default='RON')
+    is_on_sale = db.Column(db.Boolean, default=False)
 
     owner = db.relationship('User', back_populates='parking_spots')
     city = db.relationship('City', back_populates='spots')
@@ -98,15 +137,24 @@ class ParkingSpot(db.Model):
             'title': self.title,
             'address': self.address,
             'description': self.description,
+            'start_hour': self.start_hour or '14:00',
+            'end_hour': self.end_hour or '18:00',
             'price_per_day': self.price_per_day,
+            'price_currency': self.price_currency or 'RON',
+            'is_on_sale': self.is_on_sale,
+            'is_available': self.is_available,
             'latitude': self.latitude,
             'longitude': self.longitude,
-            'is_available': self.is_available,
+            'image_url': f'/api/spots/{self.id}/image' if self.image_url else None,
+            'document_url': f'/api/spots/{self.id}/document' if self.document_url else None,
+            'document_name': self.document_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
 
 class Booking(db.Model):
+    __tablename__ = 'booking'
+
     id = db.Column(db.Integer, primary_key=True)
     spot_id = db.Column(db.Integer, db.ForeignKey('parking_spot.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

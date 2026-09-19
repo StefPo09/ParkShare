@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column is-6 is-offset-3">
+    <h3 class="title">Complete Registration</h3>
+    <div class="box">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="notification is-danger">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="/register">
+            <div class="field">
+                <label class="label" for="register-email">Email</label>
+                <div class="control">
+                    <input id="register-email" class="input" type="email" name="email" placeholder="Email" required value="{{ email }}">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="register-password">Password</label>
+                <div class="control">
+                    <input id="register-password" class="input" type="password" name="password" placeholder="Password" required>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="register-first-name">First name</label>
+                <div class="control">
+                    <input id="register-first-name" class="input" type="text" name="first_name" placeholder="First name">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="register-last-name">Last name</label>
+                <div class="control">
+                    <input id="register-last-name" class="input" type="text" name="last_name" placeholder="Last name">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="register-phone-country">Phone country code</label>
+                <div class="control">
+                    <input id="register-phone-country" class="input" type="text" name="phone_country_code" placeholder="+1">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="register-phone">Phone number</label>
+                <div class="control">
+                    <input id="register-phone" class="input" type="tel" name="phone" placeholder="Phone">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="register-country">Country</label>
+                <div class="control">
+                    <input id="register-country" class="input" type="text" name="country" placeholder="Country">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="register-city">City</label>
+                <div class="control">
+                    <input id="register-city" class="input" type="text" name="city" placeholder="City">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="register-date-of-birth">Date of birth</label>
+                <div class="control">
+                    <input id="register-date-of-birth" class="input" type="date" name="date_of_birth">
+                </div>
+            </div>
+
+            <button type="submit" class="button is-block is-info is-large is-fullwidth">Sign Up</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
