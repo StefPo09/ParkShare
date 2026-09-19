@@ -103,7 +103,7 @@ export default function ProfileMenu() {
   };
 
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="relative z-50">
       <button
         type="button"
         aria-label="Open profile menu"

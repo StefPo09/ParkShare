@@ -514,13 +514,24 @@ def create_booking():
         return jsonify({'error': 'You cannot book your own spot.'}), 400
 
     try:
-        start_date = datetime.fromisoformat(start_date_raw)
-        end_date = datetime.fromisoformat(end_date_raw)
+        clean_start = start_date_raw.replace('Z', '+00:00') if isinstance(start_date_raw, str) else str(start_date_raw)
+        clean_end = end_date_raw.replace('Z', '+00:00') if isinstance(end_date_raw, str) else str(end_date_raw)
+        start_date = datetime.fromisoformat(clean_start)
+        end_date = datetime.fromisoformat(clean_end)
     except ValueError:
         return jsonify({'error': 'start_date and end_date must be valid ISO datetime strings.'}), 400
 
     if end_date <= start_date:
         return jsonify({'error': 'end_date must be after start_date.'}), 400
+
+    overlapping = Booking.query.filter(
+        Booking.spot_id == spot.id,
+        Booking.status != 'cancelled',
+        Booking.start_date < end_date,
+        Booking.end_date > start_date
+    ).first()
+    if overlapping:
+        return jsonify({'error': 'The selected time slot is already booked.'}), 409
 
     total_price = (end_date - start_date).total_seconds() / 86400 * float(spot.price_per_day)
     booking = Booking(
