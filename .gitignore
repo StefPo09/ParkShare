@@ -43,3 +43,6 @@ Thumbs.db
 .idea/tasks.xml
 .idea/usage.statistics.xml
 .idea/dictionaries/
+
+# Local backend uploads
+backend/uploadsbackend/uploads/
