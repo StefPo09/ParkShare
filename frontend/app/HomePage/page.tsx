@@ -134,64 +134,6 @@ export default function HomePage() {
 
           <main className="relative flex-1 overflow-y-auto px-4 pb-24 pt-2">
             <div className="space-y-4">
-              {/* Top Action Cards */}
-              <div
-                className={`space-y-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${
-                  isAnimatingSearch
-                    ? 'opacity-0 -translate-y-6 scale-[0.97] pointer-events-none'
-                    : 'opacity-100 translate-y-0 scale-100'
-                }`}
-              >
-                <button
-                    type="button"
-                    onClick={() => router.push(ROUTES.MANAGE_SPOT)}
-                    className="group flex w-full cursor-pointer items-center justify-between rounded-[28px] border border-black/5 bg-[#1c3437]/90 p-4 shadow-[0_18px_30px_rgba(15,32,35,0.14)] backdrop-blur-sm transition hover:bg-[#213d40] dark:border-white/10 dark:bg-[#1b2f31]"
-                >
-                  <div className="flex items-center gap-5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0f4c81] text-base font-bold text-white shadow-md shadow-[#0f4c81]/25">
-                      1
-                    </span>
-                    <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-[#cfe5ee] text-[#121212] shadow-inner shadow-black/10 dark:bg-[#cfe5ee]">
-                      <span className="text-[42px] font-black leading-none">P</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-1 items-center justify-end pr-2">
-                    <span className="text-left text-[22px] font-bold leading-[1.1] tracking-[-0.04em] text-white sm:text-[26px]">
-                      {t('manageParking')}
-                      <span className="mt-2 block text-[20px] font-bold text-white sm:text-[23px]">
-                        {t('manageParkingSpots')}
-                      </span>
-                    </span>
-                  </div>
-
-                  <ChevronRight className="h-9 w-9 text-white transition group-hover:translate-x-0.5" strokeWidth={2.5} />
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => router.push(ROUTES.MANAGE_CAR)}
-                    className="group flex w-full cursor-pointer items-center justify-between rounded-[28px] border border-black/5 bg-[#1c3437]/90 p-4 shadow-[0_18px_30px_rgba(15,32,35,0.14)] backdrop-blur-sm transition hover:bg-[#213d40] dark:border-white/10 dark:bg-[#1b2f31]"
-                >
-                  <div className="flex items-center gap-5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0f4c81] text-base font-bold text-white shadow-md shadow-[#0f4c81]/25">
-                      1
-                    </span>
-                    <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-[#b9c8cd] text-[#121212] shadow-inner shadow-black/10 dark:bg-[#b9c8cd]">
-                      <Car className="h-10 w-10 text-[#0f4c81]" strokeWidth={2.4} />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-1 items-center justify-end pr-2">
-                    <span className="text-left text-[22px] font-bold leading-[1.1] tracking-[-0.04em] text-white sm:text-[26px]">
-                      {t('manageYourCars')}
-                    </span>
-                  </div>
-
-                  <ChevronRight className="h-9 w-9 text-white transition group-hover:translate-x-0.5" strokeWidth={2.5} />
-                </button>
-              </div>
-
               <div className="space-y-4">
                 {timerError ? (
                     <div className="rounded-[28px] border border-dashed border-black/10 bg-white/20 p-4 text-sm font-medium text-[#42565d] dark:border-white/10 dark:text-[#dfeef0]">
