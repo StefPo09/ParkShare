@@ -35,6 +35,7 @@ function EditCarPageContent() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [showDeleteCarModal, setShowDeleteCarModal] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const [values, setValues] = useState({
@@ -94,6 +95,30 @@ function EditCarPageContent() {
     setSelectedImageFile(null);
     setIsPhotoModalOpen(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDeleteCar = async () => {
+    if (!carId) return;
+
+    try {
+      // show spinner by reusing isSuccessModalOpen or could add isLoading state; keep simple
+      const res = await fetch(`${API}/api/cars/${carId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to delete car');
+        return;
+      }
+
+      setShowDeleteCarModal(false);
+      router.push(ROUTES.MANAGE_CAR);
+    } catch (err) {
+      console.error('Failed to delete car:', err);
+      alert('Failed to delete car.');
+    }
   };
 
   const handleDocumentFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -311,6 +336,14 @@ function EditCarPageContent() {
               >
                 {t('saveChanges')}
               </button>
+
+              <button
+                  type="button"
+                  onClick={() => setShowDeleteCarModal(true)}
+                  className="mt-3 flex w-full cursor-pointer items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-5 py-3.5 text-base font-semibold text-red-600 shadow-[0_8px_18px_rgba(239,68,68,0.08)] transition hover:bg-red-100 active:scale-[0.99] dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-400"
+              >
+                Delete Car
+              </button>
             </div>
           </main>
 
@@ -344,6 +377,42 @@ function EditCarPageContent() {
           </nav>
 
         </div>
+
+        {/* Delete Car Confirmation Modal */}
+        {showDeleteCarModal && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 animate-fadeIn">
+              <div className="relative w-full max-w-85 rounded-3xl bg-white/90 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 transition-colors duration-300 dark:bg-[#022525]/90 dark:border-white/5 text-center transform scale-100 transition-transform duration-300">
+
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-500 dark:bg-red-500/10 dark:text-red-400 mb-4">
+                  <X className="h-8 w-8 stroke-[2.2]" />
+                </div>
+
+                <h3 className="text-2xl font-bold tracking-tight text-[#121212] dark:text-white">
+                  Delete Car?
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#404b51] dark:text-slate-300 font-medium">
+                  This action cannot be undone. Are you sure you want to delete this car and its data?
+                </p>
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                      type="button"
+                      onClick={() => setShowDeleteCarModal(false)}
+                      className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-slate-200 text-[#121212] text-base font-bold hover:bg-slate-300 transition active:scale-[0.98] dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                      type="button"
+                      onClick={handleDeleteCar}
+                      className="flex-1 py-3 px-4 cursor-pointer rounded-2xl bg-red-500 text-white text-base font-bold shadow-[0_8px_20px_rgba(239,68,68,0.25)] hover:bg-red-600 transition active:scale-[0.98]"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
 
         {/* Modal de Succes */}
         {isSuccessModalOpen && (

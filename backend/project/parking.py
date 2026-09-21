@@ -199,7 +199,10 @@ def delete_car(car_id):
     if not car:
         return jsonify({'error': 'Car not found or you do not own it.'}), 404
 
+    # Remove any related data if present in future (none currently), then files
     _delete_image_file(car.image_url)
+    _delete_image_file(car.document_url)
+
     db.session.delete(car)
     db.session.commit()
     return jsonify({'message': 'Car deleted successfully.'}), 200
