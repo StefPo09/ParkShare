@@ -90,7 +90,7 @@ export default function ManageCarsPage() {
                     ) : cars.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <Car className="h-12 w-12 text-[#404b51] dark:text-slate-400 mb-2" />
-                            <p className="text-[#404b51] dark:text-slate-400">{t('noCars')}</p>
+                            <p className="text-[#404b51] dark:text-slate-400">No cars yet</p>
                         </div>
                     ) : (
                         cars.map((car) => (
