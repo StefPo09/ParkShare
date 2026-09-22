@@ -8,7 +8,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from . import db
-from .models import PersonalDetails, ProfilePicture, User
+from .models import Booking, Car, ParkingSpot, PersonalDetails, ProfilePicture, User
 
 ALLOWED_EXT = {'png', 'jpg', 'jpeg'}
 UPLOAD_BASE = os.path.join(os.path.dirname(__file__), '..', 'uploads')
@@ -235,6 +235,52 @@ def download_profile_picture():
         return jsonify({'error': 'Not found'}), 404
     user_dir = os.path.join(UPLOAD_BASE, 'profile_pictures')
     return send_from_directory(user_dir, pic.filename, as_attachment=True)
+
+
+@auth.route('/api/user/account', methods=['DELETE'])
+@login_required
+def delete_account():
+    user = current_user
+    user_id = user.id
+
+    pic = ProfilePicture.query.filter_by(user_id=user_id).first()
+    if pic and pic.filename:
+        file_path = os.path.join(UPLOAD_BASE, 'profile_pictures', pic.filename)
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except OSError:
+            pass
+
+    cars = Car.query.filter_by(user_id=user_id).all()
+    for car in cars:
+        for filename in [car.image_url, car.document_url]:
+            if not filename:
+                continue
+            file_path = os.path.join(os.path.dirname(__file__), '..', 'uploads', filename)
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except OSError:
+                pass
+
+    spots = ParkingSpot.query.filter_by(user_id=user_id).all()
+    for spot in spots:
+        for filename in [spot.image_url, spot.document_url]:
+            if not filename:
+                continue
+            file_path = os.path.join(os.path.dirname(__file__), '..', 'uploads', filename)
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except OSError:
+                pass
+
+    Booking.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    db.session.delete(user)
+    db.session.commit()
+    logout_user()
+    return jsonify({'success': True}), 200
 
 
 @auth.route('/login')

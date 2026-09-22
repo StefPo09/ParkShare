@@ -449,7 +449,7 @@ function RentPageContent() {
           </main>
 
           {/* Bottom Navigation */}
-          <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
+          <nav className="fixed inset-x-0 bottom-0 z-50 flex w-screen items-center justify-around border-t border-black/5 bg-[#dfeef0] pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-white/10 dark:bg-[#011b1b]">
             <button
                 onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
                 className={`p-1.5 transition-all cursor-pointer rounded-full ${

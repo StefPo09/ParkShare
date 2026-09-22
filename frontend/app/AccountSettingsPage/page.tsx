@@ -101,6 +101,7 @@ export default function AccountSettingsPage() {
   const [citySearch, setCitySearch] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -305,6 +306,19 @@ export default function AccountSettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/user/account`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Delete account failed');
+      router.push('/login');
+    } catch (e) {
+      console.error('Failed to delete account:', e);
+    }
+  };
+
   if (isLoading) {
     return <div className="min-h-screen bg-[#dfeef0] dark:bg-[#011b1b]" />;
   }
@@ -467,6 +481,22 @@ export default function AccountSettingsPage() {
               </div>
               <ChevronRight className="h-5 w-5 text-slate-400" />
             </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteAccountModal(true)}
+              className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-2xl border border-red-200 bg-red-50 px-3 py-3 text-left transition hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30 dark:hover:bg-red-950/50"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
+                  <ShieldCheck className="h-4 w-4" strokeWidth={2.2} />
+                </div>
+                <div>
+                  <p className="text-[16px] font-semibold text-red-700 dark:text-red-300">{t('deleteAccountTitle')}</p>
+                  <p className="text-[12px] text-red-600/90 dark:text-red-300/80">{t('deleteAccountSubtitle')}</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-red-400" />
+            </button>
           </div>
 
           {hasUnsavedChanges && (
@@ -511,6 +541,39 @@ export default function AccountSettingsPage() {
                   onClick={async () => {
                     await handleDeleteAvatar();
                     setShowDeleteModal(false);
+                  }}
+                  className="flex-1 h-10 rounded-xl bg-red-500 text-sm font-semibold text-white cursor-pointer hover:bg-red-600 transition shadow-md shadow-red-500/20"
+                >
+                  {t('delete')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showDeleteAccountModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+            <div className="w-full max-w-70 rounded-3xl bg-[#dfeef0] p-5 text-center shadow-xl dark:bg-[#0d2a24] border border-black/5 dark:border-white/10 animate-scale-in">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400">
+                <ShieldCheck className="h-6 w-6" strokeWidth={2.2} />
+              </div>
+              <h3 className="text-lg font-bold tracking-tight text-[#121212] dark:text-white mb-1">
+                {t('deleteAccountWarningTitle')}
+              </h3>
+              <p className="text-xs font-medium text-[#42565d] dark:text-[#9db0b6] mb-5">
+                {t('deleteAccountWarningMessage')}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteAccountModal(false)}
+                  className="flex-1 h-10 rounded-xl border border-black/10 text-sm font-semibold text-[#121212] dark:border-white/10 dark:text-white cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowDeleteAccountModal(false);
+                    await handleDeleteAccount();
                   }}
                   className="flex-1 h-10 rounded-xl bg-red-500 text-sm font-semibold text-white cursor-pointer hover:bg-red-600 transition shadow-md shadow-red-500/20"
                 >
