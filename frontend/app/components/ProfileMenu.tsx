@@ -96,7 +96,21 @@ export default function ProfileMenu() {
   };
 
   const handleConfirmSignOut = async () => {
-    await fetch('/api/logout', { method: 'POST' });
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error('Failed to log out from backend:', err);
+    }
+
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Failed to clear session cookie:', err);
+    }
+
     setShowSignOutModal(false);
     router.push(ROUTES.LOGIN);
     router.refresh();
