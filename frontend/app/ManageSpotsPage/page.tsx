@@ -27,7 +27,7 @@ export default function ManageSpotsPage() {
     const [spots, setSpots] = useState<SpotItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const API = process.env.NEXT_PUBLIC_API_URL || '';
 
     const fetchSpots = useCallback(async () => {
         setIsLoading(true);

@@ -4,9 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { useLanguage } from './LanguageProvider';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function ProfileMenu() {
   const router = useRouter();
@@ -26,7 +25,8 @@ export default function ProfileMenu() {
 
     const fetchUserData = async () => {
       try {
-        const meRes = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' });
+        const API = getApiBaseUrl();
+        const meRes = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
         if (meRes.ok) {
           const data = await meRes.json();
           if (!isCancelled && data.user) {
@@ -42,7 +42,8 @@ export default function ProfileMenu() {
       }
 
       try {
-        const picRes = await fetch(`${API_BASE_URL}/api/user/profile-picture/download`, { credentials: 'include' });
+        const API = getApiBaseUrl();
+        const picRes = await fetch(`${API}/api/user/profile-picture/download`, { credentials: 'include' });
         if (picRes.ok) {
           const blob = await picRes.blob();
           if (!isCancelled) {
@@ -97,7 +98,8 @@ export default function ProfileMenu() {
 
   const handleConfirmSignOut = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      const API = getApiBaseUrl();
+      await fetch(`${API}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       });

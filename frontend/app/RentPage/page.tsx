@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
 import {
@@ -146,7 +147,7 @@ function RentPageContent() {
   const initialQuery = searchParams.get('search') || '';
   const shouldAutoFocus = searchParams.has('search');
 
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API = getApiBaseUrl();
 
   const [spots, setSpots] = useState<ParkingSpot[]>([]);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
@@ -413,10 +414,10 @@ function RentPageContent() {
                     const isSelected = selectedSpot?.id === spot.id;
 
                     const redPinSvg = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="#ef4444" stroke="#dc2626" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>'
+                        '<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"36\" height=\"36\" viewBox=\"0 0 24 24\" fill=\"#ef4444\" stroke=\"#dc2626\" stroke-width=\"1.5\"><path d=\"M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z\"/><circle cx=\"12\" cy=\"10\" r=\"3\" fill=\"white\"/></svg>'
                     )}`;
                     const greyPinSvg = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="#42565d" stroke="#64748b" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white"/></svg>'
+                        '<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"#42565d\" stroke=\"#64748b\" stroke-width=\"1.5\"><path d=\"M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z\"/><circle cx=\"12\" cy=\"10\" r=\"3\" fill=\"white\"/></svg>'
                     )}`;
 
                     return (

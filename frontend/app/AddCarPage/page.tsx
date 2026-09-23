@@ -98,7 +98,7 @@ export default function AddCarPage() {
         setErrorMessage(null);
 
         try {
-            const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const API = process.env.NEXT_PUBLIC_API_URL || '';
 
             const formData = new FormData();
             formData.append('brand', form.name);

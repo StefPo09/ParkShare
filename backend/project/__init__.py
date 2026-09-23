@@ -1,6 +1,7 @@
 
 from datetime import timedelta
 import os
+import re
 
 from flask import Flask
 from flask_cors import CORS
@@ -26,7 +27,19 @@ def create_app():
     app.config['UPLOAD_DIR'] = os.path.join(os.path.dirname(__file__), '..', 'uploads')
     os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True)
 
-    CORS(app, origins=['http://localhost:3000'], supports_credentials=True)
+    configured_origins = os.environ.get('FRONTEND_ORIGINS')
+    allowed_origins = (
+        [origin.strip() for origin in configured_origins.split(',') if origin.strip()]
+        if configured_origins
+        else [
+            re.compile(
+                r'^https?://(?:localhost|127\.0\.0\.1|10(?:\.\d{1,3}){3}|'
+                r'192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})'
+                r'(?::\d+)?$'
+            )
+        ]
+    )
+    CORS(app, origins=allowed_origins, supports_credentials=True)
     db.init_app(app)
 
     login_manager = LoginManager()

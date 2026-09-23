@@ -27,7 +27,7 @@ export default function ManageCarsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'; // NOU
+    const API = process.env.NEXT_PUBLIC_API_URL || '';
 
     useEffect(() => {
         const fetchCars = async () => {

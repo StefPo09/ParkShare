@@ -84,7 +84,7 @@ function PaymentContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const spotIdParam = searchParams.get('spot');
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const API = process.env.NEXT_PUBLIC_API_URL || '';
 
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
 
