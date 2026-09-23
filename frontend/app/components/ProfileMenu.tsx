@@ -38,7 +38,7 @@ export default function ProfileMenu() {
           }
         }
       } catch (err) {
-        console.error('Failed to fetch user data in ProfileMenu:', err);
+        console.warn('Backend unavailable for user data in ProfileMenu');
       }
 
       try {
@@ -50,7 +50,7 @@ export default function ProfileMenu() {
           }
         }
       } catch (err) {
-        console.error('Failed to fetch profile picture in ProfileMenu:', err);
+        console.warn('Backend unavailable for profile picture in ProfileMenu');
       }
     };
 
@@ -102,17 +102,17 @@ export default function ProfileMenu() {
         credentials: 'include',
       });
     } catch (err) {
-      console.error('Failed to log out from backend:', err);
+      console.warn('Backend logout failed or backend unreachable');
     }
 
     try {
       await fetch('/api/logout', { method: 'POST' });
     } catch (err) {
-      console.error('Failed to clear session cookie:', err);
+      console.warn('Frontend session clear failed');
     }
 
     setShowSignOutModal(false);
-    router.push(ROUTES.LOGIN);
+    router.push(ROUTES.START);
     router.refresh();
   };
 
