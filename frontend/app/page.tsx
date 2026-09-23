@@ -1,35 +1,107 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../constants/routes';
 
 export default function StartPage() {
   const router = useRouter();
+  const [isMorphing, setIsMorphing] = useState(false);
+  const [isVideoHidden, setIsVideoHidden] = useState(false);
 
-  useEffect(() => {
-    // Show splash animation for 3.5 seconds, then navigate to LoginPage
-    const timer = setTimeout(() => {
-      router.push(ROUTES.LOGIN);
-    }, 3500);
+  const startMorphTransition = () => {
+    if (isMorphing) return;
+    setIsMorphing(true);
 
-    return () => clearTimeout(timer);
-  }, [router]);
-
-  const handleVideoEnded = () => {
-    router.push(ROUTES.LOGIN);
+    // Hide video layer after fade out completes
+    setTimeout(() => {
+      setIsVideoHidden(true);
+    }, 700);
   };
 
+  useEffect(() => {
+    // Automatically trigger morph transition after ~3 seconds of video
+    const timer = setTimeout(() => {
+      startMorphTransition();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 h-screen w-screen overflow-hidden bg-[#011b1b] dark:bg-[#0B1C2C]">
-      <video
-        src="/Animation/Loading.mp4"
-        autoPlay
-        muted
-        playsInline
-        onEnded={handleVideoEnded}
-        className="h-full w-full object-cover"
-      />
+    <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-white dark:bg-[#0B1C2C] overflow-hidden">
+      {/* Video Overlay Layer */}
+      {!isVideoHidden && (
+        <div
+          className={`fixed inset-0 z-50 h-screen w-screen overflow-hidden bg-[#011b1b] transition-opacity duration-700 ease-in-out ${
+            isMorphing ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          <video
+            src="/Animation/Loading.mp4"
+            autoPlay
+            muted
+            playsInline
+            onEnded={startMorphTransition}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      )}
+
+      {/* StartPage Interface with PowerPoint-style Morph Transition */}
+      <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center p-6 z-10">
+        {/* Morphing Logo & Wordmark */}
+        <div
+          className={`flex flex-col items-center transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isMorphing
+              ? 'scale-100 opacity-100 translate-y-0'
+              : 'scale-150 opacity-0 -translate-y-8'
+          }`}
+        >
+          <Image
+            src="/Icon.svg"
+            alt="Park | Share logo"
+            width={160}
+            height={140}
+            className="h-40 w-auto"
+            priority
+          />
+          <h1 className="mt-6 text-4xl font-bold tracking-tight text-center">
+            <span className="text-[#0F4C81] dark:text-white">Park</span>
+            <span className="mx-2 text-[#0F4C81]/60 dark:text-white/60">|</span>
+            <span className="text-[#04B697]">Share</span>
+          </h1>
+        </div>
+
+        {/* Morphing Tagline & Action Buttons */}
+        <div
+          className={`mt-4 w-full flex flex-col items-center transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isMorphing
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-16'
+          }`}
+        >
+          <p className="text-lg text-center text-[#33475A] dark:text-white/80">
+            The best way to find and share parking spots.
+          </p>
+
+          <div className="mt-12 w-full space-y-4">
+            <button
+              onClick={() => router.push(ROUTES.LOGIN)}
+              className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] cursor-pointer"
+            >
+              Log in
+            </button>
+            <button
+              onClick={() => router.push(ROUTES.SIGN_UP)}
+              className="h-12 w-full rounded-xl bg-gray-200 text-sm font-semibold text-[#0B1C2C] transition hover:bg-gray-300 active:scale-[0.99] dark:bg-white/10 dark:text-white dark:hover:bg-white/20 cursor-pointer"
+            >
+              Sign up
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
