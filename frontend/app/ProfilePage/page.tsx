@@ -7,7 +7,7 @@ import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle, Key, Home, Car } from 'lucide-react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface UserProfile {
   firstName: string;
@@ -102,7 +102,7 @@ export default function ProfilePage() {
       const objectUrl = URL.createObjectURL(blob);
       setProfile((prev) => ({ ...prev, avatarUrl: objectUrl }));
     } catch (e) {
-      console.error('Failed to load profile picture:', e);
+      console.warn('Failed to load profile picture:', e);
     }
   }, []);
 
@@ -127,7 +127,7 @@ export default function ProfilePage() {
         setProfile(mapApiUserToProfile(data.user));
         fetchAvatar();
       } catch (e) {
-        console.error('Failed to load profile:', e);
+        console.warn('Failed to load profile:', e);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -195,7 +195,7 @@ export default function ProfilePage() {
       setTimeout(() => setIsSaved(false), 2000);
       setEditingField(null);
     } catch (e) {
-      console.error('Failed to save field:', e);
+      console.warn('Failed to save field:', e);
     }
   };
 
@@ -225,7 +225,7 @@ export default function ProfilePage() {
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     } catch (err) {
-      console.error('Failed to upload profile picture:', err);
+      console.warn('Failed to upload profile picture:', err);
     }
   };
 
@@ -241,7 +241,7 @@ export default function ProfilePage() {
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     } catch (err) {
-      console.error('Failed to delete profile picture:', err);
+      console.warn('Failed to delete profile picture:', err);
     } finally {
       setShowDeleteModal(false);
     }
