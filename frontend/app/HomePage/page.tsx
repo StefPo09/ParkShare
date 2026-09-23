@@ -67,7 +67,8 @@ export default function HomePage() {
   useEffect(() => {
     const fetchDashboardTimers = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/dashboard/timers', {
+        const API = process.env.NEXT_PUBLIC_API_URL || '';
+        const response = await fetch(`${API}/api/dashboard/timers`, {
           credentials: 'include',
         });
 

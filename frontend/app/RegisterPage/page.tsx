@@ -62,8 +62,8 @@ export default function RegisterPage() {
         setIsSubmitting(true);
 
         try {
-            const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${API}/api/auth/register`, {
+            const API = process.env.NEXT_PUBLIC_API_URL || '';
+            const response = await fetch(`${API}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -77,10 +77,11 @@ export default function RegisterPage() {
                     city: selectedCity,
                 }),
             });
-            const data = await response.json();
+            const isJson = response.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await response.json() : null;
 
             if (!response.ok) {
-                throw new Error(data.error || 'Unable to create your account.');
+                throw new Error(data?.error || 'The backend is unavailable. Please make sure it is running and try again.');
             }
 
             sessionStorage.removeItem('signupEmail');

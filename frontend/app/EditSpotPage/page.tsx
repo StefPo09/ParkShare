@@ -144,7 +144,7 @@ function EditSpotPageContent() {
     });
 
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const API = process.env.NEXT_PUBLIC_API_URL || '';
 
     const activePhoto = spotPhotos[activePhotoIndex] || null;
 

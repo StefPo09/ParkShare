@@ -47,7 +47,7 @@ type ApiUser = {
   last_name: string | null;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const emptyProfile: ProfileState = {
   email: '',

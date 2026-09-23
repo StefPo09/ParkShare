@@ -78,7 +78,7 @@ const defaultMapCenter = { lat: 44.4323, lng: 26.1063 };
 export default function AddSpotPage() {
   const router = useRouter();
   const { t } = useLanguage();
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API = process.env.NEXT_PUBLIC_API_URL || '';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 

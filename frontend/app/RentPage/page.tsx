@@ -146,7 +146,7 @@ function RentPageContent() {
   const initialQuery = searchParams.get('search') || '';
   const shouldAutoFocus = searchParams.has('search');
 
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API = process.env.NEXT_PUBLIC_API_URL || '';
 
   const [spots, setSpots] = useState<ParkingSpot[]>([]);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);

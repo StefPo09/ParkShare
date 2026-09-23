@@ -7,7 +7,7 @@ import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle, Key, Home, Car } from 'lucide-react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface UserProfile {
   firstName: string;
