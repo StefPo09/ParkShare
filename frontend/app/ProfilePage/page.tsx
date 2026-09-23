@@ -4,10 +4,9 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { useLanguage } from '../components/LanguageProvider';
 import { X, Pencil, ChevronRight, Check, User, Trash2, AlertCircle, Key, Home, Car } from 'lucide-react';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface UserProfile {
   firstName: string;
@@ -49,10 +48,11 @@ function mapApiUserToProfile(u: ApiUser): UserProfile {
   const location = [u.city, u.country].filter(Boolean).join(', ');
   const phone = [u.phone_country_code, u.phone].filter(Boolean).join(' ');
   const username = u.email ? u.email.split('@')[0] : '';
+  const nameParts = u.name ? u.name.split(' ') : [];
 
   return {
-    firstName: u.first_name || '',
-    lastName: u.last_name || '',
+    firstName: u.first_name || nameParts[0] || '',
+    lastName: u.last_name || nameParts.slice(1).join(' ') || '',
     avatarUrl: '', // loaded separately, see fetchAvatar
     username,
     birthDate: u.date_of_birth || '',
@@ -94,7 +94,8 @@ export default function ProfilePage() {
 
   const fetchAvatar = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture/download`, {
+      const API = getApiBaseUrl();
+      const res = await fetch(`${API}/api/user/profile-picture/download`, {
         credentials: 'include',
       });
       if (!res.ok) return;
@@ -111,12 +112,13 @@ export default function ProfilePage() {
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const API = getApiBaseUrl();
+        const res = await fetch(`${API}/api/auth/me`, {
           credentials: 'include',
         });
 
         if (res.status === 401) {
-          router.push('/login');
+          router.push(ROUTES.LOGIN);
           return;
         }
         if (!res.ok) throw new Error(`Unexpected status ${res.status}`);
@@ -180,7 +182,8 @@ export default function ProfilePage() {
     };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/user/personal-details`, {
+      const API = getApiBaseUrl();
+      const res = await fetch(`${API}/api/user/personal-details`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -214,7 +217,8 @@ export default function ProfilePage() {
     formData.append('picture', file);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture`, {
+      const API = getApiBaseUrl();
+      const res = await fetch(`${API}/api/user/profile-picture`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -231,7 +235,8 @@ export default function ProfilePage() {
 
   const handleDeleteImage = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture`, {
+      const API = getApiBaseUrl();
+      const res = await fetch(`${API}/api/user/profile-picture`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -529,7 +534,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Account Settings */}
-            <button onClick={() => router.push('/AccountSettingsPage')} aria-label="Open account settings" className="w-full flex items-center justify-between h-15 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
+            <button onClick={() => router.push(ROUTES.ACCOUNT_SETTINGS)} aria-label="Open account settings" className="w-full flex items-center justify-between h-15 px-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/5 text-base font-bold text-[#121212] dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition duration-200 mt-2 cursor-pointer active:scale-[0.99]">
               <span>{t('account_settings_title')}</span>
               <ChevronRight className="w-5 h-5 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
             </button>

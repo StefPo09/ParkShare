@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import {
   Car,
   Check,
@@ -39,6 +40,7 @@ type CountryPhoneEntry = {
 
 type ApiUser = {
   email: string;
+  name?: string | null;
   phone_country_code: string | null;
   phone: string | null;
   country: string | null;
@@ -46,8 +48,6 @@ type ApiUser = {
   first_name: string | null;
   last_name: string | null;
 };
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const emptyProfile: ProfileState = {
   email: '',
@@ -128,7 +128,8 @@ export default function AccountSettingsPage() {
 
   const loadProfilePicture = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture/download`, { credentials: 'include' });
+      const API = getApiBaseUrl();
+      const res = await fetch(`${API}/api/user/profile-picture/download`, { credentials: 'include' });
       if (!res.ok) return;
       const blob = await res.blob();
       setAvatarUrl(URL.createObjectURL(blob));
@@ -142,21 +143,25 @@ export default function AccountSettingsPage() {
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' });
+        const API = getApiBaseUrl();
+        const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
         if (res.status === 401) {
-          router.push('/login');
+          router.push(ROUTES.LOGIN);
           return;
         }
         if (!res.ok) throw new Error(`Unexpected status ${res.status}`);
         const data = await res.json();
         const u: ApiUser = data.user;
+        const nameParts = u.name ? u.name.split(' ') : [];
+        const firstName = u.first_name || nameParts[0] || '';
+        const lastName = u.last_name || nameParts.slice(1).join(' ') || '';
         const nextProfile: ProfileState = {
           email: u.email || '',
           phone: [u.phone_country_code, u.phone].filter(Boolean).join(' '),
           country: u.country || '',
           city: u.city || '',
-          firstName: u.first_name || '',
-          lastName: u.last_name || '',
+          firstName,
+          lastName,
         };
         if (cancelled) return;
         setSavedProfile(nextProfile);
@@ -240,7 +245,8 @@ export default function AccountSettingsPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/user/personal-details`, {
+      const API = getApiBaseUrl();
+      const res = await fetch(`${API}/api/user/personal-details`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -249,13 +255,16 @@ export default function AccountSettingsPage() {
       if (!res.ok) throw new Error('Save failed');
       const data = await res.json();
       const u: ApiUser = data.user;
+      const nameParts = u.name ? u.name.split(' ') : [];
+      const firstName = u.first_name || nameParts[0] || '';
+      const lastName = u.last_name || nameParts.slice(1).join(' ') || '';
       const nextProfile: ProfileState = {
         email: u.email || '',
         phone: [u.phone_country_code, u.phone].filter(Boolean).join(' '),
         country: u.country || '',
         city: u.city || '',
-        firstName: u.first_name || '',
-        lastName: u.last_name || '',
+        firstName,
+        lastName,
       };
       setSavedProfile(nextProfile);
       setDraftProfile(nextProfile);
@@ -280,7 +289,8 @@ export default function AccountSettingsPage() {
 
   const handleDeleteAvatar = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture`, {
+      const API = getApiBaseUrl();
+      const res = await fetch(`${API}/api/user/profile-picture`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -296,9 +306,10 @@ export default function AccountSettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      const API = getApiBaseUrl();
       const formData = new FormData();
       formData.append('picture', file);
-      const res = await fetch(`${API_BASE_URL}/api/user/profile-picture`, {
+      const res = await fetch(`${API}/api/user/profile-picture`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -312,12 +323,13 @@ export default function AccountSettingsPage() {
 
   const handleDeleteAccount = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/user/account`, {
+      const API = getApiBaseUrl();
+      const res = await fetch(`${API}/api/user/account`, {
         method: 'DELETE',
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Delete account failed');
-      router.push('/login');
+      router.push(ROUTES.LOGIN);
     } catch (e) {
       console.warn('Failed to delete account:', e);
     }

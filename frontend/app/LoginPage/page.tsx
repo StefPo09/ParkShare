@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function LoginPage() {
@@ -30,7 +31,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const API = process.env.NEXT_PUBLIC_API_URL || '';
+      const API = getApiBaseUrl();
       const response = await fetch(`${API}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -14,6 +14,14 @@ auth = Blueprint('auth', __name__)
 
 def _user_payload(user):
     personal_details = user.personal_details
+    first_name = personal_details.first_name if personal_details and personal_details.first_name else None
+    last_name = personal_details.last_name if personal_details and personal_details.last_name else None
+
+    if not first_name and not last_name and user.name:
+        parts = user.name.split(' ', 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else None
+
     return {
         'id': user.id,
         'email': user.email,
@@ -23,8 +31,8 @@ def _user_payload(user):
         'phone': user.phone,
         'country': user.country,
         'city': user.city,
-        'first_name': personal_details.first_name if personal_details else None,
-        'last_name': personal_details.last_name if personal_details else None,
+        'first_name': first_name,
+        'last_name': last_name,
         'date_of_birth': (
             personal_details.date_of_birth.isoformat()
             if personal_details and personal_details.date_of_birth
@@ -36,7 +44,17 @@ def _user_payload(user):
 def _create_user(data):
     email = str(data.get('email', '')).strip().lower()
     password = str(data.get('password', ''))
+    first_name = str(data.get('first_name', '')).strip()
+    last_name = str(data.get('last_name', '')).strip()
     name = str(data.get('name', '')).strip()
+
+    if not name and (first_name or last_name):
+        name = f"{first_name} {last_name}".strip()
+    elif name and not first_name and not last_name:
+        parts = name.split(' ', 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else ''
+
     phone_country_code = str(data.get('phone_country_code', '')).strip()
     phone = str(data.get('phone', '')).strip()
     country = str(data.get('country', '')).strip()
@@ -65,6 +83,19 @@ def _create_user(data):
     except IntegrityError:
         db.session.rollback()
         return None, 'An account with this email already exists.', 409
+
+    personal_details = PersonalDetails(
+        user_id=user.id,
+        first_name=first_name or None,
+        last_name=last_name or None,
+        country=country or None,
+        city=city or None,
+    )
+    db.session.add(personal_details)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
 
     return user, None, 201
 
@@ -118,6 +149,8 @@ def register():
     data = {
         'email': email,
         'password': request.form.get('password', ''),
+        'first_name': first_name,
+        'last_name': last_name,
         'name': ' '.join(part for part in (first_name, last_name) if part),
         'phone_country_code': request.form.get('phone_country_code', ''),
         'phone': request.form.get('phone', ''),
@@ -129,12 +162,10 @@ def register():
         flash(error)
         return render_template('register.html', email=email)
 
-    user.personal_details = PersonalDetails(
-        first_name=first_name or None,
-        last_name=last_name or None,
-        date_of_birth=date_of_birth,
-    )
-    db.session.commit()
+    if date_of_birth and user.personal_details:
+        user.personal_details.date_of_birth = date_of_birth
+        db.session.commit()
+
     return redirect(url_for('auth.login'))
 
 
@@ -146,9 +177,11 @@ def logout():
 
 @auth.route('/api/auth/register', methods=['POST'])
 def api_register():
-    user, error, status = _create_user(request.get_json(silent=True) or {})
+    data = request.get_json(silent=True) or {}
+    user, error, status = _create_user(data)
     if error:
         return jsonify({'error': error}), status
+    login_user(user)
     return jsonify({'user': _user_payload(user)}), status
 
 
@@ -179,3 +212,52 @@ def api_logout():
     response = jsonify({'success': True})
     response.delete_cookie('session')
     return response, 200
+
+
+@auth.route('/api/user/personal-details', methods=['PATCH'])
+def api_update_personal_details():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Authentication required.'}), 401
+
+    data = request.get_json(silent=True) or {}
+    user = current_user
+
+    if 'email' in data:
+        email = str(data['email']).strip().lower()
+        if email and email != user.email:
+            existing = User.query.filter(User.email == email, User.id != user.id).first()
+            if existing:
+                return jsonify({'error': 'An account with this email already exists.'}), 409
+            user.email = email
+
+    if 'phone_country_code' in data:
+        user.phone_country_code = str(data['phone_country_code']).strip()
+    if 'phone' in data:
+        user.phone = str(data['phone']).strip()
+    if 'country' in data:
+        user.country = str(data['country']).strip()
+    if 'city' in data:
+        user.city = str(data['city']).strip()
+
+    personal_details = user.personal_details
+    if not personal_details:
+        personal_details = PersonalDetails(user_id=user.id)
+        db.session.add(personal_details)
+
+    if 'first_name' in data:
+        personal_details.first_name = str(data['first_name']).strip()
+    if 'last_name' in data:
+        personal_details.last_name = str(data['last_name']).strip()
+    if 'date_of_birth' in data:
+        dob_raw = str(data['date_of_birth']).strip()
+        try:
+            personal_details.date_of_birth = date.fromisoformat(dob_raw) if dob_raw else None
+        except ValueError:
+            pass
+
+    full_name = f"{personal_details.first_name or ''} {personal_details.last_name or ''}".strip()
+    if full_name:
+        user.name = full_name
+
+    db.session.commit()
+    return jsonify({'user': _user_payload(user)}), 200

@@ -20,7 +20,8 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
 export default function RegisterPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [phoneCountryCode, setPhoneCountryCode] = useState('+40');
     const [phone, setPhone] = useState('');
     // State for country & city selection
@@ -50,7 +51,13 @@ export default function RegisterPage() {
     };
 
     const passwordsMatch = confirmPassword === '' || password === confirmPassword;
-    const canSubmit = email.trim() !== '' && name.trim() !== '' && phone.trim() !== '' && password.length >= 8 && passwordsMatch;
+    const canSubmit =
+        email.trim() !== '' &&
+        firstName.trim() !== '' &&
+        lastName.trim() !== '' &&
+        phone.trim() !== '' &&
+        password.length >= 8 &&
+        passwordsMatch;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,14 +69,16 @@ export default function RegisterPage() {
         setIsSubmitting(true);
 
         try {
-            const API = process.env.NEXT_PUBLIC_API_URL || '';
+            const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
             const response = await fetch(`${API}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({
                     email,
-                    name,
+                    first_name: firstName,
+                    last_name: lastName,
+                    name: `${firstName} ${lastName}`.trim(),
                     password,
                     phone_country_code: phoneCountryCode,
                     phone,
@@ -85,7 +94,8 @@ export default function RegisterPage() {
             }
 
             sessionStorage.removeItem('signupEmail');
-            router.push(ROUTES.LOGIN);
+            router.push(ROUTES.HOME);
+            router.refresh();
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : 'Unable to connect to the backend.');
         } finally {
@@ -120,17 +130,30 @@ export default function RegisterPage() {
                     />
                 </div>
 
-                {/* Full Name */}
-                <div className="flex flex-col w-full gap-1">
-                    <label className="font-medium text-sm text-[#0B1C2C]">Full Name</label>
-                    <input
-                        type="text"
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. John Doe"
-                        className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
-                    />
+                {/* First Name & Last Name */}
+                <div className="flex w-full gap-3">
+                    <div className="flex flex-col w-1/2 gap-1">
+                        <label className="font-medium text-sm text-[#0B1C2C]">First Name</label>
+                        <input
+                            type="text"
+                            required
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            placeholder="e.g. John"
+                            className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                        />
+                    </div>
+                    <div className="flex flex-col w-1/2 gap-1">
+                        <label className="font-medium text-sm text-[#0B1C2C]">Last Name</label>
+                        <input
+                            type="text"
+                            required
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="e.g. Doe"
+                            className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                        />
+                    </div>
                 </div>
 
                 {/* Phone Number */}
@@ -218,7 +241,7 @@ export default function RegisterPage() {
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             aria-label={showPassword ? 'Hide password' : 'Show password'}
-                            className="absolute right-4 text-[#0F4C81] hover:text-[#0B1C2C] transition"
+                            className="absolute right-4 text-[#0F4C81] hover:text-[#0B1C2C] transition cursor-pointer"
                         >
                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
@@ -245,15 +268,15 @@ export default function RegisterPage() {
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                            className="absolute right-4 text-[#0F4C81] hover:text-[#0B1C2C] transition"
+                            className="absolute right-4 text-[#0F4C81] hover:text-[#0B1C2C] transition cursor-pointer"
                         >
                             {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                     </div>
                     {!passwordsMatch && (
                         <span className="text-xs text-red-600 font-medium mt-0.5">
-              Passwords do not match!
-            </span>
+                            Passwords do not match!
+                        </span>
                     )}
                 </div>
                 {password.length > 0 && password.length < 8 && (
@@ -270,7 +293,7 @@ export default function RegisterPage() {
                 <button
                     type="submit"
                     disabled={!canSubmit || isSubmitting}
-                    className="mt-4 h-12 w-full rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45"
+                    className="mt-4 h-12 w-full rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 cursor-pointer"
                 >
                     {isSubmitting ? 'Creating account...' : 'Sign up'}
                 </button>
