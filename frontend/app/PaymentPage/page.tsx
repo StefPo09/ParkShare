@@ -387,7 +387,7 @@ function PaymentContent() {
                     0
                 ).toISOString();
 
-                await fetch(`${API}/api/bookings`, {
+                const res = await fetch(`${API}/api/bookings`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -397,12 +397,32 @@ function PaymentContent() {
                         end_date: endIso,
                     }),
                 });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    console.error('Backend booking creation failed:', res.status, errData);
+                }
             } catch (err) {
                 console.error('Failed to create booking in backend:', err);
             }
         }
 
-        router.push(ROUTES.SUCCESS_PAYMENT);
+        const queryParams = new URLSearchParams();
+        if (spotDetails) {
+            queryParams.set('spotTitle', spotDetails.title || spotDetails.address);
+            queryParams.set('spotAddress', spotDetails.address);
+            queryParams.set('currency', spotDetails.price_currency || 'RON');
+        }
+        if (selectedHoursCount > 0) {
+            queryParams.set('duration', `${selectedHoursCount} hour${selectedHoursCount > 1 ? 's' : ''}`);
+            queryParams.set('total', calculatedPrice.toFixed(2));
+        }
+        if (selectedStartHour !== null && selectedEndHour !== null) {
+            queryParams.set('startHour', `${selectedStartHour}:00`);
+            queryParams.set('endHour', `${selectedEndHour}:00`);
+        }
+
+        router.push(`${ROUTES.SUCCESS_PAYMENT}?${queryParams.toString()}`);
     };
 
     // Calendar generation

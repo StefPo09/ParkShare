@@ -187,6 +187,17 @@ class Booking(db.Model):
             'total_price': self.total_price,
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'spot': {
+                'id': self.spot.id,
+                'title': self.spot.title,
+                'address': self.spot.address,
+                'description': self.spot.description,
+                'start_hour': self.spot.start_hour or '14:00',
+                'end_hour': self.spot.end_hour or '18:00',
+                'price_per_day': self.spot.price_per_day,
+                'price_currency': self.spot.price_currency or 'RON',
+                'image_url': f'/api/spots/{self.spot.id}/image' if self.spot.image_url else None,
+            } if self.spot else None,
         }
 
 
