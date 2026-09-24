@@ -1,3 +1,4 @@
+import os
 from datetime import date
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
@@ -197,6 +198,15 @@ def api_login():
 
     login_user(user, remember=bool(data.get('remember')))
     return jsonify({'user': _user_payload(user)}), 200
+
+
+@auth.route('/api/ai/health', methods=['GET'])
+def ai_health():
+    api_key = os.getenv('GOOGLE_API_KEY') or os.getenv('GEMINI_API_KEY')
+    return jsonify({
+        'configured': bool(api_key),
+        'provider': 'google-ai-studio',
+    }), 200
 
 
 @auth.route('/api/auth/me')
