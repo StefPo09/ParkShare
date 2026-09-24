@@ -16,6 +16,7 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
+    app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY')
     app.config['SQLALCHEMY_DATABASE_URI'] = (
             os.environ.get('MYSQL_DATABASE_URI') or os.environ.get('DATABASE_URL') or 'sqlite:///db.sqlite'
     )
