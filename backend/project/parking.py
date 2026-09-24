@@ -539,7 +539,20 @@ def create_booking():
     if overlapping:
         return jsonify({'error': 'The selected time slot is already booked.'}), 409
 
-    total_price = (end_date - start_date).total_seconds() / 86400 * float(spot.price_per_day)
+    operating_hours = 24.0
+    if spot.start_hour and spot.end_hour:
+        try:
+            sh_parts = [int(p) for p in spot.start_hour.split(':')]
+            eh_parts = [int(p) for p in spot.end_hour.split(':')]
+            sh_val = sh_parts[0] + (sh_parts[1] / 60.0 if len(sh_parts) > 1 else 0)
+            eh_val = eh_parts[0] + (eh_parts[1] / 60.0 if len(eh_parts) > 1 else 0)
+            if eh_val > sh_val:
+                operating_hours = eh_val - sh_val
+        except Exception:
+            operating_hours = 24.0
+    hourly_rate = float(spot.price_per_day) / operating_hours
+    duration_hours = (end_date - start_date).total_seconds() / 3600.0
+    total_price = round(duration_hours * hourly_rate, 2)
     booking = Booking(
         spot_id=spot.id,
         user_id=current_user.id,
@@ -585,9 +598,11 @@ def get_dashboard_timers():
         hourly_rate = float(spot.price_per_day) if spot else 4.0
         if spot and spot.start_hour and spot.end_hour:
             try:
-                sh = int(spot.start_hour.split(':')[0])
-                eh = int(spot.end_hour.split(':')[0])
-                operating_hours = max(1, eh - sh)
+                sh_parts = [int(p) for p in spot.start_hour.split(':')]
+                eh_parts = [int(p) for p in spot.end_hour.split(':')]
+                sh_val = sh_parts[0] + (sh_parts[1] / 60.0 if len(sh_parts) > 1 else 0)
+                eh_val = eh_parts[0] + (eh_parts[1] / 60.0 if len(eh_parts) > 1 else 0)
+                operating_hours = (eh_val - sh_val) if eh_val > sh_val else 24.0
                 hourly_rate = round(float(spot.price_per_day) / operating_hours, 2)
             except Exception:
                 hourly_rate = round(float(spot.price_per_day) / 24.0, 2)

@@ -80,6 +80,23 @@ function parseHourMinute(timeStr?: string): { hour: number; minute: number } {
     };
 }
 
+function parseTimeToMinutes(timeStr?: string): number | null {
+    if (!timeStr) return null;
+    const parts = timeStr.trim().split(':');
+    if (parts.length === 0) return null;
+    const h = parseInt(parts[0], 10);
+    const m = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+    if (isNaN(h) || isNaN(m)) return null;
+    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+    return h * 60 + m;
+}
+
+function formatMinutesToTime(totalMinutes: number): string {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 function PaymentContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -109,8 +126,11 @@ function PaymentContent() {
         today.setHours(0, 0, 0, 0);
         return today;
     });
+    const [timeMode, setTimeMode] = useState<'preset' | 'custom'>('preset');
     const [selectedStartHour, setSelectedStartHour] = useState<number | null>(null);
     const [selectedEndHour, setSelectedEndHour] = useState<number | null>(null);
+    const [customStartTime, setCustomStartTime] = useState('08:00');
+    const [customEndTime, setCustomEndTime] = useState('10:00');
 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
 
@@ -218,6 +238,20 @@ function PaymentContent() {
     // Operating hours calculation
     const spotStart = useMemo(() => parseHourMinute(spotDetails?.start_hour || '08:00'), [spotDetails?.start_hour]);
     const spotEnd = useMemo(() => parseHourMinute(spotDetails?.end_hour || '18:00'), [spotDetails?.end_hour]);
+
+    const spotStartMinutes = useMemo(() => spotStart.hour * 60 + spotStart.minute, [spotStart]);
+    const spotEndMinutes = useMemo(() => spotEnd.hour * 60 + spotEnd.minute, [spotEnd]);
+
+    // Initialize custom start and end times once spotDetails is loaded
+    useEffect(() => {
+        if (spotDetails?.start_hour && spotDetails?.end_hour) {
+            setCustomStartTime(spotDetails.start_hour);
+            const sh = parseHourMinute(spotDetails.start_hour);
+            const eh = parseHourMinute(spotDetails.end_hour);
+            const defaultEndH = Math.min(eh.hour, sh.hour + 2);
+            setCustomEndTime(`${String(defaultEndH).padStart(2, '0')}:${String(sh.minute).padStart(2, '0')}`);
+        }
+    }, [spotDetails?.start_hour, spotDetails?.end_hour]);
 
     // Check if an hour slot is booked on a specific date
     const isHourSlotBooked = (date: Date, hour: number): boolean => {
@@ -343,17 +377,138 @@ function PaymentContent() {
     };
 
     const selectedHoursCount = selectedStartHour !== null && selectedEndHour !== null ? selectedEndHour - selectedStartHour : 0;
-    const isDateTimeValid = selectedDate !== null && selectedStartHour !== null && selectedEndHour !== null && selectedHoursCount > 0;
+
+    const timeValidation = useMemo(() => {
+        if (!selectedDate) {
+            return { isValid: false, error: 'Please select a date on the calendar.' };
+        }
+
+        let startM: number | null = null;
+        let endM: number | null = null;
+
+        if (timeMode === 'preset') {
+            if (selectedStartHour === null || selectedEndHour === null) {
+                return { isValid: false, error: 'Please select at least one hour slot to proceed.' };
+            }
+            startM = selectedStartHour * 60;
+            endM = selectedEndHour * 60;
+        } else {
+            if (!customStartTime || !customEndTime) {
+                return { isValid: false, error: 'Please enter both start and end times.' };
+            }
+            startM = parseTimeToMinutes(customStartTime);
+            endM = parseTimeToMinutes(customEndTime);
+            if (startM === null || endM === null) {
+                return { isValid: false, error: 'Please enter a valid time (HH:MM).' };
+            }
+        }
+
+        if (endM <= startM) {
+            return { isValid: false, error: 'End time must be after start time.' };
+        }
+
+        if (startM < spotStartMinutes) {
+            return {
+                isValid: false,
+                error: `Start time (${formatMinutesToTime(startM)}) is before the spot's available opening time (${spotDetails?.start_hour || '08:00'}).`
+            };
+        }
+
+        if (endM > spotEndMinutes) {
+            return {
+                isValid: false,
+                error: `End time (${formatMinutesToTime(endM)}) is after the spot's available closing time (${spotDetails?.end_hour || '18:00'}).`
+            };
+        }
+
+        // Check if selected start time has already passed today
+        const now = new Date();
+        const isToday =
+            selectedDate.getFullYear() === now.getFullYear() &&
+            selectedDate.getMonth() === now.getMonth() &&
+            selectedDate.getDate() === now.getDate();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+        if (isToday && startM <= nowMinutes) {
+            return {
+                isValid: false,
+                error: `Selected start time (${formatMinutesToTime(startM)}) has already passed today.`
+            };
+        }
+
+        // Overlap with existing bookings
+        if (spotDetails?.bookings && spotDetails.bookings.length > 0) {
+            const startH = Math.floor(startM / 60);
+            const startMin = startM % 60;
+            const endH = Math.floor(endM / 60);
+            const endMin = endM % 60;
+
+            const reqStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), startH, startMin, 0);
+            const reqEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), endH, endMin, 0);
+
+            const overlapping = spotDetails.bookings.find((b) => {
+                if (b.status === 'cancelled') return false;
+                const bStart = new Date(b.start_date);
+                const bEnd = new Date(b.end_date);
+                return bStart < reqEnd && bEnd > reqStart;
+            });
+
+            if (overlapping) {
+                const bStartStr = new Date(overlapping.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const bEndStr = new Date(overlapping.end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return {
+                    isValid: false,
+                    error: `This time slot overlaps with an existing reservation (${bStartStr} - ${bEndStr}).`
+                };
+            }
+        }
+
+        const durationMinutes = endM - startM;
+        return {
+            isValid: true,
+            error: null,
+            startMinutes: startM,
+            endMinutes: endM,
+            durationMinutes,
+        };
+    }, [selectedDate, timeMode, selectedStartHour, selectedEndHour, customStartTime, customEndTime, spotStartMinutes, spotEndMinutes, spotDetails]);
+
+    const durationMinutes = timeValidation.isValid && timeValidation.durationMinutes ? timeValidation.durationMinutes : 0;
+
+    const formattedDuration = useMemo(() => {
+        if (durationMinutes <= 0) return '0 hours';
+        const hours = Math.floor(durationMinutes / 60);
+        const mins = durationMinutes % 60;
+        if (mins === 0) {
+            return `${hours} hour${hours !== 1 ? 's' : ''}`;
+        }
+        if (hours === 0) {
+            return `${mins} min${mins !== 1 ? 's' : ''}`;
+        }
+        return `${hours}h ${mins}m`;
+    }, [durationMinutes]);
+
+    const startTimeFormatted = useMemo(() => {
+        if (timeValidation.startMinutes === undefined) return '';
+        return formatMinutesToTime(timeValidation.startMinutes);
+    }, [timeValidation.startMinutes]);
+
+    const endTimeFormatted = useMemo(() => {
+        if (timeValidation.endMinutes === undefined) return '';
+        return formatMinutesToTime(timeValidation.endMinutes);
+    }, [timeValidation.endMinutes]);
+
+    const isDateTimeValid = timeValidation.isValid;
     const isCarInfoValid = plate.trim() !== '' && carModel !== '';
     const isBookingValid = isCarInfoValid && isDateTimeValid;
 
     const calculatedPrice = useMemo(() => {
-        if (!spotDetails || selectedHoursCount === 0) return 0;
-        const totalOperatingHours = Math.max(1, spotEnd.hour - spotStart.hour);
+        if (!spotDetails || !timeValidation.isValid || durationMinutes <= 0) return 0;
+        const totalOperatingHours = Math.max(0.5, (spotEndMinutes - spotStartMinutes) / 60);
         const hourlyRate = spotDetails.price_per_day / totalOperatingHours;
-        const price = selectedHoursCount * hourlyRate;
+        const price = (durationMinutes / 60) * hourlyRate;
         return Math.round(price * 100) / 100;
-    }, [spotDetails, selectedHoursCount, spotStart.hour, spotEnd.hour]);
+    }, [spotDetails, timeValidation.isValid, durationMinutes, spotStartMinutes, spotEndMinutes]);
 
     const handleUseOwnCarClick = () => {
         fetchUserCars();
@@ -367,14 +522,19 @@ function PaymentContent() {
     };
 
     const handlePaymentSuccess = async () => {
-        if (spotDetails && selectedDate && selectedStartHour !== null && selectedEndHour !== null) {
+        if (spotDetails && selectedDate && timeValidation.isValid && timeValidation.startMinutes !== undefined && timeValidation.endMinutes !== undefined) {
             try {
+                const startH = Math.floor(timeValidation.startMinutes / 60);
+                const startM = timeValidation.startMinutes % 60;
+                const endH = Math.floor(timeValidation.endMinutes / 60);
+                const endM = timeValidation.endMinutes % 60;
+
                 const startIso = new Date(
                     selectedDate.getFullYear(),
                     selectedDate.getMonth(),
                     selectedDate.getDate(),
-                    selectedStartHour,
-                    0,
+                    startH,
+                    startM,
                     0
                 ).toISOString();
 
@@ -382,8 +542,8 @@ function PaymentContent() {
                     selectedDate.getFullYear(),
                     selectedDate.getMonth(),
                     selectedDate.getDate(),
-                    selectedEndHour,
-                    0,
+                    endH,
+                    endM,
                     0
                 ).toISOString();
 
@@ -413,13 +573,13 @@ function PaymentContent() {
             queryParams.set('spotAddress', spotDetails.address);
             queryParams.set('currency', spotDetails.price_currency || 'RON');
         }
-        if (selectedHoursCount > 0) {
-            queryParams.set('duration', `${selectedHoursCount} hour${selectedHoursCount > 1 ? 's' : ''}`);
+        if (durationMinutes > 0) {
+            queryParams.set('duration', formattedDuration);
             queryParams.set('total', calculatedPrice.toFixed(2));
         }
-        if (selectedStartHour !== null && selectedEndHour !== null) {
-            queryParams.set('startHour', `${selectedStartHour}:00`);
-            queryParams.set('endHour', `${selectedEndHour}:00`);
+        if (startTimeFormatted && endTimeFormatted) {
+            queryParams.set('startHour', startTimeFormatted);
+            queryParams.set('endHour', endTimeFormatted);
         }
 
         router.push(`${ROUTES.SUCCESS_PAYMENT}?${queryParams.toString()}`);
@@ -802,57 +962,140 @@ function PaymentContent() {
 
                         {/* Time Slot Selection */}
                         {selectedDate && (
-                            <div className="rounded-2xl border border-black/5 bg-white/30 p-3 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/5 space-y-2">
+                            <div className="rounded-2xl border border-black/5 bg-white/30 p-3.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/5 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <label className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                         Available Hours for {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                     </label>
-                                    <span className="text-[11px] text-[#52737c] dark:text-[#9db0b6]">
-                                        Tap slot to select interval
+                                    <span className="text-[11px] font-semibold text-[#0f4c81] dark:text-[#2dd4bf]">
+                                        {spotDetails?.start_hour || '08:00'} - {spotDetails?.end_hour || '18:00'}
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2 pt-1">
-                                    {availableSlotsForSelectedDate.map((slot) => {
-                                        const selected = isSlotSelected(slot.hour);
-
-                                        return (
-                                            <button
-                                                key={slot.hour}
-                                                type="button"
-                                                disabled={slot.isUnavailable}
-                                                onClick={() => handleSelectSlot(slot.hour)}
-                                                className={`
-                                                    flex items-center justify-between px-3 py-2.5 rounded-xl border text-[13px] font-medium transition
-                                                    ${
-                                                    slot.isUnavailable
-                                                        ? 'opacity-35 border-dashed border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/40 text-gray-400 cursor-not-allowed line-through'
-                                                        : selected
-                                                            ? 'border-[#0f4c81] bg-[#0f4c81] text-white shadow-sm dark:border-[#2dd4bf] dark:bg-[#2dd4bf] dark:text-[#011b1b] font-bold cursor-pointer'
-                                                            : 'border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5 hover:border-[#0f4c81] dark:hover:border-[#2dd4bf] cursor-pointer text-[#121212] dark:text-white'
-                                                }
-                                                `}
-                                            >
-                                                <span>{slot.label}</span>
-                                                {slot.isUnavailable ? (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-red-500">
-                                                        {slot.reason}
-                                                    </span>
-                                                ) : selected ? (
-                                                    <Check className="h-3.5 w-3.5" />
-                                                ) : null}
-                                            </button>
-                                        );
-                                    })}
+                                {/* Mode Switch: Preset vs Custom */}
+                                <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/5 dark:bg-white/5 p-1 border border-black/5 dark:border-white/10">
+                                    <button
+                                        type="button"
+                                        onClick={() => setTimeMode('preset')}
+                                        className={`py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                                            timeMode === 'preset'
+                                                ? 'bg-white dark:bg-[#0f4c81] text-[#0f4c81] dark:text-white shadow-sm'
+                                                : 'text-[#52737c] dark:text-[#9db0b6] hover:text-[#121212] dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Preset Slots
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTimeMode('custom');
+                                            if (selectedStartHour !== null && selectedEndHour !== null) {
+                                                setCustomStartTime(`${String(selectedStartHour).padStart(2, '0')}:00`);
+                                                setCustomEndTime(`${String(selectedEndHour).padStart(2, '0')}:00`);
+                                            }
+                                        }}
+                                        className={`py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                                            timeMode === 'custom'
+                                                ? 'bg-white dark:bg-[#0f4c81] text-[#0f4c81] dark:text-white shadow-sm'
+                                                : 'text-[#52737c] dark:text-[#9db0b6] hover:text-[#121212] dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Custom Time (From - Until)
+                                    </button>
                                 </div>
 
-                                {selectedHoursCount > 0 ? (
+                                {timeMode === 'preset' ? (
+                                    <>
+                                        <div className="grid grid-cols-2 gap-2 pt-1">
+                                            {availableSlotsForSelectedDate.map((slot) => {
+                                                const selected = isSlotSelected(slot.hour);
+
+                                                return (
+                                                    <button
+                                                        key={slot.hour}
+                                                        type="button"
+                                                        disabled={slot.isUnavailable}
+                                                        onClick={() => handleSelectSlot(slot.hour)}
+                                                        className={`
+                                                            flex items-center justify-between px-3 py-2.5 rounded-xl border text-[13px] font-medium transition
+                                                            ${
+                                                            slot.isUnavailable
+                                                                ? 'opacity-35 border-dashed border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/40 text-gray-400 cursor-not-allowed line-through'
+                                                                : selected
+                                                                    ? 'border-[#0f4c81] bg-[#0f4c81] text-white shadow-sm dark:border-[#2dd4bf] dark:bg-[#2dd4bf] dark:text-[#011b1b] font-bold cursor-pointer'
+                                                                    : 'border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5 hover:border-[#0f4c81] dark:hover:border-[#2dd4bf] cursor-pointer text-[#121212] dark:text-white'
+                                                        }
+                                                        `}
+                                                    >
+                                                        <span>{slot.label}</span>
+                                                        {slot.isUnavailable ? (
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-red-500">
+                                                                {slot.reason}
+                                                            </span>
+                                                        ) : selected ? (
+                                                            <Check className="h-3.5 w-3.5" />
+                                                        ) : null}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-3 pt-1">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label htmlFor="custom-start-time" className="block text-[11px] font-bold uppercase tracking-wider text-[#52737c] dark:text-[#9db0b6] mb-1">
+                                                    From (Start Time)
+                                                </label>
+                                                <input
+                                                    id="custom-start-time"
+                                                    type="time"
+                                                    value={customStartTime}
+                                                    onChange={(e) => setCustomStartTime(e.target.value)}
+                                                    className={`w-full rounded-xl border bg-white/60 dark:bg-white/5 px-3 py-2 text-[15px] font-semibold text-[#121212] dark:text-white outline-none [color-scheme:light] dark:[color-scheme:dark] transition ${
+                                                        timeValidation.error && timeValidation.error.includes('Start')
+                                                            ? 'border-red-500 ring-1 ring-red-500'
+                                                            : 'border-black/10 dark:border-white/10 focus:border-[#0f4c81] dark:focus:border-[#2dd4bf]'
+                                                    }`}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label htmlFor="custom-end-time" className="block text-[11px] font-bold uppercase tracking-wider text-[#52737c] dark:text-[#9db0b6] mb-1">
+                                                    Until (End Time)
+                                                </label>
+                                                <input
+                                                    id="custom-end-time"
+                                                    type="time"
+                                                    value={customEndTime}
+                                                    onChange={(e) => setCustomEndTime(e.target.value)}
+                                                    className={`w-full rounded-xl border bg-white/60 dark:bg-white/5 px-3 py-2 text-[15px] font-semibold text-[#121212] dark:text-white outline-none [color-scheme:light] dark:[color-scheme:dark] transition ${
+                                                        timeValidation.error && timeValidation.error.includes('End')
+                                                            ? 'border-red-500 ring-1 ring-red-500'
+                                                            : 'border-black/10 dark:border-white/10 focus:border-[#0f4c81] dark:focus:border-[#2dd4bf]'
+                                                    }`}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-[11px] text-[#52737c] dark:text-[#9db0b6] px-1">
+                                            <span>Spot opening hours: {spotDetails?.start_hour || '08:00'} - {spotDetails?.end_hour || '18:00'}</span>
+                                            <span>Exact minutes supported</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {timeValidation.isValid && durationMinutes > 0 ? (
                                     <div className="mt-3 rounded-xl bg-[#0f4c81]/10 p-2.5 text-center text-xs font-semibold text-[#0f4c81] dark:bg-[#2dd4bf]/10 dark:text-[#2dd4bf]">
-                                        Selected: {selectedHoursCount} hour{selectedHoursCount > 1 ? 's' : ''} ({selectedStartHour}:00 - {selectedEndHour}:00) — Total: {calculatedPrice} {spotDetails?.price_currency || 'RON'}
+                                        Selected: {formattedDuration} ({startTimeFormatted} - {endTimeFormatted}) — Total: {calculatedPrice.toFixed(2)} {spotDetails?.price_currency || 'RON'}
+                                    </div>
+                                ) : timeValidation.error ? (
+                                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/10 p-2.5 text-xs font-medium text-red-700 dark:text-red-300">
+                                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
+                                        <span>{timeValidation.error}</span>
                                     </div>
                                 ) : (
                                     <div className="mt-2 text-center text-xs text-[#52737c] dark:text-[#9db0b6]">
-                                        Please select at least one hour slot to proceed.
+                                        Please select an available time to proceed.
                                     </div>
                                 )}
                             </div>
@@ -871,7 +1114,9 @@ function PaymentContent() {
                                 <span>
                                     {!isCarInfoValid
                                         ? 'Please provide your car registration plate and model.'
-                                        : 'Please select an available date and time slot.'}
+                                        : timeValidation.error
+                                            ? timeValidation.error
+                                            : 'Please select an available date and time slot.'}
                                 </span>
                             </div>
                         )}

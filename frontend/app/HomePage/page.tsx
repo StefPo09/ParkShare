@@ -293,9 +293,11 @@ export default function HomePage() {
                       let hourlyRate = booking.spot?.price_per_day ?? 4.0;
                       if (booking.spot?.start_hour && booking.spot?.end_hour) {
                         try {
-                          const sh = parseInt(booking.spot.start_hour.split(':')[0], 10);
-                          const eh = parseInt(booking.spot.end_hour.split(':')[0], 10);
-                          const opHours = Math.max(1, eh - sh);
+                          const shParts = booking.spot.start_hour.split(':').map((p) => parseInt(p, 10));
+                          const ehParts = booking.spot.end_hour.split(':').map((p) => parseInt(p, 10));
+                          const shVal = shParts[0] + (shParts[1] ? shParts[1] / 60 : 0);
+                          const ehVal = ehParts[0] + (ehParts[1] ? ehParts[1] / 60 : 0);
+                          const opHours = ehVal > shVal ? ehVal - shVal : 24;
                           hourlyRate = Math.round((booking.spot.price_per_day / opHours) * 100) / 100;
                         } catch {
                           hourlyRate = Math.round((booking.spot.price_per_day / 24) * 100) / 100;
