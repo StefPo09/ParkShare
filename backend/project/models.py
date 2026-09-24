@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from flask import flash, redirect, url_for
@@ -152,8 +152,8 @@ class ParkingSpot(db.Model):
             'bookings': [
                 {
                     'id': b.id,
-                    'start_date': b.start_date.isoformat() if b.start_date else None,
-                    'end_date': b.end_date.isoformat() if b.end_date else None,
+                    'start_date': b.start_date.replace(tzinfo=timezone.utc).isoformat() if b.start_date else None,
+                    'end_date': b.end_date.replace(tzinfo=timezone.utc).isoformat() if b.end_date else None,
                     'status': b.status,
                 }
                 for b in self.bookings
@@ -182,11 +182,22 @@ class Booking(db.Model):
             'id': self.id,
             'spot_id': self.spot_id,
             'user_id': self.user_id,
-            'start_date': self.start_date.isoformat() if self.start_date else None,
-            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'start_date': self.start_date.replace(tzinfo=timezone.utc).isoformat() if self.start_date else None,
+            'end_date': self.end_date.replace(tzinfo=timezone.utc).isoformat() if self.end_date else None,
             'total_price': self.total_price,
             'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': self.created_at.replace(tzinfo=timezone.utc).isoformat() if self.created_at else None,
+            'spot': {
+                'id': self.spot.id,
+                'title': self.spot.title,
+                'address': self.spot.address,
+                'description': self.spot.description,
+                'start_hour': self.spot.start_hour or '14:00',
+                'end_hour': self.spot.end_hour or '18:00',
+                'price_per_day': self.spot.price_per_day,
+                'price_currency': self.spot.price_currency or 'RON',
+                'image_url': f'/api/spots/{self.spot.id}/image' if self.spot.image_url else None,
+            } if self.spot else None,
         }
 
 

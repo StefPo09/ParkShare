@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
-import { Menu, Search, ChevronRight, Car, Home, Key } from 'lucide-react';
+import { Menu, Search, ChevronRight, Car, Home, Key, Calendar as CalendarIcon, Clock, MapPin, Sparkles } from 'lucide-react';
 import ProfileMenu from '../components/ProfileMenu';
 import NavMenu from '../components/NavMenu';
 import { useLanguage } from '../components/LanguageProvider';
@@ -41,11 +41,90 @@ const parkingListings = [
   },
 ];
 
-type DashboardTimer = {
+type SpotInfo = {
+  id: number;
   title: string;
-  targetTime: number;
-  status: string;
+  address: string;
+  description?: string;
+  start_hour?: string;
+  end_hour?: string;
+  price_per_day: number;
+  price_currency: string;
+  image_url?: string | null;
 };
+
+type BookingItem = {
+  id: number;
+  spot_id: number;
+  start_date: string;
+  end_date: string;
+  total_price: number;
+  status: string;
+  spot?: SpotInfo | null;
+};
+
+type DashboardTimer = {
+  id?: number;
+  title: string;
+  address?: string;
+  targetTime: number;
+  startTime?: number;
+  status: string;
+  is_overtime?: boolean;
+  overtime_seconds?: number;
+  hourly_rate?: number;
+  extra_cost?: number;
+  currency?: string;
+  start_date?: string;
+  end_date?: string;
+  spot?: SpotInfo | null;
+};
+
+function formatUpcomingDate(startIso: string, endIso: string) {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  const isSameDay =
+    start.getFullYear() === today.getFullYear() &&
+    start.getMonth() === today.getMonth() &&
+    start.getDate() === today.getDate();
+
+  const isTomorrow =
+    start.getFullYear() === tomorrow.getFullYear() &&
+    start.getMonth() === tomorrow.getMonth() &&
+    start.getDate() === tomorrow.getDate();
+
+  const timeStr = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+  if (isSameDay) {
+    return `Today • ${timeStr}`;
+  } else if (isTomorrow) {
+    return `Tomorrow • ${timeStr}`;
+  } else {
+    const dateStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${dateStr} • ${timeStr}`;
+  }
+}
+
+function formatTimeUntil(startIso: string, nowMs: number) {
+  const diffMs = new Date(startIso).getTime() - nowMs;
+  if (diffMs <= 0) return 'Starting now';
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `Starts in ${minutes}m`;
+  } else if (hours < 24) {
+    return `Starts in ${hours}h ${minutes > 0 ? `${minutes}m` : ''}`.trim();
+  } else {
+    const days = Math.floor(hours / 24);
+    return `Starts in ${days}d ${hours % 24}h`;
+  }
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -53,7 +132,9 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [now, setNow] = useState(() => Date.now());
 
+  const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [dashboardTimers, setDashboardTimers] = useState<{
     reservation: DashboardTimer | null;
     rental: DashboardTimer | null;
@@ -65,37 +146,96 @@ export default function HomePage() {
   const [isAnimatingSearch, setIsAnimatingSearch] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Live timer tick every 1 second
   useEffect(() => {
-    const fetchDashboardTimers = async () => {
-      try {
-        const API = getApiBaseUrl();
-        const response = await fetch(`${API}/api/dashboard/timers`, {
-          credentials: 'include',
-        });
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
-        if (!response.ok) {
-          if (response.status === 401) {
-            setTimerError('Log in to view your booking timers.');
-            return;
-          }
+  const fetchDashboardData = async () => {
+    try {
+      const API = getApiBaseUrl();
+      const response = await fetch(`${API}/api/dashboard/timers`, {
+        credentials: 'include',
+      });
 
-          throw new Error('Failed to load timers');
+      if (!response.ok) {
+        if (response.status === 401) {
+          setTimerError('Log in to view your booking timers.');
+          return;
         }
 
-        const data = await response.json();
-        setDashboardTimers({
-          reservation: data?.reservation ?? null,
-          rental: data?.rental ?? null,
-        });
-        setTimerError(null);
-      } catch (error) {
-        console.warn('Unable to load booking timers:', error);
-        setTimerError('No booking timer data available right now.');
+        throw new Error('Failed to load timers');
       }
-    };
 
-    fetchDashboardTimers();
+      const data = await response.json();
+      setDashboardTimers({
+        reservation: data?.reservation ?? null,
+        rental: data?.rental ?? null,
+      });
+      if (Array.isArray(data?.bookings)) {
+        setBookings(data.bookings);
+      }
+      setTimerError(null);
+    } catch (error) {
+      console.warn('Unable to load booking timers:', error);
+      setTimerError('No booking timer data available right now.');
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
+
+  // Split bookings by active/overtime vs upcoming based on live `now`
+  const { activeOrOvertimeList, upcomingList } = useMemo(() => {
+    const activeList: BookingItem[] = [];
+    const upcoming: BookingItem[] = [];
+
+    bookings.forEach((b) => {
+      if (b.status === 'cancelled') return;
+      const startMs = new Date(b.start_date).getTime();
+      if (startMs <= now) {
+        activeList.push(b);
+      } else {
+        upcoming.push(b);
+      }
+    });
+
+    // If no explicit bookings list but dashboardTimers provided
+    if (activeList.length === 0 && dashboardTimers.rental && dashboardTimers.rental.start_date && dashboardTimers.rental.end_date) {
+      activeList.push({
+        id: dashboardTimers.rental.id || 1,
+        spot_id: dashboardTimers.rental.spot?.id || 1,
+        start_date: dashboardTimers.rental.start_date,
+        end_date: dashboardTimers.rental.end_date,
+        total_price: 0,
+        status: dashboardTimers.rental.status,
+        spot: dashboardTimers.rental.spot,
+      });
+    }
+
+    if (upcoming.length === 0 && dashboardTimers.reservation && dashboardTimers.reservation.start_date && dashboardTimers.reservation.end_date) {
+      upcoming.push({
+        id: dashboardTimers.reservation.id || 2,
+        spot_id: dashboardTimers.reservation.spot?.id || 2,
+        start_date: dashboardTimers.reservation.start_date,
+        end_date: dashboardTimers.reservation.end_date,
+        total_price: 0,
+        status: 'upcoming',
+        spot: dashboardTimers.reservation.spot,
+      });
+    }
+
+    // Sort active: most recent first
+    activeList.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+    // Sort upcoming: soonest first
+    upcoming.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+
+    return { activeOrOvertimeList: activeList, upcomingList: upcoming };
+  }, [bookings, dashboardTimers, now]);
 
   const triggerSearchTransition = (queryValue: string) => {
     if (isAnimatingSearch) return;
@@ -143,32 +283,112 @@ export default function HomePage() {
                     </div>
                 ) : null}
 
-                {dashboardTimers.reservation ? (
-                    <InteractiveTimer
-                        title={dashboardTimers.reservation.title}
-                        variant="reservation"
-                        targetTime={dashboardTimers.reservation.targetTime}
-                        defaultMinutes={15}
-                    />
-                ) : (
-                    <div className="rounded-[28px] border border-dashed border-black/10 bg-white/20 p-4 text-sm font-medium text-[#42565d] dark:border-white/10 dark:text-[#dfeef0]">
-                      No upcoming reservation.
-                    </div>
-                )}
+                {/* Active or Overtime Parking Sessions */}
+                {activeOrOvertimeList.length > 0 ? (
+                    activeOrOvertimeList.map((booking) => {
+                      const startMs = new Date(booking.start_date).getTime();
+                      const endMs = new Date(booking.end_date).getTime();
+                      const isOvertime = now > endMs;
 
-                {dashboardTimers.rental ? (
-                    <InteractiveTimer
-                        title={dashboardTimers.rental.title}
-                        variant="rental"
-                        targetTime={dashboardTimers.rental.targetTime}
-                        defaultMinutes={45}
-                    />
-                ) : (
-                    <div className="rounded-[28px] border border-dashed border-black/10 bg-white/20 p-4 text-sm font-medium text-[#42565d] dark:border-white/10 dark:text-[#dfeef0]">
-                      No active rental session.
+                      let hourlyRate = booking.spot?.price_per_day ?? 4.0;
+                      if (booking.spot?.start_hour && booking.spot?.end_hour) {
+                        try {
+                          const shParts = booking.spot.start_hour.split(':').map((p) => parseInt(p, 10));
+                          const ehParts = booking.spot.end_hour.split(':').map((p) => parseInt(p, 10));
+                          const shVal = shParts[0] + (shParts[1] ? shParts[1] / 60 : 0);
+                          const ehVal = ehParts[0] + (ehParts[1] ? ehParts[1] / 60 : 0);
+                          const opHours = ehVal > shVal ? ehVal - shVal : 24;
+                          hourlyRate = Math.round((booking.spot.price_per_day / opHours) * 100) / 100;
+                        } catch {
+                          hourlyRate = Math.round((booking.spot.price_per_day / 24) * 100) / 100;
+                        }
+                      }
+
+                      const leaveByTime = new Date(booking.end_date).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+
+                      return (
+                          <InteractiveTimer
+                              key={booking.id}
+                              title={isOvertime ? 'Overtime Warning' : (booking.spot?.title || 'Active Parking Session')}
+                              variant={isOvertime ? 'overtime' : 'rental'}
+                              targetTime={endMs}
+                              startTime={startMs}
+                              spotAddress={booking.spot?.address}
+                              hourlyRate={hourlyRate}
+                              currency={booking.spot?.price_currency || 'RON'}
+                              leaveByTime={leaveByTime}
+                          />
+                      );
+                    })
+                ) : null}
+
+                {/* Upcoming Events / Reservations */}
+                {upcomingList.length > 0 ? (
+                    upcomingList.map((booking) => (
+                        <div
+                            key={booking.id}
+                            className="rounded-[28px] border border-black/5 bg-white/30 p-4 shadow-[0_18px_30px_rgba(15,32,35,0.08)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5 transition-all duration-300"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0f4c81]/10 text-[#0f4c81] dark:bg-[#2dd4bf]/10 dark:text-[#2dd4bf]">
+                                <CalendarIcon className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <span className="text-[17px] font-bold tracking-tight sm:text-[20px] text-[#121212] dark:text-white block leading-tight">
+                                  Upcoming Event
+                                </span>
+                                <span className="text-[11px] font-medium text-[#42565d] dark:text-[#dfeef0]">
+                                  Reservation Confirmed
+                                </span>
+                              </div>
+                            </div>
+
+                            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0f4c81] dark:bg-blue-500/20 dark:text-blue-200">
+                              {formatTimeUntil(booking.start_date, now)}
+                            </span>
+                          </div>
+
+                          <div className="rounded-2xl bg-[#dfeef0]/70 dark:bg-[#0b1c2c]/70 p-3.5 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="text-sm font-bold text-[#121212] dark:text-white">
+                                  {booking.spot?.title || 'Reserved Parking Spot'}
+                                </h4>
+                                {booking.spot?.address && (
+                                    <p className="text-xs text-[#42565d] dark:text-[#dfeef0] flex items-center gap-1 mt-0.5">
+                                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                      <span className="truncate max-w-[280px]">{booking.spot.address}</span>
+                                    </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 border-t border-black/5 dark:border-white/10 pt-2 text-xs font-semibold text-[#121212] dark:text-white">
+                              <Clock className="h-3.5 w-3.5 text-[#0f4c81] dark:text-[#2dd4bf]" />
+                              <span>{formatUpcomingDate(booking.start_date, booking.end_date)}</span>
+                            </div>
+                          </div>
+                        </div>
+                    ))
+                ) : null}
+
+                {/* Empty State when no active and no upcoming bookings */}
+                {!timerError && activeOrOvertimeList.length === 0 && upcomingList.length === 0 ? (
+                    <div className="rounded-[28px] border border-dashed border-black/10 bg-white/20 p-5 text-center dark:border-white/10 dark:bg-white/5">
+                      <p className="text-sm font-semibold text-[#121212] dark:text-white">
+                        No active parking session or upcoming reservations.
+                      </p>
+                      <p className="mt-1 text-xs text-[#42565d] dark:text-[#dfeef0]">
+                        Find and reserve a parking spot nearby anytime.
+                      </p>
                     </div>
-                )}
+                ) : null}
               </div>
+
               <form
                   onSubmit={handleSearchSubmit}
                   onClick={() => triggerSearchTransition(searchValue)}
