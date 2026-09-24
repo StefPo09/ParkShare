@@ -70,7 +70,7 @@ def _create_user(data):
     user = User(
         email=email,
         name=name,
-        password=generate_password_hash(password),
+        password=generate_password_hash(password) if password else None,
         phone_country_code=phone_country_code,
         phone=phone,
         country=country,
@@ -261,3 +261,18 @@ def api_update_personal_details():
 
     db.session.commit()
     return jsonify({'user': _user_payload(user)}), 200
+
+
+@auth.route('/api/user/account', methods=['DELETE'])
+def api_delete_account():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Authentication required.'}), 401
+
+    user = current_user
+    logout_user()
+    db.session.delete(user)
+    db.session.commit()
+
+    response = jsonify({'success': True, 'message': 'Account deleted successfully.'})
+    response.delete_cookie('session')
+    return response, 200

@@ -329,7 +329,16 @@ export default function AccountSettingsPage() {
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Delete account failed');
-      router.push(ROUTES.LOGIN);
+
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+      } catch (err) {
+        console.warn('Frontend session clear failed');
+      }
+
+      sessionStorage.clear();
+      router.push(ROUTES.START);
+      router.refresh();
     } catch (e) {
       console.warn('Failed to delete account:', e);
     }

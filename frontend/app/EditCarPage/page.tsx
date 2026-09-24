@@ -3,6 +3,7 @@
 import React, { useState, useRef, ChangeEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { useLanguage } from '../components/LanguageProvider';
 import {
   X,
@@ -46,7 +47,7 @@ function EditCarPageContent() {
   });
 
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('car');
-  const API = process.env.NEXT_PUBLIC_API_URL || '';
+  const API = getApiBaseUrl();
 
   useEffect(() => {
     if (!carId) return;
@@ -101,7 +102,6 @@ function EditCarPageContent() {
     if (!carId) return;
 
     try {
-      // show spinner by reusing isSuccessModalOpen or could add isLoading state; keep simple
       const res = await fetch(`${API}/api/cars/${carId}`, {
         method: 'DELETE',
         credentials: 'include',

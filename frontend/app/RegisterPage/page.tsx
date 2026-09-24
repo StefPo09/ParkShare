@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 
 // Country-to-cities dictionary
 const CITIES_BY_COUNTRY: Record<string, string[]> = {
@@ -69,7 +70,7 @@ export default function RegisterPage() {
         setIsSubmitting(true);
 
         try {
-            const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const API = getApiBaseUrl();
             const response = await fetch(`${API}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

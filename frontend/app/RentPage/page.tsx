@@ -187,9 +187,13 @@ function RentPageContent() {
     }
   };
 
-  const { isLoaded } = useJsApiLoader({
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey,
+    authReferrerPolicy: 'origin',
+    version: 'weekly',
   });
 
   useEffect(() => {
@@ -380,7 +384,15 @@ function RentPageContent() {
 
           {/* Google Maps Container */}
           <main className="relative flex-1 bg-[#e8e8e8] dark:bg-[#121c1a] overflow-hidden transform-gpu z-10">
-            {isLoaded ? (
+            {loadError ? (
+                <div className="flex h-full items-center justify-center px-6 text-center text-[#6f797d] dark:text-[#9db0b6]">
+                  Google Maps is blocked for this host. In Google Cloud, allow this URL in the API key restrictions: {typeof window !== 'undefined' ? window.location.origin : 'this device'}.
+                </div>
+            ) : !googleMapsApiKey ? (
+                <div className="flex h-full items-center justify-center text-[#6f797d] dark:text-[#9db0b6]">
+                  Map unavailable: Google Maps API key is not configured.
+                </div>
+            ) : isLoaded ? (
                 <GoogleMap
                     mapContainerStyle={containerStyle}
                     center={mapCenterTarget}

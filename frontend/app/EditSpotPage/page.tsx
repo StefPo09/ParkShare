@@ -124,9 +124,12 @@ function EditSpotPageContent() {
     const [map, setMap] = useState<google.maps.Map | null>(null);
 
     // Load Google Maps SDK
-    const { isLoaded } = useJsApiLoader({
+    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+    const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+        googleMapsApiKey,
+        authReferrerPolicy: 'origin',
+        version: 'weekly',
     });
 
     const [values, setValues] = useState({
@@ -933,7 +936,15 @@ function EditSpotPageContent() {
                             </div>
 
                             <div className="relative w-full h-60 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 shadow-inner bg-[#e8e8e8] dark:bg-[#121c1a]">
-                                {isLoaded ? (
+                                {loadError ? (
+                                    <div className="flex h-full items-center justify-center px-4 text-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">
+                                        Google Maps is blocked for this host. In Google Cloud, allow this URL in the API key restrictions: {typeof window !== 'undefined' ? window.location.origin : 'this device'}.
+                                    </div>
+                                ) : !googleMapsApiKey ? (
+                                    <div className="flex h-full items-center justify-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">
+                                        Map unavailable: Google Maps API key is not configured.
+                                    </div>
+                                ) : isLoaded ? (
                                     <GoogleMap
                                         mapContainerStyle={{ width: '100%', height: '100%' }}
                                         center={selectedLocation || userLocation || defaultMapCenter}
