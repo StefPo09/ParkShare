@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { Menu, Search, ChevronRight, Car, Home, Key } from 'lucide-react';
 import ProfileMenu from '../components/ProfileMenu';
 import NavMenu from '../components/NavMenu';
@@ -67,7 +68,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchDashboardTimers = async () => {
       try {
-        const API = process.env.NEXT_PUBLIC_API_URL || '';
+        const API = getApiBaseUrl();
         const response = await fetch(`${API}/api/dashboard/timers`, {
           credentials: 'include',
         });

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { Menu, ChevronRight, Plus, Car, Key, Home } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
@@ -15,7 +16,7 @@ interface CarItem {
     license_plate: string;
     year?: number;
     color?: string;
-    image_url?: string | null; // NOU
+    image_url?: string | null;
 }
 
 export default function ManageCarsPage() {
@@ -27,7 +28,7 @@ export default function ManageCarsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const API = process.env.NEXT_PUBLIC_API_URL || '';
+    const API = getApiBaseUrl();
 
     useEffect(() => {
         const fetchCars = async () => {
@@ -38,16 +39,16 @@ export default function ManageCarsPage() {
                 if (response.ok) {
                     const data = await response.json();
                     setCars(data.cars || []);
-                        } else {
-                            const errText = `Server returned ${response.status}`;
-                            console.error('Failed to fetch cars:', errText);
-                            setErrorMessage(`Failed to load cars: ${response.statusText || response.status}`);
-                        }
+                } else {
+                    const errText = `Server returned ${response.status}`;
+                    console.error('Failed to fetch cars:', errText);
+                    setErrorMessage(`Failed to load cars: ${response.statusText || response.status}`);
+                }
             } catch (error) {
-                        console.error('Failed to fetch cars:', error);
-                        setErrorMessage('Failed to fetch cars. Is the backend running and CORS configured?');
+                console.error('Failed to fetch cars:', error);
+                setErrorMessage('Failed to fetch cars. Is the backend running and CORS configured?');
             } finally {
-                        setIsLoading(false);
+                setIsLoading(false);
             }
         };
         fetchCars();
@@ -100,7 +101,6 @@ export default function ManageCarsPage() {
                                 className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#0c3e67] cursor-pointer"
                             >
                                 <div className="flex items-center space-x-4">
-                                    {/* SCHIMBARE: afiseaza imaginea reala daca exista */}
                                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-[#e8e8e8] dark:bg-[#d7d7d7] flex items-center justify-center">
                                         {car.image_url ? (
                                             <img
@@ -113,21 +113,18 @@ export default function ManageCarsPage() {
                                         )}
                                     </div>
 
-                                    {/* Informații Mașină */}
                                     <div>
                                         <h2 className="text-lg font-bold leading-snug">{car.brand}</h2>
                                         <p className="text-sm font-medium text-slate-200/80">{car.license_plate} - {car.model}</p>
                                     </div>
                                 </div>
 
-                                {/* Săgeată Dreapta */}
                                 <ChevronRight className="h-6 w-6 text-white/70 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
                             </div>
                         ))
                     )}
                 </main>
 
-                {/* --- Buton Add New Car --- */}
                 <div className="px-4 pb-6 pt-2 mb-24">
                     <button
                         type="button"
@@ -139,7 +136,6 @@ export default function ManageCarsPage() {
                     </button>
                 </div>
 
-                {/* --- Bottom Navigation Bar --- */}
                 <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
                     <button
                         onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}

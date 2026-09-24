@@ -36,7 +36,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password, remember }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password, remember }),
       });
       const isJson = response.headers.get('content-type')?.includes('application/json');
       const data = isJson ? await response.json() : null;
@@ -45,11 +45,9 @@ export default function LoginPage() {
         throw new Error(data?.error || 'The backend is unavailable. Please make sure it is running and try again.');
       }
 
-      router.push(ROUTES.HOME);
-      router.refresh();
+      window.location.href = ROUTES.HOME;
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to connect to the backend.');
-    } finally {
       setIsSubmitting(false);
     }
   };

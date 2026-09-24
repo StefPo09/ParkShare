@@ -3,6 +3,7 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { useLanguage } from '../components/LanguageProvider';
 import {
     X,
@@ -98,7 +99,7 @@ export default function AddCarPage() {
         setErrorMessage(null);
 
         try {
-            const API = process.env.NEXT_PUBLIC_API_URL || '';
+            const API = getApiBaseUrl();
 
             const formData = new FormData();
             formData.append('brand', form.name);
