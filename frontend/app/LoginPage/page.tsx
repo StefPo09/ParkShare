@@ -48,11 +48,20 @@ export default function LoginPage() {
         credentials: 'include',
         body: JSON.stringify({ email: email.trim().toLowerCase(), password, remember }),
       });
-      const isJson = response.headers.get('content-type')?.includes('application/json');
-      const data = isJson ? await response.json() : null;
 
       if (!response.ok) {
+        const isJson = response.headers.get('content-type')?.includes('application/json');
+        const data = isJson ? await response.json() : null;
         throw new Error(data?.error || 'The backend is unavailable. Please make sure it is running and try again.');
+      }
+
+      const isJson = response.headers.get('content-type')?.includes('application/json');
+      if (isJson) {
+        const data = await response.json();
+        if (data?.user) {
+          window.location.assign(ROUTES.HOME);
+          return;
+        }
       }
 
       window.location.assign(ROUTES.HOME);

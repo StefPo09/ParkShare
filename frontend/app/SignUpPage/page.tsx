@@ -17,14 +17,21 @@ export default function SignUpScreen() {
         window.location.href = `${API}/api/auth/google/login?redirect_to=${encodeURIComponent(redirectTo)}`;
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+        e?.preventDefault();
+
         if (!isEmailValid) {
             return;
         }
 
         const nextEmail = email.trim().toLowerCase();
         sessionStorage.setItem('signupEmail', nextEmail);
-        window.location.assign(`${ROUTES.REGISTER}?email=${encodeURIComponent(nextEmail)}`);
+        if (typeof window !== 'undefined' && window.location.pathname !== ROUTES.REGISTER) {
+            window.history.pushState({}, '', `${ROUTES.REGISTER}?email=${encodeURIComponent(nextEmail)}`);
+        }
+        if (typeof window !== 'undefined') {
+            window.location.assign(`${ROUTES.REGISTER}?email=${encodeURIComponent(nextEmail)}`);
+        }
     };
 
     return (
