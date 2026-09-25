@@ -51,55 +51,61 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
           </div>
 
           <nav className="mt-6 space-y-2">
-            <button
-              onClick={() => { router.push(ROUTES.NOTIFICATIONS); onClose(); }}
+            <a
+              href={ROUTES.NOTIFICATIONS}
+              onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.NOTIFICATIONS); }}
               className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-[var(--border)] hover:bg-white/40 active:scale-[0.99]"
             >
               <Bell className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
               <span className="tracking-wide">{t('notifications')}</span>
-            </button>
+            </a>
 
-            <button
-              onClick={() => { router.push(ROUTES.MANAGE_CAR); onClose(); }}
+            <a
+              href={ROUTES.MANAGE_CAR}
+              onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.MANAGE_CAR); }}
               className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-[var(--border)] hover:bg-white/40 active:scale-[0.99]"
             >
               <Car className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
               <span className="tracking-wide">{t('manageYourCars')}</span>
-            </button>
+            </a>
 
-            <button
-              onClick={() => { router.push(ROUTES.MANAGE_SPOT || '/manage-spots'); onClose(); }}
+            <a
+              href={ROUTES.MANAGE_SPOT || '/manage-spots'}
+              onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.MANAGE_SPOT || '/manage-spots'); }}
               className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-[var(--border)] hover:bg-white/40 active:scale-[0.99]"
             >
               <MapPin className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
               <span className="tracking-wide">{t('manageYourSpots')}</span>
-            </button>
+            </a>
 
-            <button
-              onClick={() => { router.push(ROUTES.SETTINGS); onClose(); }}
+            <a
+              href={ROUTES.SETTINGS}
+              onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.SETTINGS); }}
               className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-[var(--border)] hover:bg-white/40 active:scale-[0.99]"
             >
               <Settings className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
               <span className="tracking-wide">{t('settings')}</span>
-            </button>
+            </a>
 
             <hr className="my-4 border-[var(--border)]" />
 
-            <button
-              onClick={() => { router.push(ROUTES.NEWS_UPDATES); onClose(); }}
+            <a
+              href={ROUTES.NEWS_UPDATES}
+              onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.NEWS_UPDATES); }}
               className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-[var(--border)] hover:bg-white/40 active:scale-[0.99]"
             >
               <Newspaper className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
               <span className="tracking-wide">{t('newsUpdates')}</span>
-            </button>
+            </a>
 
-            <button
-              onClick={() => { router.push(ROUTES.HELP); onClose(); }}
+            <a
+              href={ROUTES.HELP}
+              onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.HELP); }}
               className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-[var(--border)] hover:bg-white/40 active:scale-[0.99]"
             >
               <HelpCircle className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
               <span className="tracking-wide">{t('help')}</span>
-            </button>
+            </a>
           </nav>
         </div>
 

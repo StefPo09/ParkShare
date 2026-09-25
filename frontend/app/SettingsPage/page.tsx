@@ -218,7 +218,7 @@ export default function SettingsPage() {
             </label>
 
             <div className="divide-y divide-black/5 overflow-hidden rounded-xl border border-black/10 bg-white/50 dark:divide-white/10 dark:border-white/10 dark:bg-white/10">
-              <button type="button" onClick={() => router.push(ROUTES.TERMS_OF_SERVICE)} className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
+              <a href={ROUTES.TERMS_OF_SERVICE} onClick={(e) => { e.preventDefault(); router.push(ROUTES.TERMS_OF_SERVICE); }} className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-[#42565d] dark:text-[#dfeef0]" />
                   <span className="text-[17px] font-medium text-[#121212] dark:text-white">{t('termsOfService')}</span>
@@ -226,7 +226,7 @@ export default function SettingsPage() {
                 <ChevronRight className="h-5 w-5 text-slate-400" />
               </button>
 
-              <button type="button" onClick={() => router.push(ROUTES.PRIVACY_POLICY)} className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
+              <a href={ROUTES.PRIVACY_POLICY} onClick={(e) => { e.preventDefault(); router.push(ROUTES.PRIVACY_POLICY); }} className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-[#42565d] dark:text-[#dfeef0]" />
                   <span className="text-[17px] font-medium text-[#121212] dark:text-white">{t('privacyPolicy')}</span>
@@ -234,9 +234,9 @@ export default function SettingsPage() {
                 <ChevronRight className="h-5 w-5 text-slate-400" />
               </button>
 
-              <button
-                type="button"
-                onClick={() => router.push(ROUTES.HELP)}
+              <a
+                href={ROUTES.HELP}
+                onClick={(e) => { e.preventDefault(); router.push(ROUTES.HELP); }}
                 className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5"
               >
                 <div className="flex items-center gap-2">
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                   <span className="text-[17px] font-medium text-[#121212] dark:text-white">{t('helpFaq')}</span>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400" />
-              </button>
+              </a>
             </div>
           </div>
 
@@ -256,32 +256,35 @@ export default function SettingsPage() {
         </main>
 
         <nav className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-black/5 bg-[#dfeef0] py-4 dark:border-white/10 dark:bg-[#011b1b]">
-          <button
-            onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
+          <a
+            href={ROUTES.RENT}
+            onClick={(e) => { e.preventDefault(); setActiveTab('key'); router.push(ROUTES.RENT); }}
             className={`cursor-pointer rounded-full p-1.5 transition-all ${
               activeTab === 'key' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'
             }`}
           >
             <Key className="h-6 w-6 -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
-          </button>
+          </a>
 
-          <button
-            onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
+          <a
+            href={ROUTES.HOME}
+            onClick={(e) => { e.preventDefault(); setActiveTab('home'); router.push(ROUTES.HOME); }}
             className={`cursor-pointer rounded-full p-1.5 transition-all ${
               activeTab === 'home' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'
             }`}
           >
             <Home className="h-6 w-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-          </button>
+          </a>
 
-          <button
-            onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+          <a
+            href={ROUTES.MANAGE_CAR}
+            onClick={(e) => { e.preventDefault(); setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
             className={`cursor-pointer rounded-full p-1.5 transition-all ${
               activeTab === 'car' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'
             }`}
           >
             <Car className="h-6 w-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-          </button>
+          </a>
         </nav>
       </div>
 

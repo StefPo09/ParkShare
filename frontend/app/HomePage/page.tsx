@@ -424,21 +424,21 @@ export default function HomePage() {
                     : 'opacity-100 translate-y-0 scale-100'
                 }`}
               >
-                <button
-                    type="button"
-                    onClick={() => router.push(ROUTES.RENT)}
+                <a
+                    href={ROUTES.RENT}
+                    onClick={(e) => { e.preventDefault(); router.push(ROUTES.RENT); }}
                     className="mb-3 flex w-full cursor-pointer items-center justify-between text-left text-[#121212] dark:text-white"
                 >
                   <span className="text-[22px] font-bold tracking-tight sm:text-[26px]">{t('spotsInYourCity')}</span>
                   <ChevronRight className="h-7 w-7 text-[#42565d] dark:text-[#dfeef0]" strokeWidth={2.5} />
-                </button>
+                </a>
 
                 <div className="grid grid-cols-3 gap-3">
                   {parkingListings.map((spot) => (
-                      <button
+                  <a
                           key={spot.id}
-                          type="button"
-                          onClick={() => router.push(ROUTES.RENT)}
+                      href={ROUTES.RENT}
+                      onClick={(e) => { e.preventDefault(); router.push(ROUTES.RENT); }}
                           className="min-w-0 cursor-pointer overflow-hidden rounded-[22px] border border-black/5 bg-white/40 p-2 text-left shadow-sm transition hover:bg-white/50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                       >
                         <div className="relative h-28 overflow-hidden rounded-[18px] bg-[#d9d9d9]">
@@ -466,32 +466,35 @@ export default function HomePage() {
 
           {/* Bottom Navigation */}
           <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
-            <button
-                onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
-                className={`p-1.5 transition-all cursor-pointer rounded-full ${
-  activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+           <a
+               href={ROUTES.RENT}
+               onClick={(e) => { e.preventDefault(); setActiveTab('key'); router.push(ROUTES.RENT); }}
+               className={`p-1.5 transition-all cursor-pointer rounded-full ${
+ activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
 }`}
-            >
-              <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
-            </button>
+           >
+             <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
+           </a>
 
-            <button
-                onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
-                className={`p-1.5 transition-all cursor-pointer rounded-full ${
-  activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+           <a
+               href={ROUTES.HOME}
+               onClick={(e) => { e.preventDefault(); setActiveTab('home'); router.push(ROUTES.HOME); }}
+               className={`p-1.5 transition-all cursor-pointer rounded-full ${
+ activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
 }`}
-            >
-              <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-            </button>
+           >
+             <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+           </a>
 
-            <button
-                onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
-                className={`p-1.5 transition-all cursor-pointer rounded-full ${
-  activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
+           <a
+               href={ROUTES.MANAGE_CAR}
+               onClick={(e) => { e.preventDefault(); setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+               className={`p-1.5 transition-all cursor-pointer rounded-full ${
+ activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
 }`}
-            >
-              <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-            </button>
+           >
+             <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
+           </a>
           </nav>
         </div>
       </div>

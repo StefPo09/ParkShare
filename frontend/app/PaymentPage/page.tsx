@@ -736,10 +736,11 @@ function PaymentContent() {
                         </h1>
                     </div>
 
-                    <button
+                    <a
                         type="button"
                         aria-label="Close"
-                        onClick={() => router.push(ROUTES.RENT)}
+                        href={ROUTES.RENT}
+                        onClick={(e) => { e.preventDefault(); router.push(ROUTES.RENT); }}
                         className="
                             flex h-9 w-9 cursor-pointer items-center
                             justify-center rounded-full
@@ -1189,9 +1190,9 @@ function PaymentContent() {
 
                 {/* Bottom Navigation */}
                 <nav className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-black/5 bg-[#dfeef0] py-4 dark:border-white/10 dark:bg-[#011b1b]">
-                    <button
-                        type="button"
-                        onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
+                    <a
+                        href={ROUTES.RENT}
+                        onClick={(e) => { e.preventDefault(); setActiveTab('key'); router.push(ROUTES.RENT); }}
                         className={`cursor-pointer rounded-full p-1.5 transition-all ${
                             activeTab === 'key'
                                 ? 'scale-110 text-[#0f4c81] dark:text-[#2dd4bf]'
@@ -1202,11 +1203,11 @@ function PaymentContent() {
                             className="h-6 w-6 -rotate-45 transform"
                             strokeWidth={activeTab === 'key' ? 2.5 : 2}
                         />
-                    </button>
+                    </a>
 
-                    <button
-                        type="button"
-                        onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
+                    <a
+                        href={ROUTES.HOME}
+                        onClick={(e) => { e.preventDefault(); setActiveTab('home'); router.push(ROUTES.HOME); }}
                         className={`cursor-pointer rounded-full p-1.5 transition-all ${
                             activeTab === 'home'
                                 ? 'scale-110 text-[#0f4c81] dark:text-[#2dd4bf]'
@@ -1217,11 +1218,11 @@ function PaymentContent() {
                             className="h-6 w-6"
                             strokeWidth={activeTab === 'home' ? 2.5 : 2}
                         />
-                    </button>
+                    </a>
 
-                    <button
-                        type="button"
-                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+                    <a
+                        href={ROUTES.MANAGE_CAR}
+                        onClick={(e) => { e.preventDefault(); setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                         className={`cursor-pointer rounded-full p-1.5 transition-all ${
                             activeTab === 'car'
                                 ? 'scale-110 text-[#0f4c81] dark:text-[#2dd4bf]'
@@ -1232,7 +1233,7 @@ function PaymentContent() {
                             className="h-6 w-6"
                             strokeWidth={activeTab === 'car' ? 2.5 : 2}
                         />
-                    </button>
+                    </a>
                 </nav>
             </div>
 

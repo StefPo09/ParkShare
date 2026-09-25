@@ -37,26 +37,29 @@ export default function HelpPage() {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-50 flex w-screen items-center justify-around border-t border-black/5 bg-[#dfeef0] pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-white/10 dark:bg-[#011b1b]">
-        <button
-          onClick={() => router.push(ROUTES.RENT)}
+        <a
+          href={ROUTES.RENT}
+          onClick={(e) => { e.preventDefault(); router.push(ROUTES.RENT); }}
           className="cursor-pointer rounded-full p-1.5 text-slate-500 transition-all dark:text-slate-400"
         >
           <Key className="h-6 w-6 -rotate-45" strokeWidth={2} />
-        </button>
+        </a>
 
-        <button
-          onClick={() => router.push(ROUTES.HOME)}
+        <a
+          href={ROUTES.HOME}
+          onClick={(e) => { e.preventDefault(); router.push(ROUTES.HOME); }}
           className="cursor-pointer rounded-full p-1.5 text-slate-500 transition-all dark:text-slate-400"
         >
           <Home className="h-6 w-6" strokeWidth={2} />
-        </button>
+        </a>
 
-        <button
-          onClick={() => router.push(ROUTES.MANAGE_CAR)}
+        <a
+          href={ROUTES.MANAGE_CAR}
+          onClick={(e) => { e.preventDefault(); router.push(ROUTES.MANAGE_CAR); }}
           className="cursor-pointer rounded-full p-1.5 text-slate-500 transition-all dark:text-slate-400"
         >
           <Car className="h-6 w-6" strokeWidth={2} />
-        </button>
+        </a>
       </nav>
     </main>
   );

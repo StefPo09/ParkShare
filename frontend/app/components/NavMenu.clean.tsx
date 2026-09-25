@@ -53,55 +53,61 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
                     </div>
 
                     <nav className="mt-6 space-y-2">
-                        <button
-                            onClick={() => { router.push(ROUTES.NOTIFICATIONS); onClose(); }}
-                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
-                        >
-                            <Bell className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
-                            <span className="tracking-wide">{t('notifications')}</span>
-                        </button>
+                        <a
+                                                    href={ROUTES.NOTIFICATIONS}
+                                                    onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.NOTIFICATIONS); }}
+                                                    className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
+                                                >
+                                                    <Bell className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
+                                                    <span className="tracking-wide">{t('notifications')}</span>
+                                                </a>
 
-                        <button
-                            onClick={() => { router.push(ROUTES.MANAGE_CAR); onClose(); }}
-                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
-                        >
-                            <Car className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
-                            <span className="tracking-wide">{t('manageYourCars')}</span>
-                        </button>
+                        <a
+                                                    href={ROUTES.MANAGE_CAR}
+                                                    onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.MANAGE_CAR); }}
+                                                    className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
+                                                >
+                                                    <Car className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
+                                                    <span className="tracking-wide">{t('manageYourCars')}</span>
+                                                </a>
 
-                        <button
-                            onClick={() => { router.push(ROUTES.MANAGE_SPOT || '/manage-spots'); onClose(); }}
-                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
-                        >
-                            <MapPin className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
-                            <span className="tracking-wide">{t('manageYourSpots')}</span>
-                        </button>
+                        <a
+                                                    href={ROUTES.MANAGE_SPOT || '/manage-spots'}
+                                                    onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.MANAGE_SPOT || '/manage-spots'); }}
+                                                    className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
+                                                >
+                                                    <MapPin className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
+                                                    <span className="tracking-wide">{t('manageYourSpots')}</span>
+                                                </a>
 
-                        <button
-                            onClick={() => { router.push(ROUTES.SETTINGS); onClose(); }}
-                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
-                        >
-                            <Settings className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
-                            <span className="tracking-wide">{t('settings')}</span>
-                        </button>
+                        <a
+                                                    href={ROUTES.SETTINGS}
+                                                    onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.SETTINGS); }}
+                                                    className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
+                                                >
+                                                    <Settings className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
+                                                    <span className="tracking-wide">{t('settings')}</span>
+                                                </a>
 
                         <hr className="my-4 border-black/5" />
 
-                        <button
-                            onClick={() => { router.push(ROUTES.NEWS_UPDATES); onClose(); }}
-                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
-                        >
-                            <Newspaper className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
-                            <span className="tracking-wide">{t('newsUpdates')}</span>
-                        </button>
+                        <a
+                                                    href={ROUTES.NEWS_UPDATES}
+                                                    onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.NEWS_UPDATES); }}
+                                                    className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
+                                                >
+                                                    <Newspaper className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
+                                                    <span className="tracking-wide">{t('newsUpdates')}</span>
+                                                </a>
 
-                        <button
-                            onClick={() => { router.push(ROUTES.HELP); onClose(); }}
-                            className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
-                        >
-                            <HelpCircle className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
-                            <span className="tracking-wide">{t('help')}</span>
-                        </button>
+                        <a
+                                                    href={ROUTES.HELP}
+                                                    onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.HELP); }}
+                                                    className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[#121212] transition duration-200 hover:border-black/5 hover:bg-white/40 active:scale-[0.99]"
+                                                >
+                                                    <HelpCircle className="h-5 w-5 text-[#42565d]" strokeWidth={2.2} />
+                                                    <span className="tracking-wide">{t('help')}</span>
+                                                </a>
                     </nav>
                 </div>
 

@@ -463,32 +463,35 @@ function RentPageContent() {
 
           {/* Bottom Navigation */}
           <nav className="fixed inset-x-0 bottom-0 z-50 flex w-screen items-center justify-around border-t border-black/5 bg-[#dfeef0] pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-white/10 dark:bg-[#011b1b]">
-            <button
-                onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
+            <a
+                href={ROUTES.RENT}
+                onClick={(e) => { e.preventDefault(); setActiveTab('key'); router.push(ROUTES.RENT); }}
                 className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                 }`}
             >
               <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
-            </button>
+            </a>
 
-            <button
-                onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
+            <a
+                href={ROUTES.HOME}
+                onClick={(e) => { e.preventDefault(); setActiveTab('home'); router.push(ROUTES.HOME); }}
                 className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                 }`}
             >
               <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-            </button>
+            </a>
 
-            <button
-                onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+            <a
+                href={ROUTES.MANAGE_CAR}
+                onClick={(e) => { e.preventDefault(); setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                 className={`p-1.5 transition-all cursor-pointer rounded-full ${
                     activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                 }`}
             >
               <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-            </button>
+            </a>
           </nav>
 
           {/* Bottom Sheet Card Details */}

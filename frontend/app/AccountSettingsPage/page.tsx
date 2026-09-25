@@ -494,7 +494,7 @@ export default function AccountSettingsPage() {
           </div>
 
           <div className="rounded-[22px] border border-black/5 bg-white/20 p-3 dark:border-white/10 dark:bg-white/5">
-            <button type="button" onClick={() => router.push(ROUTES.CHANGE_PASSWORD)} className="group flex w-full cursor-pointer items-center justify-between rounded-2xl border border-black/10 bg-white/50 px-3 py-3 text-left transition hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/5">
+            <a href={ROUTES.CHANGE_PASSWORD} onClick={(e) => { e.preventDefault(); router.push(ROUTES.CHANGE_PASSWORD); }} className="group flex w-full cursor-pointer items-center justify-between rounded-2xl border border-black/10 bg-white/50 px-3 py-3 text-left transition hover:bg-white/70 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/5">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eaf3f7] text-[#0f4c81] dark:bg-[#062a2d] dark:text-[#7dd3fc]">
                   <Lock className="h-4 w-4" strokeWidth={2.2} />
@@ -532,15 +532,15 @@ export default function AccountSettingsPage() {
         </main>
 
         <nav className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-black/5 bg-[#dfeef0] py-4 dark:border-white/10 dark:bg-[#011b1b]">
-          <button type="button" onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'key' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
+          <a href={ROUTES.RENT} onClick={(e) => { e.preventDefault(); setActiveTab('key'); router.push(ROUTES.RENT); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'key' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
             <Key className="h-6 w-6 -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
-          </button>
-          <button type="button" onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'home' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
+          </a>
+          <a href={ROUTES.HOME} onClick={(e) => { e.preventDefault(); setActiveTab('home'); router.push(ROUTES.HOME); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'home' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
             <Home className="h-6 w-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-          </button>
-          <button type="button" onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'car' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
+          </a>
+          <a href={ROUTES.MANAGE_CAR} onClick={(e) => { e.preventDefault(); setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }} className={`cursor-pointer rounded-full p-1.5 transition-all ${activeTab === 'car' ? 'scale-110 text-[#0f4c81] dark:text-[#7dd3fc]' : 'text-slate-500 dark:text-slate-400'}`}>
             <Car className="h-6 w-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-          </button>
+          </a>
         </nav>
 
         {showDeleteModal && (
