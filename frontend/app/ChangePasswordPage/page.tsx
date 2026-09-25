@@ -187,7 +187,7 @@ export default function ChangePasswordPage() {
 
               <button
                 type="submit"
-                disabled={!canSubmit}
+                disabled={typeof window !== 'undefined' ? !canSubmit : false}
                 className="flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-[#0f4c81] text-sm font-semibold text-white shadow-lg shadow-[#0f4c81]/20 transition hover:bg-[#0d3e68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0f4c81]/45 disabled:hover:bg-[#0f4c81]/45 dark:bg-[#9ad7db] dark:text-[#011b1b] dark:hover:bg-[#b6e9e8]"
               >
                 {t('update_password')}

@@ -459,7 +459,7 @@ export default function ProfilePage() {
                           className="flex-1 h-9 px-3 text-sm rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-black/20 text-[#121212] dark:text-white focus:outline-none dark:scheme-dark"
                         />
                         <button
-                          disabled={isInvalidDate}
+                          disabled={typeof window !== 'undefined' ? isInvalidDate : false}
                           onClick={() => handleSaveField('birthDate')}
                           className={`flex h-9 w-9 items-center justify-center rounded-lg text-white transition ${
                             isInvalidDate

@@ -1159,7 +1159,7 @@ function EditSpotPageContent() {
                         )}
                         <button
                             type="button"
-                            disabled={isSaveDisabled}
+                            disabled={typeof window !== 'undefined' ? isSaveDisabled : false}
                             onClick={handleRentSubmit}
                             className={`flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold text-white shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition ${
                                 isSaveDisabled

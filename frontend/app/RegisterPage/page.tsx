@@ -293,7 +293,7 @@ export default function RegisterPage() {
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={!canSubmit || isSubmitting}
+                    disabled={typeof window !== 'undefined' ? (!canSubmit || isSubmitting) : false}
                     className="mt-4 h-12 w-full rounded-xl bg-[#0F4C81] text-white font-medium hover:bg-[#0B1C2C] transition shadow-md disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 cursor-pointer"
                 >
                     {isSubmitting ? 'Creating account...' : 'Sign up'}

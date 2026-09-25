@@ -771,7 +771,7 @@ export default function AddSpotPage() {
                   <button
                     type="button"
                     onClick={() => selectedCountry && setIsCityOpen((prev) => !prev)}
-                    disabled={!selectedCountry}
+                    disabled={typeof window !== 'undefined' ? !selectedCountry : false}
                     className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] disabled:cursor-not-allowed disabled:opacity-60 dark:text-white"
                   >
                     <span className={selectedCityName ? 'text-[#121212] dark:text-white' : 'text-[#6f797d] dark:text-[#9db0b6]'}>

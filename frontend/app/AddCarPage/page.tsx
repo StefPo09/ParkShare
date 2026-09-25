@@ -293,7 +293,7 @@ export default function AddCarPage() {
                         )}
                         <button
                             type="button"
-                            disabled={!canSubmit || isLoading}
+                            disabled={typeof window !== 'undefined' ? (!canSubmit || isLoading) : false}
                             onClick={handleSubmit}
                             className={`flex w-full cursor-pointer items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:scale-[1.01] active:scale-[0.99] ${
                                 canSubmit && !isLoading

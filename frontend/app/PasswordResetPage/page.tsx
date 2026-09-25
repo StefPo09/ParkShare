@@ -173,7 +173,7 @@ export default function PasswordResetPage() {
 
             <button
               type="submit"
-              disabled={!canResetPassword}
+              disabled={typeof window !== 'undefined' ? !canResetPassword : false}
               className="flex h-12 w-full items-center justify-center rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
             >
               Reset password
