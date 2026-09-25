@@ -3,12 +3,19 @@
 import Image from "next/image"
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import React from "react";
 
 export default function SignUpScreen() {
     const router = useRouter();
     const [email, setEmail] = React.useState("");
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    const handleGoogleContinue = () => {
+        const API = getApiBaseUrl();
+        const redirectTo = `${window.location.origin}${ROUTES.HOME}`;
+        window.location.href = `${API}/api/auth/google/login?redirect_to=${encodeURIComponent(redirectTo)}`;
+    };
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -96,14 +103,17 @@ export default function SignUpScreen() {
                         <SocialButton
                             label="Continue with Google"
                             icon={<GoogleIcon/>}
+                            onClick={handleGoogleContinue}
                         />
                         <SocialButton
                             label="Continue with Apple"
                             icon={<AppleIcon/>}
+                            onClick={() => undefined}
                         />
                         <SocialButton
                             label="Continue with Facebook"
                             icon={<FacebookIcon/>}
+                            onClick={() => undefined}
                         />
                     </div>
 
@@ -126,13 +136,16 @@ export default function SignUpScreen() {
 function SocialButton({
                           label,
                           icon,
+                          onClick,
                       }: {
     label: string
     icon: React.ReactNode
+    onClick?: () => void
 }) {
     return (
         <button
             type="button"
+            onClick={onClick}
             className="flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-[#EEEEEE] text-sm font-medium text-[#0B1C2C] transition hover:bg-[#E4E4E4] active:scale-[0.99] dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
         >
             {icon}

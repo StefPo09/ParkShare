@@ -1,16 +1,45 @@
 import os
 from datetime import date
+from urllib.parse import urlparse
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_user, logout_user
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from . import db
+from . import db, oauth
 from .models import PersonalDetails, User
 
 
 auth = Blueprint('auth', __name__)
+
+
+def _default_frontend_redirect():
+    configured = os.getenv('FRONTEND_URL') or os.getenv('NEXT_PUBLIC_FRONTEND_URL')
+    if configured:
+        return configured.rstrip('/') + '/HomePage'
+
+    host = request.host or 'localhost:3000'
+    parsed = urlparse(f"http://{host}")
+    scheme = parsed.scheme or 'http'
+    hostname = parsed.hostname or 'localhost'
+    port = parsed.port
+    target_host = hostname
+    if port and port != 3000:
+        target_host = f'{hostname}:{port}' if port else hostname
+    target = f'{scheme}://{target_host}:3000' if port is None else f'{scheme}://{hostname}:{3000 if port == 5000 else port}'
+    return target.rstrip('/') + '/HomePage'
+
+
+def _set_oauth_redirect_target():
+    redirect_to = request.args.get('redirect_to') or request.args.get('next')
+    if redirect_to:
+        session['oauth_redirect_target'] = redirect_to
+        return redirect_to
+
+    fallback = _default_frontend_redirect()
+    session['oauth_redirect_target'] = fallback
+    return fallback
 
 
 def _user_payload(user):
@@ -71,13 +100,13 @@ def _create_user(data):
     user = User(
         email=email,
         name=name,
-        password=generate_password_hash(password) if password else None,
         phone_country_code=phone_country_code,
         phone=phone,
         country=country,
         city=city,
     )
     db.session.add(user)
+    user.password = generate_password_hash(password) if password else None
 
     try:
         db.session.commit()
@@ -198,6 +227,102 @@ def api_login():
 
     login_user(user, remember=bool(data.get('remember')))
     return jsonify({'user': _user_payload(user)}), 200
+
+
+@auth.route('/api/auth/google/login')
+def google_login():
+    client = oauth.create_client('google') if oauth is not None else None
+    if client is None:
+        return jsonify({'error': 'Google OAuth is not configured on the server.'}), 500
+
+    _set_oauth_redirect_target()
+    callback_url = request.url_root.rstrip('/') + '/api/auth/google/callback'
+    return client.authorize_redirect(callback_url)
+
+
+@auth.route('/api/auth/google/callback')
+def google_callback():
+    client = oauth.create_client('google') if oauth is not None else None
+    if client is None:
+        return jsonify({'error': 'Google OAuth is not configured on the server.'}), 500
+
+    try:
+        token = client.authorize_access_token()
+        userinfo = None
+        try:
+            userinfo = client.userinfo()
+        except Exception:
+            pass
+        if userinfo is None and token:
+            try:
+                userinfo = client.parse_id_token(token)
+            except Exception:
+                userinfo = None
+    except Exception:
+        return redirect(_default_frontend_redirect())
+
+    if not userinfo:
+        return redirect(_default_frontend_redirect())
+
+    email = str(userinfo.get('email') or '').strip().lower()
+    if not email:
+        return redirect(_default_frontend_redirect())
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        full_name = str(userinfo.get('name') or userinfo.get('given_name', '')).strip()
+        first_name = str(userinfo.get('given_name') or '').strip()
+        last_name = str(userinfo.get('family_name') or '').strip()
+        if not full_name and (first_name or last_name):
+            full_name = ' '.join(part for part in (first_name, last_name) if part)
+        user = User(
+            email=email,
+            name=full_name or email,
+            password=generate_password_hash(os.urandom(32).hex()),
+            country='',
+            city='',
+            phone_country_code='',
+            phone='',
+        )
+        db.session.add(user)
+        db.session.flush()
+        personal_details = PersonalDetails(
+            user_id=user.id,
+            first_name=first_name or None,
+            last_name=last_name or None,
+            country=None,
+            city=None,
+        )
+        db.session.add(personal_details)
+
+    db.session.commit()
+    login_user(user)
+    redirect_target = session.pop('oauth_redirect_target', _default_frontend_redirect())
+    return redirect(redirect_target)
+
+
+@auth.route('/api/auth/google/info')
+def google_info():
+    configured = False
+    client_id = None
+    try:
+        client = oauth.create_client('google') if oauth is not None else None
+        configured = client is not None
+        client_id = getattr(client, 'client_id', None)
+    except Exception:
+        configured = False
+    callback_url = request.url_root.rstrip('/') + '/api/auth/google/callback'
+    return jsonify({'configured': bool(configured), 'callback_url': callback_url, 'client_id': client_id}), 200
+
+
+@auth.route('/api/auth/apple/login')
+def apple_login():
+    return jsonify({'error': 'Apple OAuth is not yet configured.'}), 501
+
+
+@auth.route('/api/auth/facebook/login')
+def facebook_login():
+    return jsonify({'error': 'Facebook OAuth is not yet configured.'}), 501
 
 
 @auth.route('/api/ai/health', methods=['GET'])
