@@ -3,6 +3,10 @@ from datetime import timedelta
 import os
 import re
 
+try:
+    from authlib.integrations.flask_client import OAuth
+except Exception:
+    OAuth = None
 from flask import Flask
 from flask_cors import CORS
 from flask_login import LoginManager
@@ -11,12 +15,15 @@ from sqlalchemy import inspect, text
 
 
 db = SQLAlchemy()
+oauth = OAuth()
 
 
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
     app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY')
+    app.config['GOOGLE_CLIENT_ID'] = os.environ.get('GOOGLE_CLIENT_ID')
+    app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get('GOOGLE_CLIENT_SECRET')
     app.config['SQLALCHEMY_DATABASE_URI'] = (
             os.environ.get('MYSQL_DATABASE_URI') or os.environ.get('DATABASE_URL') or 'sqlite:///db.sqlite'
     )
@@ -42,6 +49,16 @@ def create_app():
     )
     CORS(app, origins=allowed_origins, supports_credentials=True)
     db.init_app(app)
+    oauth.init_app(app)
+
+    if app.config.get('GOOGLE_CLIENT_ID') and app.config.get('GOOGLE_CLIENT_SECRET'):
+        oauth.register(
+            name='google',
+            client_id=app.config['GOOGLE_CLIENT_ID'],
+            client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+            client_kwargs={'scope': 'openid email profile'},
+        )
 
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
@@ -86,5 +103,49 @@ def create_app():
 
     from .parking import parking as parking_blueprint
     app.register_blueprint(parking_blueprint)
+
+    # Debug: print registered routes to help diagnose missing-route issues
+    try:
+        rules = sorted(str(rule) for rule in app.url_map.iter_rules())
+        print('Registered routes:')
+        for r in rules:
+            print('  ', r)
+    except Exception:
+        pass
+
+    # Add a machine-readable debug endpoint that lists all registered routes
+    try:
+        from flask import jsonify
+
+        def _debug_routes():
+            try:
+                rules = sorted(str(rule) for rule in app.url_map.iter_rules())
+                return jsonify({'routes': rules}), 200
+            except Exception:
+                return jsonify({'routes': []}), 200
+
+        try:
+            app.add_url_rule('/api/debug/routes', endpoint='debug_routes', view_func=_debug_routes, methods=['GET'])
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+    # Ensure the Google OAuth endpoints are available even if blueprint registration
+    # failed in some deployment environments. This proxies to the handlers defined
+    # in backend.project.auth if possible.
+    try:
+        from .auth import google_login as _google_login_handler, google_callback as _google_callback_handler
+        try:
+            app.add_url_rule('/api/auth/google/login', endpoint='google_login_proxy', view_func=_google_login_handler)
+        except Exception:
+            # Rule already exists or cannot be added; ignore
+            pass
+        try:
+            app.add_url_rule('/api/auth/google/callback', endpoint='google_callback_proxy', view_func=_google_callback_handler)
+        except Exception:
+            pass
+    except Exception:
+        pass
 
     return app
