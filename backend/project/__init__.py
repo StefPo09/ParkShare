@@ -7,12 +7,14 @@ try:
     from authlib.integrations.flask_client import OAuth
 except Exception:
     OAuth = None
-from flask import Flask, request
+from flask import Flask, request, Response, stream_with_context, abort, jsonify
 from flask_cors import CORS
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, text
 from werkzeug.middleware.proxy_fix import ProxyFix
+import requests
+
 
 
 db = SQLAlchemy()
@@ -201,6 +203,40 @@ def create_app():
             app.add_url_rule('/api/auth/google/callback', endpoint='google_callback_proxy', view_func=_google_callback_handler)
         except Exception:
             pass
+    except Exception:
+        pass
+
+    # Proxy /_next/* requests to the local Next.js server. This allows Nginx to route
+    # _next asset requests to the Flask app (if needed) and avoids client bundles being
+    # blocked when the proxy cannot directly reach the Next server. Configure the
+    # NEXT_SERVER_URL env var (e.g. http://127.0.0.1:3000).
+    NEXT_SERVER_URL = os.environ.get('NEXT_SERVER_URL', 'http://127.0.0.1:3000')
+
+    def _proxy_next(subpath):
+        # Only allow GET/HEAD to fetch static assets
+        if request.method not in ('GET', 'HEAD'):
+            abort(405)
+        upstream = f"{NEXT_SERVER_URL}/_next/{subpath}"
+        try:
+            # Forward minimal headers; avoid sending Host to upstream
+            upstream_headers = {k: v for k, v in request.headers.items() if k.lower() != 'host'}
+            resp = requests.get(upstream, headers=upstream_headers, stream=True, timeout=10)
+        except requests.RequestException as e:
+            app.logger.warning('Failed to fetch _next asset from %s: %s', upstream, e)
+            return jsonify({'error': 'Upstream asset fetch failed'}), 502
+
+        excluded_headers = {'transfer-encoding', 'connection', 'content-encoding'}
+        headers = [(name, value) for name, value in resp.headers.items() if name.lower() not in excluded_headers]
+        return Response(stream_with_context(resp.iter_content(chunk_size=8192)), status=resp.status_code, headers=headers)
+
+    # Register both general and static-specific patterns
+    try:
+        app.add_url_rule('/_next/<path:subpath>', endpoint='proxy_next', view_func=_proxy_next, methods=['GET', 'HEAD'])
+    except Exception:
+        pass
+
+    try:
+        app.add_url_rule('/_next/static/<path:subpath>', endpoint='proxy_next_static', view_func=_proxy_next, methods=['GET', 'HEAD'])
     except Exception:
         pass
 
