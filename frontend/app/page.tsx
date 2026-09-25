@@ -12,6 +12,7 @@ export default function StartPage() {
 
   const startMorphTransition = () => {
     if (isMorphing) return;
+    console.debug('[StartPage] startMorphTransition');
     setIsMorphing(true);
 
     // Hide video layer after fade out completes
@@ -29,16 +30,44 @@ export default function StartPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Failsafe: if morph transition didn't run (e.g. video blocked or minor client issues),
+  // force showing the UI after a longer timeout so the page is never stuck on loading.
+  useEffect(() => {
+    const fallback = setTimeout(() => {
+      if (!isMorphing) {
+        console.warn('[StartPage] Failsafe: forcing morph transition after timeout');
+        setIsVideoHidden(true);
+        setIsMorphing(true);
+      }
+    }, 8000);
+    return () => clearTimeout(fallback);
+  }, [isMorphing]);
+
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-white dark:bg-[#0B1C2C] overflow-hidden">
+      <noscript>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#011b1b] text-white">
+          <div className="max-w-md text-center">
+            <h2 className="text-xl font-bold">JavaScript is required</h2>
+            <p className="mt-2">Please enable JavaScript to use ParkShare, or use the links below</p>
+            <div className="mt-6 space-y-3">
+              <a href="/LoginPage" className="block rounded-xl bg-[#0F4C81] px-4 py-3 text-white">Log in</a>
+              <a href="/SignUpPage" className="block rounded-xl bg-gray-200 px-4 py-3 text-[#0B1C2C]">Sign up</a>
+            </div>
+          </div>
+        </div>
+      </noscript>
+
       {/* Video Overlay Layer */}
       {!isVideoHidden && (
         <div
+          id="parkshare-loading-overlay"
           className={`fixed inset-0 z-50 h-screen w-screen overflow-hidden bg-[#011b1b] transition-opacity duration-700 ease-in-out ${
             isMorphing ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}
         >
           <video
+            id="parkshare-loading-video"
             src="/Animation/Loading.mp4"
             autoPlay
             muted
@@ -53,6 +82,7 @@ export default function StartPage() {
       <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center p-6 z-10">
         {/* Morphing Logo & Wordmark */}
         <div
+          id="parkshare-morph-container"
           className={`flex flex-col items-center transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isMorphing
               ? 'scale-100 opacity-100 translate-y-0'
@@ -76,6 +106,7 @@ export default function StartPage() {
 
         {/* Morphing Tagline & Action Buttons */}
         <div
+          id="parkshare-tagline-container"
           className={`mt-4 w-full flex flex-col items-center transition-all duration-800 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isMorphing
               ? 'opacity-100 translate-y-0'
