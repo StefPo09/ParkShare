@@ -8,6 +8,7 @@ import type { Appearance } from '@stripe/stripe-js';
 import { stripePromise } from '../../lib/stripe';
 import { CheckoutForm } from '../components/StripePayment';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import {
     X,
     ChevronRight,
@@ -101,7 +102,7 @@ function PaymentContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const spotIdParam = searchParams.get('spot');
-    const API = process.env.NEXT_PUBLIC_API_URL || '';
+    const API = getApiBaseUrl();
 
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
 

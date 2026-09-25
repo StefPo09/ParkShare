@@ -3,6 +3,7 @@
 import React, { useState, useRef, ChangeEvent, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { useLanguage } from '../components/LanguageProvider';
 import { countryOptions } from '../../data/address/countries';
 import { cityGroups } from '../../data/address/generatedCities';
@@ -78,7 +79,7 @@ const defaultMapCenter = { lat: 44.4323, lng: 26.1063 };
 export default function AddSpotPage() {
   const router = useRouter();
   const { t } = useLanguage();
-  const API = process.env.NEXT_PUBLIC_API_URL || '';
+  const API = getApiBaseUrl();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
@@ -144,7 +145,7 @@ export default function AddSpotPage() {
   }, []);
 
   const reverseGeocode = useCallback((coords: { lat: number; lng: number }) => {
-    if (typeof window === 'undefined' || !window.google || !window.google.maps) return;
+    if (typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.Geocoder) return;
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ location: coords }, (results, status) => {
       if (status === 'OK' && results && results[0]) {
