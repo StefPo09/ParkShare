@@ -95,7 +95,7 @@ const mockSpots: ParkingSpot[] = [
     title: 'Central Garage Spot',
     price: 4,
     price_currency: 'RON',
-    address: 'Parking spot address',
+    address: 'Address unavailable',
     description: 'Secure underground parking with 24/7 surveillance.',
     start_hour: '14:00',
     end_hour: '18:00',

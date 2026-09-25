@@ -1,20 +1,100 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, ArrowRight, MapPinned, House } from 'lucide-react';
 import { ROUTES } from '../../constants/routes';
+
+const INVALID_DESTINATION_TEXTS = [
+    'parking spot address',
+    'parking spot',
+    'address unavailable',
+    'unknown address',
+];
+
+function sanitizeDestinationValue(value: string | null): string {
+    if (!value) return '';
+
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+
+    const normalized = trimmed.toLowerCase();
+    const isPlaceholder = INVALID_DESTINATION_TEXTS.some((placeholder) => normalized === placeholder || normalized.includes(placeholder));
+    if (isPlaceholder) return '';
+
+    return trimmed;
+}
 
 function SuccessPaymentContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const [showPrompt, setShowPrompt] = useState(true);
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-    const spotTitle = searchParams.get('spotTitle') || searchParams.get('spotAddress') || 'Parking spot';
+    const rawSpotTitle = sanitizeDestinationValue(searchParams.get('spotTitle'));
+    const rawSpotAddress = sanitizeDestinationValue(searchParams.get('spotAddress'));
+    const spotTitle = rawSpotTitle || rawSpotAddress || 'Parking spot';
     const duration = searchParams.get('duration') || '2 hours';
     const total = searchParams.get('total') || '25.00';
     const currency = searchParams.get('currency') || 'RON';
+    const spotAddress = rawSpotAddress || rawSpotTitle || 'Address unavailable';
     const startHour = searchParams.get('startHour');
     const endHour = searchParams.get('endHour');
+    const spotLat = Number(searchParams.get('spotLat') ?? '');
+    const spotLng = Number(searchParams.get('spotLng') ?? '');
+    const hasValidSpotCoords =
+        Number.isFinite(spotLat) &&
+        Number.isFinite(spotLng) &&
+        Math.abs(spotLat) > 1e-6 &&
+        Math.abs(spotLng) > 1e-6;
+
+    useEffect(() => {
+        if (!navigator.geolocation) return;
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setUserLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                });
+            },
+            () => {
+                setUserLocation(null);
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+        );
+    }, []);
+
+    const mapsDirectionsUrl = useMemo(() => {
+        const originParam = userLocation ? `&origin=${encodeURIComponent(`${userLocation.lat},${userLocation.lng}`)}` : '';
+
+        if (hasValidSpotCoords) {
+            const destination = `${spotLat},${spotLng}`;
+            return `https://www.google.com/maps/dir/?api=1${originParam}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+        }
+
+        const destinationText = sanitizeDestinationValue(spotAddress);
+        if (!destinationText) {
+            return userLocation
+                ? `https://www.google.com/maps/dir/?api=1${originParam}&travelmode=driving`
+                : 'https://www.google.com/maps';
+        }
+
+        return `https://www.google.com/maps/dir/?api=1${originParam}&destination=${encodeURIComponent(destinationText)}&travelmode=driving`;
+    }, [hasValidSpotCoords, spotAddress, spotLat, spotLng, userLocation]);
+
+    const handleGoHome = () => {
+        router.push(ROUTES.HOME);
+    };
+
+    const handleOpenMaps = () => {
+        if (!mapsDirectionsUrl) {
+            window.open('https://www.google.com/maps', '_blank', 'noopener,noreferrer');
+            return;
+        }
+
+        window.open(mapsDirectionsUrl, '_blank', 'noopener,noreferrer');
+    };
 
     return (
         <div className="min-h-screen bg-[#dfeef0] dark:bg-[#011b1b] px-5 py-10">
@@ -80,13 +160,46 @@ function SuccessPaymentContent() {
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => router.push(ROUTES.HOME)}
-                        className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f4c81] px-5 py-3.5 font-semibold text-white transition hover:bg-[#0c3e67] cursor-pointer active:scale-[0.99] dark:bg-[#155b8a]"
-                    >
-                        Done
-                        <ArrowRight className="h-4 w-4" />
-                    </button>
+                    {showPrompt && (
+                        <div className="mt-8 rounded-2xl border border-black/10 bg-white/60 p-4 text-left shadow-sm dark:border-white/10 dark:bg-white/5">
+                            <p className="text-sm font-semibold text-[#121212] dark:text-white">
+                                Do you want to navigate to the parking spot?
+                            </p>
+
+                            <div className="mt-4 grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleGoHome}
+                                    className="flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-3 text-sm font-semibold text-[#121212] transition hover:bg-black/5 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                >
+                                    <House className="h-4 w-4" />
+                                    No
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowPrompt(false);
+                                        handleOpenMaps();
+                                    }}
+                                    className="flex items-center justify-center gap-2 rounded-xl bg-[#0f4c81] px-3 py-3 text-sm font-semibold text-white transition hover:bg-[#0c3e67] dark:bg-[#155b8a]"
+                                >
+                                    <MapPinned className="h-4 w-4" />
+                                    Yes
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {!showPrompt && (
+                        <button
+                            onClick={handleGoHome}
+                            className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f4c81] px-5 py-3.5 font-semibold text-white transition hover:bg-[#0c3e67] cursor-pointer active:scale-[0.99] dark:bg-[#155b8a]"
+                        >
+                            Done
+                            <ArrowRight className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
