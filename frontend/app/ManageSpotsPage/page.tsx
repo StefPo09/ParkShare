@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { Menu, ChevronRight, Plus, Key, Home, MapPin, Car } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
@@ -27,7 +28,7 @@ export default function ManageSpotsPage() {
     const [spots, setSpots] = useState<SpotItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const API = process.env.NEXT_PUBLIC_API_URL || '';
+    const API = getApiBaseUrl();
 
     const fetchSpots = useCallback(async () => {
         setIsLoading(true);

@@ -280,7 +280,7 @@ function RentPageContent() {
 
   const handleAddressSearch = useCallback((addressToSearch?: string) => {
     const targetAddress = addressToSearch !== undefined ? addressToSearch : searchValue;
-    if (!targetAddress || !window.google || !map) return;
+    if (!targetAddress || typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.Geocoder || !map) return;
 
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ address: targetAddress }, (results, status) => {

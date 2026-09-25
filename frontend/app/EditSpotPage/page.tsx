@@ -3,6 +3,7 @@
 import React, { useState, useRef, ChangeEvent, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
+import { getApiBaseUrl } from '../../constants/api';
 import { useLanguage } from '../components/LanguageProvider';
 import { countryOptions } from '../../data/address/countries';
 import { cityGroups } from '../../data/address/generatedCities';
@@ -147,7 +148,7 @@ function EditSpotPageContent() {
     });
 
     const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('key');
-    const API = process.env.NEXT_PUBLIC_API_URL || '';
+    const API = getApiBaseUrl();
 
     const activePhoto = spotPhotos[activePhotoIndex] || null;
 
@@ -162,7 +163,7 @@ function EditSpotPageContent() {
     }, []);
 
     const reverseGeocode = useCallback((coords: { lat: number; lng: number }) => {
-        if (typeof window === 'undefined' || !window.google || !window.google.maps) return;
+        if (typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.Geocoder) return;
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ location: coords }, (results, status) => {
             if (status === 'OK' && results && results[0]) {
