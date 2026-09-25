@@ -84,7 +84,7 @@ export default function LoginPage() {
           <h2 className="text-lg font-bold text-[#0B1C2C] dark:text-white">Welcome back!</h2>
           <p className="mt-1 text-center text-sm text-[#33475A] dark:text-white/80">Please enter your details</p>
 
-          <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit} action="/api/auth/login" method="post" aria-label="Login form">
+          <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit} aria-label="Login form">
             <div>
               <label htmlFor="email" className="sr-only">Email</label>
               <input

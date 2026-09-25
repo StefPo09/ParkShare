@@ -40,16 +40,17 @@ export default function RegisterPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('email') || params.get('signupEmail');
         const fromSession = sessionStorage.getItem('signupEmail') ?? '';
-        if (fromSession) {
-            setEmail(fromSession);
-        } else if (typeof window !== 'undefined') {
-            try {
-                const params = new URLSearchParams(window.location.search);
-                const q = params.get('email') || params.get('signupEmail');
-                if (q) setEmail(q);
-            } catch (e) {
-                // ignore
+
+        const nextEmail = q || fromSession;
+        if (nextEmail) {
+            setEmail(nextEmail);
+            if (!fromSession) {
+                sessionStorage.setItem('signupEmail', nextEmail);
             }
         }
     }, []);

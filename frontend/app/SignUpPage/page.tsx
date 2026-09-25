@@ -24,8 +24,9 @@ export default function SignUpScreen() {
             return;
         }
 
-        sessionStorage.setItem('signupEmail', email.trim().toLowerCase());
-        router.push(ROUTES.REGISTER);
+        const nextEmail = email.trim().toLowerCase();
+        sessionStorage.setItem('signupEmail', nextEmail);
+        router.push(`${ROUTES.REGISTER}?email=${encodeURIComponent(nextEmail)}`);
     };
 
     return (
