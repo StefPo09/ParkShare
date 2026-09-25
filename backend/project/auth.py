@@ -278,7 +278,6 @@ def google_callback():
         user = User(
             email=email,
             name=full_name or email,
-            password=generate_password_hash(os.urandom(32).hex()),
             country='',
             city='',
             phone_country_code='',

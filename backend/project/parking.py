@@ -503,10 +503,19 @@ def get_owner_bookings():
 @parking.route('/api/bookings', methods=['POST'])
 @login_required
 def create_booking():
-    data = request.get_json(silent=True) or {}
-    spot_id = data.get('spot_id')
-    start_date_raw = data.get('start_date')
-    end_date_raw = data.get('end_date')
+    data = request.get_json(silent=True)
+    if data is None:
+        data = request.form.to_dict() or request.args.to_dict() or {}
+
+    if not data and request.data:
+        try:
+            data = request.get_json(force=True, silent=True) or {}
+        except Exception:
+            data = {}
+
+    spot_id = data.get('spot_id') or data.get('spotId')
+    start_date_raw = data.get('start_date') or data.get('startDate')
+    end_date_raw = data.get('end_date') or data.get('endDate')
 
     if not spot_id or not start_date_raw or not end_date_raw:
         return jsonify({'error': 'spot_id, start_date, and end_date are required.'}), 400
@@ -515,11 +524,31 @@ def create_booking():
     if not spot:
         return jsonify({'error': 'Spot not found.'}), 404
 
+    def parse_booking_datetime(value):
+        if value is None:
+            raise ValueError('Missing datetime value')
+        if isinstance(value, str):
+            candidate = value.strip()
+            if not candidate:
+                raise ValueError('Empty datetime value')
+            if candidate.endswith('Z'):
+                candidate = candidate[:-1] + '+00:00'
+            try:
+                parsed = datetime.fromisoformat(candidate)
+            except ValueError:
+                try:
+                    parsed = datetime.fromisoformat(candidate.replace(' ', 'T'))
+                except ValueError:
+                    raise
+            return parsed
+        try:
+            return datetime.fromisoformat(str(value))
+        except ValueError:
+            raise
+
     try:
-        clean_start = start_date_raw.replace('Z', '+00:00') if isinstance(start_date_raw, str) else str(start_date_raw)
-        clean_end = end_date_raw.replace('Z', '+00:00') if isinstance(end_date_raw, str) else str(end_date_raw)
-        start_date = datetime.fromisoformat(clean_start)
-        end_date = datetime.fromisoformat(clean_end)
+        start_date = parse_booking_datetime(start_date_raw)
+        end_date = parse_booking_datetime(end_date_raw)
         if start_date.tzinfo is not None:
             start_date = start_date.astimezone(timezone.utc).replace(tzinfo=None)
         if end_date.tzinfo is not None:

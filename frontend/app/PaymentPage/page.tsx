@@ -55,7 +55,29 @@ interface SpotDetails {
     is_on_sale?: boolean;
     is_available?: boolean;
     image_url?: string | null;
+    latitude?: number;
+    longitude?: number;
     bookings: SpotBooking[];
+}
+
+const INVALID_DESTINATION_TEXTS = [
+    'parking spot address',
+    'parking spot',
+    'address unavailable',
+    'unknown address',
+];
+
+function sanitizeDestinationValue(value?: string | null): string {
+    if (typeof value !== 'string') return '';
+
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+
+    const normalized = trimmed.toLowerCase();
+    const isPlaceholder = INVALID_DESTINATION_TEXTS.some((placeholder) => normalized === placeholder || normalized.includes(placeholder));
+    if (isPlaceholder) return '';
+
+    return trimmed;
 }
 
 const carModelOptions = [
@@ -162,7 +184,7 @@ function PaymentContent() {
             setSpotDetails({
                 id: 1,
                 title: 'Central Parking Spot',
-                address: 'Parking spot address',
+                address: 'Address unavailable',
                 description: 'Convenient central location with dedicated parking slot.',
                 start_hour: '08:00',
                 end_hour: '18:00',
@@ -194,6 +216,8 @@ function PaymentContent() {
                         is_on_sale: data.spot.is_on_sale,
                         is_available: data.spot.is_available ?? true,
                         image_url: data.spot.image_url,
+                        latitude: data.spot.latitude ?? null,
+                        longitude: data.spot.longitude ?? null,
                         bookings: Array.isArray(data.spot.bookings) ? data.spot.bookings : [],
                     });
                 }
@@ -203,7 +227,7 @@ function PaymentContent() {
                 setSpotDetails({
                     id: Number(spotIdParam) || 1,
                     title: 'Parking Spot',
-                    address: 'Parking spot address',
+                    address: 'Address unavailable',
                     start_hour: '08:00',
                     end_hour: '18:00',
                     price_per_day: 4,
@@ -525,43 +549,47 @@ function PaymentContent() {
     const handlePaymentSuccess = async () => {
         if (spotDetails && selectedDate && timeValidation.isValid && timeValidation.startMinutes !== undefined && timeValidation.endMinutes !== undefined) {
             try {
-                const startH = Math.floor(timeValidation.startMinutes / 60);
-                const startM = timeValidation.startMinutes % 60;
-                const endH = Math.floor(timeValidation.endMinutes / 60);
-                const endM = timeValidation.endMinutes % 60;
+                const toLocalIso = (date: Date) => {
+                    const pad = (value: number) => String(value).padStart(2, '0');
+                    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+                };
 
-                const startIso = new Date(
-                    selectedDate.getFullYear(),
-                    selectedDate.getMonth(),
-                    selectedDate.getDate(),
-                    startH,
-                    startM,
-                    0
-                ).toISOString();
+                const startDate = new Date(selectedDate);
+                startDate.setHours(Math.floor(timeValidation.startMinutes / 60), timeValidation.startMinutes % 60, 0, 0);
 
-                const endIso = new Date(
-                    selectedDate.getFullYear(),
-                    selectedDate.getMonth(),
-                    selectedDate.getDate(),
-                    endH,
-                    endM,
-                    0
-                ).toISOString();
+                const endDate = new Date(selectedDate);
+                endDate.setHours(Math.floor(timeValidation.endMinutes / 60), timeValidation.endMinutes % 60, 0, 0);
+
+                const payload = {
+                    spot_id: Number(spotDetails.id),
+                    start_date: toLocalIso(startDate),
+                    end_date: toLocalIso(endDate),
+                };
 
                 const res = await fetch(`${API}/api/bookings`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({
-                        spot_id: spotDetails.id,
-                        start_date: startIso,
-                        end_date: endIso,
-                    }),
+                    body: JSON.stringify(payload),
                 });
 
                 if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    console.error('Backend booking creation failed:', res.status, errData);
+                    const text = await res.text();
+                    let errData: unknown = {};
+                    try {
+                        errData = text ? JSON.parse(text) : {};
+                    } catch {
+                        errData = { raw: text || 'Empty response body' };
+                    }
+
+                    if (res.status === 404) {
+                        console.warn('Booking API endpoint not available on the configured backend host. Check that the backend server is running and the API URL is correct.', {
+                            status: res.status,
+                            errData,
+                        });
+                    } else {
+                        console.error('Backend booking creation failed:', res.status, errData);
+                    }
                 }
             } catch (err) {
                 console.error('Failed to create booking in backend:', err);
@@ -570,9 +598,25 @@ function PaymentContent() {
 
         const queryParams = new URLSearchParams();
         if (spotDetails) {
-            queryParams.set('spotTitle', spotDetails.title || spotDetails.address);
-            queryParams.set('spotAddress', spotDetails.address);
+            const sanitizedTitle = sanitizeDestinationValue(spotDetails.title);
+            const sanitizedAddress = sanitizeDestinationValue(spotDetails.address) || sanitizedTitle;
+
+            if (sanitizedTitle) {
+                queryParams.set('spotTitle', sanitizedTitle);
+            }
+            if (sanitizedAddress) {
+                queryParams.set('spotAddress', sanitizedAddress);
+            }
             queryParams.set('currency', spotDetails.price_currency || 'RON');
+            const hasValidCoords =
+                Number.isFinite(spotDetails.latitude) &&
+                Number.isFinite(spotDetails.longitude) &&
+                Math.abs(Number(spotDetails.latitude)) > 1e-6 &&
+                Math.abs(Number(spotDetails.longitude)) > 1e-6;
+            if (hasValidCoords) {
+                queryParams.set('spotLat', String(spotDetails.latitude));
+                queryParams.set('spotLng', String(spotDetails.longitude));
+            }
         }
         if (durationMinutes > 0) {
             queryParams.set('duration', formattedDuration);
@@ -714,7 +758,7 @@ function PaymentContent() {
                     <p className="text-xs font-medium text-[#42565d] dark:text-[#d6e7ea]">
                         Renting spot at:{' '}
                         <span className="font-bold text-[#121212] dark:text-white">
-                            {spotDetails?.address || 'Parking spot address'}
+                            {sanitizeDestinationValue(spotDetails?.address) || 'Address unavailable'}
                         </span>
                     </p>
 
