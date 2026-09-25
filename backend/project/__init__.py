@@ -30,9 +30,28 @@ def create_app():
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+    # Session / cookie defaults. In production behind HTTPS set SESSION_COOKIE_SECURE=True
+    # Use FRONTEND_DOMAIN to set cookie domain (e.g., parkshare.adv.ro)
     app.config['SESSION_COOKIE_SECURE'] = False
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+    frontend_domain = None
+    raw_frontend_domain = os.environ.get('FRONTEND_DOMAIN') or os.environ.get('FRONTEND_ORIGINS')
+    if raw_frontend_domain:
+        # FRONTEND_DOMAIN may be set to 'https://parkshare.adv.ro' or 'parkshare.adv.ro' or comma separated origins
+        # Normalize to bare hostname
+        first = (raw_frontend_domain.split(',')[0] if ',' in raw_frontend_domain else raw_frontend_domain).strip()
+        first = re.sub(r'^https?://', '', first).split('/')[0]
+        if first:
+            frontend_domain = first
+
+    if frontend_domain:
+        # Use a wildcard cookie domain for subdomains and ensure secure cookies
+        app.config['SESSION_COOKIE_DOMAIN'] = '.' + frontend_domain
+        app.config['SESSION_COOKIE_SECURE'] = True
+        app.config['PREFERRED_URL_SCHEME'] = 'https'
+
     app.config['UPLOAD_DIR'] = os.path.join(os.path.dirname(__file__), '..', 'uploads')
     os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True)
 
@@ -87,6 +106,19 @@ def create_app():
         if remote not in trusted:
             for header in ('HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED_PROTO', 'HTTP_X_FORWARDED_HOST', 'HTTP_X_FORWARDED_PORT', 'HTTP_X_FORWARDED_PREFIX'):
                 request.environ.pop(header, None)
+
+        # If request appears to be from the frontend hostname (non-localhost) and uses HTTPS
+        # ensure session cookies are marked secure and, if missing, set cookie domain to the host.
+        try:
+            host = (request.host or '').split(':')[0]
+            proto = request.headers.get('X-Forwarded-Proto') or request.scheme
+            if host and host not in ('localhost', '127.0.0.1') and proto == 'https':
+                app.config['SESSION_COOKIE_SECURE'] = True
+                app.config['PREFERRED_URL_SCHEME'] = 'https'
+                if not app.config.get('SESSION_COOKIE_DOMAIN'):
+                    app.config['SESSION_COOKIE_DOMAIN'] = '.' + host
+        except Exception:
+            pass
 
     with app.app_context():
         from .models import Booking, Car, City, ParkingSpot, PersonalDetails, ProfilePicture, User
