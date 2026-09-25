@@ -74,7 +74,7 @@ export default function SignUpScreen() {
                         Enter your email to sign up for this app
                     </p>
 
-                    <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit} action={ROUTES.REGISTER} method="get">
+                    <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit} noValidate>
                         <input
                             name="email"
                             type="email"

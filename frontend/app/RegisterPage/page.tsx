@@ -107,8 +107,7 @@ export default function RegisterPage() {
             }
 
             sessionStorage.removeItem('signupEmail');
-            router.push(ROUTES.HOME);
-            router.refresh();
+            window.location.href = ROUTES.HOME;
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : 'Unable to connect to the backend.');
         } finally {
