@@ -20,6 +20,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        {/* Inline failsafe script: if client JS bundles are blocked or hydration never runs,
+            this will hide the loading overlay and reveal the StartPage UI after a short timeout. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){
+          try{
+            var reveal = function(){
+              var overlay = document.getElementById('parkshare-loading-overlay');
+              if(overlay){ overlay.style.display = 'none'; }
+              var morph = document.getElementById('parkshare-morph-container');
+              if(morph){
+                morph.classList.remove('opacity-0','-translate-y-8','scale-150');
+                morph.classList.add('opacity-100','translate-y-0','scale-100');
+              }
+              var tagline = document.getElementById('parkshare-tagline-container');
+              if(tagline){
+                tagline.classList.remove('opacity-0','translate-y-16');
+                tagline.classList.add('opacity-100','translate-y-0');
+              }
+            };
+            // Preserve the intended 3-4s visual: reveal after ~3.6s as the primary fallback.
+            setTimeout(reveal, 3600);
+            // Additional fallbacks if the first attempt fails (network/devices): 8s and 15s
+            setTimeout(reveal, 8000);
+            setTimeout(reveal, 15000);
+          }catch(e){/* no-op */}
+        })();` }} />
+
         <LanguageProvider>
           <ThemeProvider
             attribute="class"
