@@ -40,7 +40,18 @@ export default function RegisterPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        setEmail(sessionStorage.getItem('signupEmail') ?? '');
+        const fromSession = sessionStorage.getItem('signupEmail') ?? '';
+        if (fromSession) {
+            setEmail(fromSession);
+        } else if (typeof window !== 'undefined') {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const q = params.get('email') || params.get('signupEmail');
+                if (q) setEmail(q);
+            } catch (e) {
+                // ignore
+            }
+        }
     }, []);
 
     // Automatically update cities dropdown when country changes

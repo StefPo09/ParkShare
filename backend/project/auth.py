@@ -235,16 +235,17 @@ def api_login():
 
     if not user or not check_password_hash(user.password, password):
         if source_is_form:
-            # For form submissions, preserve existing behavior by redirecting back to the login page
-            flash('Please check your login details and try again.')
-            return redirect(url_for('auth.login'))
+            # For form submissions, redirect back to the frontend login or referrer
+            target = request.form.get('next') or request.args.get('next') or request.referrer or _default_frontend_redirect()
+            return redirect(target)
         return jsonify({'error': 'Invalid email or password.'}), 401
 
     login_user(user, remember=bool(data.get('remember')))
 
     if source_is_form:
-        # Traditional form login: redirect to profile page (server-side flow)
-        return redirect(url_for('main.profile'))
+        # Redirect form submitters back to frontend (referrer/next) rather than server-side profile
+        target = request.form.get('next') or request.args.get('next') or request.referrer or _default_frontend_redirect()
+        return redirect(target)
 
     # AJAX/JSON API login: return user payload
     return jsonify({'user': _user_payload(user)}), 200

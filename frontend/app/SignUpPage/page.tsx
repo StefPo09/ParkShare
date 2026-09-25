@@ -73,8 +73,9 @@ export default function SignUpScreen() {
                         Enter your email to sign up for this app
                     </p>
 
-                    <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit}>
+                    <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit} action={ROUTES.REGISTER} method="get">
                         <input
+                            name="email"
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
