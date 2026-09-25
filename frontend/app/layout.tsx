@@ -38,10 +38,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 tagline.classList.add('opacity-100','translate-y-0');
               }
             };
-            // Run shortly after parse and again as a failsafe
-            setTimeout(reveal, 700);
-            setTimeout(reveal, 3000);
+            // Preserve the intended 3-4s visual: reveal after ~3.6s as the primary fallback.
+            setTimeout(reveal, 3600);
+            // Additional fallbacks if the first attempt fails (network/devices): 8s and 15s
             setTimeout(reveal, 8000);
+            setTimeout(reveal, 15000);
           }catch(e){/* no-op */}
         })();` }} />
 
