@@ -32,9 +32,7 @@ export default function LoginPage() {
     window.location.href = `${API}/api/auth/google/login?redirect_to=${encodeURIComponent(redirectTo)}`;
   };
 
-  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
-    e?.preventDefault();
-
+  const handleSubmit = async () => {
     if (!canLogIn || isSubmitting) {
       return;
     }
@@ -57,7 +55,7 @@ export default function LoginPage() {
         throw new Error(data?.error || 'The backend is unavailable. Please make sure it is running and try again.');
       }
 
-      window.location.href = ROUTES.HOME;
+      window.location.assign(ROUTES.HOME);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to connect to the backend.');
       setIsSubmitting(false);
@@ -144,7 +142,8 @@ export default function LoginPage() {
             )}
 
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={typeof window !== 'undefined' ? (!canLogIn || isSubmitting) : false}
               className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45"
             >

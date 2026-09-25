@@ -17,16 +17,14 @@ export default function SignUpScreen() {
         window.location.href = `${API}/api/auth/google/login?redirect_to=${encodeURIComponent(redirectTo)}`;
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
+    const handleSubmit = () => {
         if (!isEmailValid) {
             return;
         }
 
         const nextEmail = email.trim().toLowerCase();
         sessionStorage.setItem('signupEmail', nextEmail);
-        router.push(`${ROUTES.REGISTER}?email=${encodeURIComponent(nextEmail)}`);
+        window.location.assign(`${ROUTES.REGISTER}?email=${encodeURIComponent(nextEmail)}`);
     };
 
     return (
@@ -74,7 +72,7 @@ export default function SignUpScreen() {
                         Enter your email to sign up for this app
                     </p>
 
-                    <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit} noValidate>
+                    <div className="mt-6 w-full space-y-3">
                         <input
                             name="email"
                             type="email"
@@ -84,7 +82,8 @@ export default function SignUpScreen() {
                             className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40 dark:bg-[#1A2B3A] dark:text-white dark:border-white/20"
                         />
                         <button
-                            type="submit"
+                            type="button"
+                            onClick={handleSubmit}
                             disabled={typeof window !== 'undefined' ? !isEmailValid : false}
                             className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
                         >
@@ -93,7 +92,7 @@ export default function SignUpScreen() {
                         <a href={ROUTES.LOGIN} className="text-[#000000]/50 text-sm underline flex justify-end dark:text-white/80">
                             Already have an account?
                         </a>
-                    </form>
+                    </div>
 
                     <div className="my-5 flex w-full items-center gap-3">
                         <span className="h-px flex-1 bg-[#5B6B6E]/50 dark:bg-white/30"/>
