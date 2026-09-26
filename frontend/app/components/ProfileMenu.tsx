@@ -15,10 +15,11 @@ export default function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [userInfo, setUserInfo] = useState<{ firstName: string; lastName: string; email: string }>({
+  const [userInfo, setUserInfo] = useState<{ firstName: string; lastName: string; email: string; role: string }>({
     firstName: '',
     lastName: '',
     email: '',
+    role: '',
   });
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function ProfileMenu() {
               firstName: data.user.first_name || '',
               lastName: data.user.last_name || '',
               email: data.user.email || '',
+              role: data.user.role || '',
             });
           }
         }
@@ -133,6 +135,17 @@ export default function ProfileMenu() {
             <span>{t('viewProfile')}</span>
             <ChevronRight className="h-4 w-4 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
           </button>
+
+          {userInfo.role === 'admin' && (
+            <button
+              type="button"
+              onClick={() => { setIsOpen(false); router.push(ROUTES.ADMIN_REPORTS); }}
+              className="flex w-full cursor-pointer items-center justify-between border-t border-black/10 px-4 py-3 text-left text-[15px] font-semibold text-[#121212] transition hover:bg-black/5 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
+            >
+              <span>{t('reviewReports')}</span>
+              <ChevronRight className="h-4 w-4 text-[#42565d] dark:text-[#9db0b6]" strokeWidth={2.5} />
+            </button>
+          )}
 
           <button
             type="button"

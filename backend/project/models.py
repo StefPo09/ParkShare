@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from flask import flash, redirect, url_for
@@ -19,18 +19,43 @@ class User(UserMixin, db.Model):
     reset_token = db.Column(db.String(128), unique=True, nullable=True)
     reset_token_expires = db.Column(db.DateTime(timezone=True), nullable=True)
     role = db.Column(db.String(20), default='user')
+    is_banned = db.Column(db.Boolean, nullable=False, default=False)
+    banned_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     cars = db.relationship('Car', back_populates='owner', cascade='all, delete-orphan')
     parking_spots = db.relationship('ParkingSpot', back_populates='owner', cascade='all, delete-orphan')
     bookings = db.relationship('Booking', back_populates='user', cascade='all, delete-orphan')
     personal_details = db.relationship('PersonalDetails', uselist=False, back_populates='user', cascade='all, delete-orphan')
     profile_picture = db.relationship('ProfilePicture', uselist=False, back_populates='user', cascade='all, delete-orphan')
+    reports_made = db.relationship('UserReport', foreign_keys='UserReport.reporter_id', back_populates='reporter', cascade='all, delete-orphan')
+    reports_received = db.relationship('UserReport', foreign_keys='UserReport.target_id', back_populates='target', cascade='all, delete-orphan')
 
     def has_role(self, role):
         return self.role == role
 
     def is_admin(self):
         return self.role == 'admin'
+
+    @property
+    def is_active(self):
+        return not self.is_banned
+
+
+class UserReport(db.Model):
+    __tablename__ = 'user_report'
+    __table_args__ = (db.UniqueConstraint('reporter_id', 'target_id', name='uq_user_report_reporter_target'),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    target_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reason = db.Column(db.String(80), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='pending')
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    resolved_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    reporter = db.relationship('User', foreign_keys=[reporter_id], back_populates='reports_made')
+    target = db.relationship('User', foreign_keys=[target_id], back_populates='reports_received')
 
 
 class PersonalDetails(db.Model):
@@ -133,6 +158,7 @@ class ParkingSpot(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
+            'owner': {'id': self.owner.id, 'name': self.owner.name} if self.owner else None,
             'city_id': self.city_id,
             'title': self.title,
             'address': self.address,
@@ -149,6 +175,16 @@ class ParkingSpot(db.Model):
             'document_url': f'/api/spots/{self.id}/document' if self.document_url else None,
             'document_name': self.document_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'bookings': [
+                {
+                    'id': booking.id,
+                    'start_date': booking.start_date.replace(tzinfo=timezone.utc).isoformat() if booking.start_date else None,
+                    'end_date': booking.end_date.replace(tzinfo=timezone.utc).isoformat() if booking.end_date else None,
+                    'status': booking.status,
+                }
+                for booking in self.bookings
+                if booking.status != 'cancelled'
+            ] if self.bookings else [],
         }
 
 
@@ -172,11 +208,22 @@ class Booking(db.Model):
             'id': self.id,
             'spot_id': self.spot_id,
             'user_id': self.user_id,
-            'start_date': self.start_date.isoformat() if self.start_date else None,
-            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'start_date': self.start_date.replace(tzinfo=timezone.utc).isoformat() if self.start_date else None,
+            'end_date': self.end_date.replace(tzinfo=timezone.utc).isoformat() if self.end_date else None,
             'total_price': self.total_price,
             'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': self.created_at.replace(tzinfo=timezone.utc).isoformat() if self.created_at else None,
+            'spot': {
+                'id': self.spot.id,
+                'title': self.spot.title,
+                'address': self.spot.address,
+                'description': self.spot.description,
+                'start_hour': self.spot.start_hour or '14:00',
+                'end_hour': self.spot.end_hour or '18:00',
+                'price_per_day': self.spot.price_per_day,
+                'price_currency': self.spot.price_currency or 'RON',
+                'image_url': f'/api/spots/{self.spot.id}/image' if self.spot.image_url else None,
+            } if self.spot else None,
         }
 
 

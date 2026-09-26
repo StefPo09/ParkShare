@@ -12,6 +12,7 @@ import {
     Key,
     Home,
     Car,
+    Flag,
 } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
@@ -72,13 +73,19 @@ const mapCenter = {
 
 interface ParkingSpot {
     id: string;
+  owner_id?: number;
+  owner_name?: string;
+  title?: string;
+  description?: string;
     price: number;
+  price_currency?: string;
     address: string;
     availability: string;
     distance: string;
     image: string;
     lat: number;
     lng: number;
+    is_on_sale?: boolean;
 }
 
 const mockSpots: ParkingSpot[] = [
@@ -132,6 +139,12 @@ export default function ParkingRentPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [reportFormOpen, setReportFormOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportMessage, setReportMessage] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   // Load Google Maps SDK
   const { isLoaded } = useJsApiLoader({
@@ -202,6 +215,11 @@ export default function ParkingRentPage() {
 
   // Fetch available parking spots
   useEffect(() => {
+    fetch(`${API}/api/auth/me`, { credentials: 'include' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => setCurrentUserId(data?.user?.id ?? null))
+      .catch(() => setCurrentUserId(null));
+
     const fetchSpots = async () => {
       try {
         const response = await fetch(`${API}/api/spots?available_only=true`, {
@@ -217,13 +235,21 @@ export default function ParkingRentPage() {
 
         const fetchedSpots: ParkingSpot[] = rawSpots.map((s: any) => ({
           id: s.id ?? s._id ?? String(s.id ?? ''),
+          owner_id: Number(s.owner?.id ?? s.user_id) || undefined,
+          owner_name: s.owner?.name || '',
+          title: s.title || s.address || '',
+          description: s.description || '',
           price: s.price_per_day ?? s.price ?? 0,
+          price_currency: s.price_currency || 'RON',
           address: s.address ?? s.location ?? '',
-          availability: s.availability ?? s.available_hours ?? '',
+          availability: s.availability ?? s.available_hours ?? `${s.start_hour || '14:00'} - ${s.end_hour || '18:00'}`,
           distance: s.distance ?? '',
-          image: s.image ?? s.photo ?? '',
+          image: s.image_url
+            ? (s.image_url.startsWith('http') ? s.image_url : `${API}${s.image_url}`)
+            : s.image ?? s.photo ?? '',
           lat: s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0,
           lng: s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0,
+          is_on_sale: Boolean(s.is_on_sale),
         }));
 
         const spotsToUse = fetchedSpots.length > 0 ? fetchedSpots : mockSpots;
@@ -256,6 +282,42 @@ export default function ParkingRentPage() {
 
     fetchSpots();
   }, [API, userLocation]);
+
+  const submitReport = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedSpot?.owner_id || !reportReason) return;
+
+    setReportSubmitting(true);
+    setReportMessage('');
+    try {
+      const response = await fetch(`${API}/api/users/${selectedSpot.owner_id}/reports`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reportReason, details: reportDetails }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const errorKeys: Record<string, string> = {
+          authentication_required: 'reportErrorAuthentication',
+          cannot_report_self: 'reportErrorSelf',
+          user_not_found: 'reportErrorUserNotFound',
+          account_banned: 'reportErrorBanned',
+          invalid_report_reason: 'reportErrorInvalidReason',
+          report_details_too_long: 'reportErrorDetailsTooLong',
+          already_reported: 'reportErrorDuplicate',
+        };
+        throw new Error(t(errorKeys[data.error] || 'reportFailed'));
+      }
+      setReportMessage(t('reportSubmitted'));
+      setReportFormOpen(false);
+      setReportDetails('');
+    } catch (error) {
+      setReportMessage(error instanceof Error ? error.message : t('reportFailed'));
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -378,9 +440,13 @@ export default function ParkingRentPage() {
                   <MarkerF
                     key={spot.id}
                     position={{ lat: spot.lat, lng: spot.lng }}
-                    onClick={() => setSelectedSpot(spot)}
+                    onClick={() => {
+                      setSelectedSpot(spot);
+                      setReportFormOpen(false);
+                      setReportMessage('');
+                    }}
                     label={{
-                      text: `$${spot.price}/d`,
+                      text: `${spot.price} ${spot.price_currency || 'RON'}/d`,
                       color: isSelected ? '#ffffff' : '#121212',
                       fontSize: '11px',
                       fontWeight: 'bold',
@@ -399,6 +465,77 @@ export default function ParkingRentPage() {
             </div>
           )}
         </main>
+
+        {selectedSpot && (
+          <section className="absolute bottom-[76px] left-3 right-3 z-20 max-h-[45vh] overflow-y-auto rounded-xl border border-black/10 bg-[#cde8e8] p-4 shadow-xl dark:border-white/10 dark:bg-[#0c2e2b]">
+            {selectedSpot.image && (
+              <div className="relative mb-3 h-28 w-full overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-800">
+                <Image src={selectedSpot.image} alt={selectedSpot.title || selectedSpot.address} fill unoptimized className="object-cover" />
+              </div>
+            )}
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="truncate text-base font-bold text-[#1a4a58] dark:text-[#a0ece0]">{selectedSpot.address}</h2>
+                <p className="mt-1 flex items-center gap-1 text-sm text-[#52737c] dark:text-[#74928d]">
+                  <Clock className="h-4 w-4" /> {selectedSpot.availability || 'Available hours not listed'}
+                  <span className="ml-2 font-semibold">{selectedSpot.price} {selectedSpot.price_currency || 'RON'} / day</span>
+                </p>
+                {selectedSpot.title && selectedSpot.title !== selectedSpot.address && (
+                  <p className="mt-1 truncate text-sm font-semibold text-[#1a4a58] dark:text-[#a0ece0]">{selectedSpot.title}</p>
+                )}
+              </div>
+              <button type="button" onClick={() => setSelectedSpot(null)} aria-label={t('close')} className="rounded p-1 text-slate-600 hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10">×</button>
+            </div>
+
+            {selectedSpot.description && <p className="mt-2 line-clamp-2 text-xs text-[#52737c] dark:text-[#74928d]">{selectedSpot.description}</p>}
+            <div className="mt-3 flex justify-end border-t border-black/10 pt-3 dark:border-white/10">
+              <button
+                type="button"
+                disabled={!selectedSpot.is_on_sale}
+                onClick={() => {
+                  if (selectedSpot.is_on_sale) router.push(`${ROUTES.PAYMENT}?spot=${selectedSpot.id}`);
+                }}
+                className={`rounded-md px-5 py-2 text-sm font-bold text-white transition ${selectedSpot.is_on_sale ? 'cursor-pointer bg-[#0c4a75] hover:bg-[#0a3c5f] dark:bg-[#155b8a]' : 'cursor-not-allowed bg-slate-400 opacity-60 dark:bg-slate-600'}`}
+              >
+                PAY
+              </button>
+            </div>
+
+            {selectedSpot.owner_id && selectedSpot.owner_id !== currentUserId && (
+              <div className="mt-3 border-t border-black/10 pt-2 dark:border-white/10">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-xs text-[#52737c] dark:text-[#74928d]">{t('listedBy')} {selectedSpot.owner_name || t('spotOwner')}</span>
+                  {!reportFormOpen && !reportMessage.startsWith(t('reportSubmitted')) && (
+                    <button type="button" onClick={() => { setReportFormOpen(true); setReportMessage(''); }} className="inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30">
+                      <Flag className="h-3.5 w-3.5" /> {t('reportUser')}
+                    </button>
+                  )}
+                </div>
+                {reportFormOpen && (
+                  <form onSubmit={submitReport} className="mt-2 space-y-2">
+                    <label className="block text-xs font-semibold">
+                      {t('reportReason')}
+                      <select required value={reportReason} onChange={(event) => setReportReason(event.target.value)} className="mt-1 w-full rounded-md border border-black/15 bg-white px-2 py-2 text-sm text-[#121212] dark:border-white/15 dark:bg-[#102b28] dark:text-white">
+                        <option value="">{t('selectReason')}</option>
+                        <option value="fraud">{t('reportFraud')}</option>
+                        <option value="harassment">{t('reportHarassment')}</option>
+                        <option value="unsafe_behavior">{t('reportUnsafe')}</option>
+                        <option value="misleading_listing">{t('reportMisleading')}</option>
+                        <option value="other">{t('reportOther')}</option>
+                      </select>
+                    </label>
+                    <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={2000} rows={2} placeholder={t('reportDetailsPlaceholder')} className="w-full resize-y rounded-md border border-black/15 bg-white px-2 py-2 text-sm text-[#121212] placeholder:text-slate-500 dark:border-white/15 dark:bg-[#102b28] dark:text-white" />
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => setReportFormOpen(false)} className="rounded px-3 py-1.5 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/10">{t('cancel')}</button>
+                      <button type="submit" disabled={reportSubmitting || !reportReason} className="rounded bg-red-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">{reportSubmitting ? t('submittingReport') : t('submitReport')}</button>
+                    </div>
+                  </form>
+                )}
+                {reportMessage && <p role="status" className="mt-1 text-xs">{reportMessage}</p>}
+              </div>
+            )}
+          </section>
+        )}
 
         <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
           <button

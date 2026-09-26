@@ -116,6 +116,8 @@ def api_login():
     user = User.query.filter_by(email=email).first()
     if not user or not user.password or not check_password_hash(user.password, password):
         return jsonify({'error': 'Invalid email or password.'}), 401
+    if user.is_banned:
+        return jsonify({'error': 'account_banned'}), 403
     login_user(user, remember=bool(data.get('remember')))
     return jsonify({'user': user_response(user)}), 200
 
@@ -165,6 +167,18 @@ def update_personal_details():
 def api_logout():
     logout_user()
     return jsonify({'success': True}), 200
+
+
+@auth.route('/api/user/account', methods=['DELETE'])
+@login_required
+def api_delete_account():
+    user = current_user._get_current_object()
+    logout_user()
+    db.session.delete(user)
+    db.session.commit()
+    response = jsonify({'success': True, 'message': 'Account deleted successfully.'})
+    response.delete_cookie('session')
+    return response, 200
 
 
 @auth.route('/api/user/profile-picture', methods=['GET', 'POST', 'DELETE'])
@@ -251,6 +265,9 @@ def login_post():
     user = User.query.filter_by(email=email).first()
     if not user or not user.password or not check_password_hash(user.password, password):
         flash('Please check your login details and try again.')
+        return redirect(url_for('auth.login'))
+    if user.is_banned:
+        flash('This account has been banned.')
         return redirect(url_for('auth.login'))
 
     login_user(user, remember=remember)

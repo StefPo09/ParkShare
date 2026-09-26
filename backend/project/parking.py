@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 from flask_login import current_user, login_required
@@ -486,43 +486,82 @@ def update_spot_availability(spot_id):
 @login_required
 def get_dashboard_timers():
     now = datetime.utcnow()
+    bookings = Booking.query.filter(
+        Booking.user_id == current_user.id,
+        Booking.status != 'cancelled',
+    ).order_by(Booking.start_date.asc()).all()
 
-    upcoming_booking = (
-        Booking.query
-        .filter_by(user_id=current_user.id)
-        .filter(Booking.start_date > now)
-        .order_by(Booking.start_date.asc())
-        .first()
-    )
+    active_booking = None
+    upcoming_booking = None
+    for booking in bookings:
+        if booking.start_date <= now:
+            if not active_booking or booking.start_date > active_booking.start_date:
+                active_booking = booking
+        elif not upcoming_booking or booking.start_date < upcoming_booking.start_date:
+            upcoming_booking = booking
 
-    active_booking = (
-        Booking.query
-        .filter_by(user_id=current_user.id)
-        .filter(Booking.start_date <= now, Booking.end_date >= now)
-        .order_by(Booking.end_date.asc())
-        .first()
-    )
-
-    response = {
-        'reservation': None,
-        'rental': None,
-    }
-
-    if upcoming_booking:
-        response['reservation'] = {
-            'title': 'Reservation starts in',
-            'targetTime': upcoming_booking.start_date.timestamp() * 1000,
-            'status': 'upcoming',
-        }
-
+    rental_data = None
     if active_booking:
-        response['rental'] = {
-            'title': 'Rental session ends in',
-            'targetTime': active_booking.end_date.timestamp() * 1000,
-            'status': 'active',
+        spot = active_booking.spot
+        end_date_utc = active_booking.end_date.replace(tzinfo=timezone.utc)
+        start_date_utc = active_booking.start_date.replace(tzinfo=timezone.utc)
+        is_overtime = now > active_booking.end_date
+        overtime_seconds = max(0, int((now - active_booking.end_date).total_seconds()))
+        hourly_rate = float(spot.price_per_day) if spot else 4.0
+
+        if spot and spot.start_hour and spot.end_hour:
+            try:
+                start_parts = [int(part) for part in spot.start_hour.split(':')]
+                end_parts = [int(part) for part in spot.end_hour.split(':')]
+                start_hour = start_parts[0] + (start_parts[1] / 60 if len(start_parts) > 1 else 0)
+                end_hour = end_parts[0] + (end_parts[1] / 60 if len(end_parts) > 1 else 0)
+                operating_hours = end_hour - start_hour if end_hour > start_hour else 24
+                hourly_rate = round(float(spot.price_per_day) / operating_hours, 2)
+            except (TypeError, ValueError, IndexError):
+                hourly_rate = round(float(spot.price_per_day) / 24, 2)
+
+        rental_data = {
+            'id': active_booking.id,
+            'title': spot.title if spot else 'Active Parking Spot',
+            'address': spot.address if spot else '',
+            'targetTime': int(end_date_utc.timestamp() * 1000),
+            'startTime': int(start_date_utc.timestamp() * 1000),
+            'status': 'overtime' if is_overtime else 'active',
+            'is_overtime': is_overtime,
+            'overtime_seconds': overtime_seconds,
+            'hourly_rate': hourly_rate,
+            'extra_cost': round((overtime_seconds / 3600) * hourly_rate, 2),
+            'currency': spot.price_currency if spot else 'RON',
+            'start_date': start_date_utc.isoformat(),
+            'end_date': end_date_utc.isoformat(),
+            'spot': spot.to_dict() if spot else None,
         }
 
-    return jsonify(response), 200
+    reservation_data = None
+    if upcoming_booking:
+        spot = upcoming_booking.spot
+        start_date_utc = upcoming_booking.start_date.replace(tzinfo=timezone.utc)
+        end_date_utc = upcoming_booking.end_date.replace(tzinfo=timezone.utc)
+        target_time_ms = int(start_date_utc.timestamp() * 1000)
+        reservation_data = {
+            'id': upcoming_booking.id,
+            'title': spot.title if spot else 'Upcoming Reservation',
+            'address': spot.address if spot else '',
+            'targetTime': target_time_ms,
+            'startTime': target_time_ms,
+            'endTime': int(end_date_utc.timestamp() * 1000),
+            'status': 'upcoming',
+            'currency': spot.price_currency if spot else 'RON',
+            'start_date': start_date_utc.isoformat(),
+            'end_date': end_date_utc.isoformat(),
+            'spot': spot.to_dict() if spot else None,
+        }
+
+    return jsonify({
+        'rental': rental_data,
+        'reservation': reservation_data,
+        'bookings': [booking.to_dict() for booking in bookings],
+    }), 200
 
 
 @parking.route('/api/bookings', methods=['GET'])
@@ -557,22 +596,52 @@ def create_booking():
         return jsonify({'error': 'You cannot book your own spot.'}), 400
 
     try:
-        start_date = datetime.fromisoformat(start_date_raw)
-        end_date = datetime.fromisoformat(end_date_raw)
+        start_value = start_date_raw.replace('Z', '+00:00') if isinstance(start_date_raw, str) else str(start_date_raw)
+        end_value = end_date_raw.replace('Z', '+00:00') if isinstance(end_date_raw, str) else str(end_date_raw)
+        start_date = datetime.fromisoformat(start_value)
+        end_date = datetime.fromisoformat(end_value)
     except ValueError:
         return jsonify({'error': 'start_date and end_date must be valid ISO datetime strings.'}), 400
+
+    if start_date.tzinfo is not None:
+        start_date = start_date.astimezone(timezone.utc).replace(tzinfo=None)
+    if end_date.tzinfo is not None:
+        end_date = end_date.astimezone(timezone.utc).replace(tzinfo=None)
 
     if end_date <= start_date:
         return jsonify({'error': 'end_date must be after start_date.'}), 400
 
-    total_price = (end_date - start_date).total_seconds() / 86400 * float(spot.price_per_day)
+    overlapping = Booking.query.filter(
+        Booking.spot_id == spot.id,
+        Booking.status != 'cancelled',
+        Booking.start_date < end_date,
+        Booking.end_date > start_date,
+    ).first()
+    if overlapping:
+        return jsonify({'error': 'The selected time slot is already booked.'}), 409
+
+    operating_hours = 24.0
+    if spot.start_hour and spot.end_hour:
+        try:
+            start_parts = [int(part) for part in spot.start_hour.split(':')]
+            end_parts = [int(part) for part in spot.end_hour.split(':')]
+            start_hour = start_parts[0] + (start_parts[1] / 60 if len(start_parts) > 1 else 0)
+            end_hour = end_parts[0] + (end_parts[1] / 60 if len(end_parts) > 1 else 0)
+            if end_hour > start_hour:
+                operating_hours = end_hour - start_hour
+        except (TypeError, ValueError, IndexError):
+            operating_hours = 24.0
+
+    hourly_rate = float(spot.price_per_day) / operating_hours
+    duration_hours = (end_date - start_date).total_seconds() / 3600
+    total_price = round(duration_hours * hourly_rate, 2)
     booking = Booking(
         spot_id=spot.id,
         user_id=current_user.id,
         start_date=start_date,
         end_date=end_date,
         total_price=total_price,
-        status='pending',
+        status='confirmed',
     )
     db.session.add(booking)
     db.session.commit()
