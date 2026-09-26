@@ -144,6 +144,9 @@ def login_post():
     if not user or not check_password_hash(user.password, password):
         flash('Please check your login details and try again.')
         return redirect(url_for('auth.login'))
+    if user.is_banned:
+        flash('This account has been banned.')
+        return redirect(url_for('auth.login'))
 
     login_user(user, remember=bool(request.form.get('remember')))
     return redirect(url_for('main.profile'))
@@ -224,6 +227,8 @@ def api_login():
 
     if not user or not check_password_hash(user.password, password):
         return jsonify({'error': 'Invalid email or password.'}), 401
+    if user.is_banned:
+        return jsonify({'error': 'account_banned'}), 403
 
     login_user(user, remember=bool(data.get('remember')))
     return jsonify({'user': _user_payload(user)}), 200
@@ -269,6 +274,8 @@ def google_callback():
         return redirect(_default_frontend_redirect())
 
     user = User.query.filter_by(email=email).first()
+    if user and user.is_banned:
+        return redirect(_default_frontend_redirect())
     if not user:
         full_name = str(userinfo.get('name') or userinfo.get('given_name', '')).strip()
         first_name = str(userinfo.get('given_name') or '').strip()
@@ -354,7 +361,7 @@ def api_update_personal_details():
         return jsonify({'error': 'Authentication required.'}), 401
 
     data = request.get_json(silent=True) or {}
-    user = current_user
+    user = current_user._get_current_object()
 
     if 'email' in data:
         email = str(data['email']).strip().lower()
@@ -402,7 +409,7 @@ def api_delete_account():
     if not current_user.is_authenticated:
         return jsonify({'error': 'Authentication required.'}), 401
 
-    user = current_user
+    user = current_user._get_current_object()
     logout_user()
     db.session.delete(user)
     db.session.commit()

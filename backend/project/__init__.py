@@ -7,9 +7,9 @@ try:
     from authlib.integrations.flask_client import OAuth
 except Exception:
     OAuth = None
-from flask import Flask, request
+from flask import Flask, jsonify, redirect, request, url_for
 from flask_cors import CORS
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, text
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -89,7 +89,7 @@ def create_app():
                 request.environ.pop(header, None)
 
     with app.app_context():
-        from .models import Booking, Car, City, ParkingSpot, PersonalDetails, ProfilePicture, User
+        from .models import Booking, Car, City, ParkingSpot, PersonalDetails, ProfilePicture, User, UserReport
         db.create_all()
         user_columns = {column['name'] for column in inspect(db.engine).get_columns('user')}
         for col_name, ddl in {
@@ -98,6 +98,8 @@ def create_app():
             'role': "ALTER TABLE user ADD COLUMN role VARCHAR(20) DEFAULT 'user'",
             'phone_country_code': 'ALTER TABLE user ADD COLUMN phone_country_code VARCHAR(8)',
             'phone': 'ALTER TABLE user ADD COLUMN phone VARCHAR(30)',
+            'is_banned': 'ALTER TABLE user ADD COLUMN is_banned BOOLEAN NOT NULL DEFAULT 0',
+            'banned_at': 'ALTER TABLE user ADD COLUMN banned_at DATETIME',
         }.items():
             if col_name not in user_columns:
                 db.session.execute(text(ddl))
@@ -119,6 +121,17 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    @app.before_request
+    def _reject_banned_users():
+        if not current_user.is_authenticated or not current_user.is_banned:
+            return None
+        if request.endpoint in {'auth.api_login', 'auth.api_logout', 'auth.login', 'auth.login_post', 'auth.logout'}:
+            return None
+        logout_user()
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'account_banned'}), 403
+        return redirect(url_for('auth.login'))
+
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint)
 
@@ -127,6 +140,9 @@ def create_app():
 
     from .parking import parking as parking_blueprint
     app.register_blueprint(parking_blueprint)
+
+    from .reports import reports as reports_blueprint
+    app.register_blueprint(reports_blueprint)
 
     # Debug: print registered routes to help diagnose missing-route issues
     try:
