@@ -505,7 +505,7 @@ export default function AccountSettingsPage() {
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-400" />
-            </button>
+            </a>
             <button
               type="button"
               onClick={() => setShowDeleteAccountModal(true)}

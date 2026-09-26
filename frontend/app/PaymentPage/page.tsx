@@ -737,7 +737,6 @@ function PaymentContent() {
                     </div>
 
                     <a
-                        type="button"
                         aria-label="Close"
                         href={ROUTES.RENT}
                         onClick={(e) => { e.preventDefault(); router.push(ROUTES.RENT); }}
@@ -751,7 +750,7 @@ function PaymentContent() {
                         "
                     >
                         <X className="h-7 w-7" strokeWidth={2.2} />
-                    </button>
+                    </a>
                 </header>
 
                 {/* Spot Address Header & Details trigger */}

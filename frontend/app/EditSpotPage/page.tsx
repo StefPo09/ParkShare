@@ -1209,7 +1209,7 @@ function EditSpotPageContent() {
                         }`}
                     >
                         <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-                    </button>
+                    </a>
                 </nav>
 
             </div>

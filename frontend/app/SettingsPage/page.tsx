@@ -224,7 +224,7 @@ export default function SettingsPage() {
                   <span className="text-[17px] font-medium text-[#121212] dark:text-white">{t('termsOfService')}</span>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400" />
-              </button>
+              </a>
 
               <a href={ROUTES.PRIVACY_POLICY} onClick={(e) => { e.preventDefault(); router.push(ROUTES.PRIVACY_POLICY); }} className="flex w-full items-center justify-between px-3 py-3 text-left transition cursor-pointer hover:bg-white/40 dark:hover:bg-white/5">
                 <div className="flex items-center gap-2">
@@ -232,7 +232,7 @@ export default function SettingsPage() {
                   <span className="text-[17px] font-medium text-[#121212] dark:text-white">{t('privacyPolicy')}</span>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400" />
-              </button>
+              </a>
 
               <a
                 href={ROUTES.HELP}

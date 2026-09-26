@@ -457,7 +457,7 @@ export default function HomePage() {
                           <p className="text-[11px] font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.address}</p>
                           <p className="text-[18px] font-bold text-[#121212] dark:text-white">{spot.price}</p>
                         </div>
-                      </button>
+                      </a>
                   ))}
                 </div>
               </div>
