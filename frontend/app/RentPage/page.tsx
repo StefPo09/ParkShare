@@ -14,6 +14,7 @@ import {
   Clock,
   MapPin,
   X,
+  Flag,
 } from 'lucide-react';
 import Image from 'next/image';
 import NavMenu from "../components/NavMenu";
@@ -73,6 +74,8 @@ const mapCenter = {
 
 interface ParkingSpot {
   id: string;
+  owner_id?: number;
+  owner_name?: string;
   title?: string;
   price: number;
   price_currency?: string;
@@ -158,6 +161,12 @@ function RentPageContent() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [searchValue, setSearchValue] = useState(initialQuery);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [reportFormOpen, setReportFormOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportMessage, setReportMessage] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   // Gestiuni Drag/Swipe pentru Bottom Sheet
   const [sheetY, setSheetY] = useState(0);
@@ -227,6 +236,11 @@ function RentPageContent() {
   }, [map, userLocation]);
 
   useEffect(() => {
+    fetch(`${API}/api/auth/me`, { credentials: 'include' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => setCurrentUserId(data?.user?.id ?? null))
+      .catch(() => setCurrentUserId(null));
+
     const fetchSpots = async () => {
       try {
         const response = await fetch(`${API}/api/spots?available_only=true`, {
@@ -249,6 +263,8 @@ function RentPageContent() {
 
           return {
             id: String(s.id ?? s._id ?? ''),
+            owner_id: Number(s.owner?.id ?? s.user_id) || undefined,
+            owner_name: s.owner?.name || '',
             title: s.title || s.address || 'Parking Spot',
             price: priceVal,
             price_currency: currency,
@@ -277,6 +293,41 @@ function RentPageContent() {
 
     fetchSpots();
   }, [API]);
+
+  const submitReport = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedSpot?.owner_id || !reportReason) return;
+    setReportSubmitting(true);
+    setReportMessage('');
+    try {
+      const response = await fetch(`${API}/api/users/${selectedSpot.owner_id}/reports`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reportReason, details: reportDetails }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const errorKeys: Record<string, string> = {
+          authentication_required: 'reportErrorAuthentication',
+          cannot_report_self: 'reportErrorSelf',
+          user_not_found: 'reportErrorUserNotFound',
+          account_banned: 'reportErrorBanned',
+          invalid_report_reason: 'reportErrorInvalidReason',
+          report_details_too_long: 'reportErrorDetailsTooLong',
+          already_reported: 'reportErrorDuplicate',
+        };
+        throw new Error(t(errorKeys[data.error] || 'reportFailed'));
+      }
+      setReportMessage(t('reportSubmitted'));
+      setReportFormOpen(false);
+      setReportDetails('');
+    } catch (error) {
+      setReportMessage(error instanceof Error ? error.message : t('reportFailed'));
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
 
   const handleAddressSearch = useCallback((addressToSearch?: string) => {
     const targetAddress = addressToSearch !== undefined ? addressToSearch : searchValue;
@@ -439,6 +490,8 @@ function RentPageContent() {
                             onClick={() => {
                               setSelectedSpot(spot);
                               setSheetY(0);
+                              setReportFormOpen(false);
+                              setReportMessage('');
                             }}
                             label={{
                               text: `${spot.price} ${spot.price_currency || 'RON'}`,
@@ -605,6 +658,43 @@ function RentPageContent() {
                       </p>
                   )}
                 </div>
+
+                {selectedSpot.owner_id && selectedSpot.owner_id !== currentUserId && (
+                  <div className="mt-2 border-t border-black/5 px-1 pt-2 dark:border-white/10">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="min-w-0 truncate text-[11px] text-[#52737c] dark:text-[#74928d]">
+                        {t('listedBy')} {selectedSpot.owner_name || t('spotOwner')}
+                      </span>
+                      {!reportFormOpen && !reportMessage.startsWith(t('reportSubmitted')) && (
+                        <button type="button" onClick={() => { setReportFormOpen(true); setReportMessage(''); }} className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30">
+                          <Flag className="h-3.5 w-3.5" />
+                          {t('reportUser')}
+                        </button>
+                      )}
+                    </div>
+                    {reportFormOpen && (
+                      <form onSubmit={submitReport} className="mt-2 space-y-2">
+                        <label className="block text-xs font-semibold text-[#1a4a58] dark:text-[#a0ece0]">
+                          {t('reportReason')}
+                          <select required value={reportReason} onChange={(event) => setReportReason(event.target.value)} className="mt-1 w-full rounded-md border border-black/15 bg-white px-2 py-2 text-sm text-[#121212] dark:border-white/15 dark:bg-[#102b28] dark:text-white">
+                            <option value="">{t('selectReason')}</option>
+                            <option value="fraud">{t('reportFraud')}</option>
+                            <option value="harassment">{t('reportHarassment')}</option>
+                            <option value="unsafe_behavior">{t('reportUnsafe')}</option>
+                            <option value="misleading_listing">{t('reportMisleading')}</option>
+                            <option value="other">{t('reportOther')}</option>
+                          </select>
+                        </label>
+                        <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={2000} rows={2} placeholder={t('reportDetailsPlaceholder')} className="w-full resize-y rounded-md border border-black/15 bg-white px-2 py-2 text-sm text-[#121212] placeholder:text-slate-500 dark:border-white/15 dark:bg-[#102b28] dark:text-white" />
+                        <div className="flex justify-end gap-2">
+                          <button type="button" onClick={() => setReportFormOpen(false)} className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10">{t('cancel')}</button>
+                          <button type="submit" disabled={reportSubmitting || !reportReason} className="rounded-md bg-red-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">{reportSubmitting ? t('submittingReport') : t('submitReport')}</button>
+                        </div>
+                      </form>
+                    )}
+                    {reportMessage && <p role="status" className="mt-1 text-xs text-[#1a4a58] dark:text-[#a0ece0]">{reportMessage}</p>}
+                  </div>
+                )}
               </div>
           )}
         </div>
