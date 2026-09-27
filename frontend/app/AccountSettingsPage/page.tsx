@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
@@ -169,7 +168,6 @@ export default function AccountSettingsPage() {
         setSavedProfile(nextProfile);
         setDraftProfile(nextProfile);
         setAvatarUrl(u.profile_picture_url || '');
-        await loadProfilePicture();
       } catch (e) {
         console.warn('Failed to load account settings:', e);
       } finally {
@@ -382,7 +380,12 @@ export default function AccountSettingsPage() {
             <div className="relative mb-4">
               <div className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-white/50 bg-gradient-to-br ${avatarUrl ? 'bg-white' : avatarGradient} text-white shadow-[inset_0_2px_10px_rgba(15,23,42,0.08),0_18px_34px_rgba(15,23,42,0.09)]`}>
                 {avatarUrl ? (
-                  <Image src={avatarUrl} alt="Profile avatar" width={128} height={128} className="h-full w-full object-cover" />
+                  <img
+                    src={avatarUrl}
+                    alt="Profile avatar"
+                    className="h-full w-full object-cover"
+                    onError={() => setAvatarUrl('')}
+                  />
                 ) : (
                   <span className="text-2xl font-bold tracking-[0.12em] text-white">{initials}</span>
                 )}

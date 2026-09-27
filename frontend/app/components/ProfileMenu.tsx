@@ -44,18 +44,6 @@ export default function ProfileMenu() {
         console.warn('Backend unavailable for user data in ProfileMenu');
       }
 
-      try {
-        const API = getApiBaseUrl();
-        const picRes = await fetch(`${API}/api/user/profile-picture/download`, { credentials: 'include' });
-        if (picRes.ok) {
-          const blob = await picRes.blob();
-          if (!isCancelled) {
-            setAvatarUrl(URL.createObjectURL(blob));
-          }
-        }
-      } catch (err) {
-        console.warn('Backend unavailable for profile picture in ProfileMenu');
-      }
     };
 
     fetchUserData();
@@ -131,7 +119,12 @@ export default function ProfileMenu() {
       >
         <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/10">
           {avatarUrl ? (
-            <img src={avatarUrl} alt="User profile" className="h-full w-full object-cover" />
+            <img
+              src={avatarUrl}
+              alt="User profile"
+              className="h-full w-full object-cover"
+              onError={() => setAvatarUrl('')}
+            />
           ) : initials ? (
             <div className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${avatarGradient} text-white font-bold text-[11px] tracking-wider select-none`}>
               {initials}
