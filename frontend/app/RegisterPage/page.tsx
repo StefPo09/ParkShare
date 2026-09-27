@@ -40,7 +40,19 @@ export default function RegisterPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        setEmail(sessionStorage.getItem('signupEmail') ?? '');
+        if (typeof window === 'undefined') return;
+
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('email') || params.get('signupEmail');
+        const fromSession = sessionStorage.getItem('signupEmail') ?? '';
+
+        const nextEmail = q || fromSession;
+        if (nextEmail) {
+            setEmail(nextEmail);
+            if (!fromSession) {
+                sessionStorage.setItem('signupEmail', nextEmail);
+            }
+        }
     }, []);
 
     // Automatically update cities dropdown when country changes
@@ -95,8 +107,7 @@ export default function RegisterPage() {
             }
 
             sessionStorage.removeItem('signupEmail');
-            router.push(ROUTES.HOME);
-            router.refresh();
+            window.location.href = ROUTES.HOME;
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : 'Unable to connect to the backend.');
         } finally {

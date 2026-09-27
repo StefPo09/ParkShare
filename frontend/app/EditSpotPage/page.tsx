@@ -656,13 +656,14 @@ function EditSpotPageContent() {
                             {t('yourSpot')}
                         </h1>
                     </div>
-                    <button
+                    <a
                         aria-label="Close"
-                        onClick={() => router.push(ROUTES.MANAGE_SPOT)}
+                        href={ROUTES.MANAGE_SPOT}
+                        onClick={(e) => { e.preventDefault(); router.push(ROUTES.MANAGE_SPOT); }}
                         className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
                     >
                         <X className="h-7 w-7" strokeWidth={2.2} />
-                    </button>
+                    </a>
                 </header>
 
                 <main className="flex-1 px-4 pt-4 overflow-y-auto space-y-4 pb-24 no-scrollbar">
@@ -939,7 +940,7 @@ function EditSpotPageContent() {
                             <div className="relative w-full h-60 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 shadow-inner bg-[#e8e8e8] dark:bg-[#121c1a]">
                                 {loadError ? (
                                     <div className="flex h-full items-center justify-center px-4 text-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">
-                                        Google Maps is blocked for this host. In Google Cloud, allow this URL in the API key restrictions: {typeof window !== 'undefined' ? window.location.origin : 'this device'}.
+                                        Google Maps is blocked for this host. In Google Cloud, allow this app's domain in the API key restrictions.
                                     </div>
                                 ) : !googleMapsApiKey ? (
                                     <div className="flex h-full items-center justify-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">
@@ -1180,32 +1181,35 @@ function EditSpotPageContent() {
                 </main>
 
                 <nav className="absolute bottom-0 left-0 right-0 flex justify-around items-center py-4 bg-[#dfeef0] dark:bg-[#011b1b] border-t border-black/5 dark:border-white/10 z-30">
-                    <button
-                        onClick={() => { setActiveTab('key'); router.push(ROUTES.RENT); }}
+                    <a
+                        href={ROUTES.RENT}
+                        onClick={(e) => { e.preventDefault(); setActiveTab('key'); router.push(ROUTES.RENT); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'key' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
                     >
                         <Key className="w-6 h-6 transform -rotate-45" strokeWidth={activeTab === 'key' ? 2.5 : 2} />
-                    </button>
+                    </a>
 
-                    <button
-                        onClick={() => { setActiveTab('home'); router.push(ROUTES.HOME); }}
+                    <a
+                        href={ROUTES.HOME}
+                        onClick={(e) => { e.preventDefault(); setActiveTab('home'); router.push(ROUTES.HOME); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'home' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
                     >
                         <Home className="w-6 h-6" strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-                    </button>
+                    </a>
 
-                    <button
-                        onClick={() => { setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
+                    <a
+                        href={ROUTES.MANAGE_CAR}
+                        onClick={(e) => { e.preventDefault(); setActiveTab('car'); router.push(ROUTES.MANAGE_CAR); }}
                         className={`p-1.5 transition-all cursor-pointer rounded-full ${
                             activeTab === 'car' ? 'text-[#0f4c81] dark:text-[#2dd4bf] scale-110' : 'text-slate-500 dark:text-slate-400'
                         }`}
                     >
                         <Car className="w-6 h-6" strokeWidth={activeTab === 'car' ? 2.5 : 2} />
-                    </button>
+                    </a>
                 </nav>
 
             </div>
