@@ -20,8 +20,8 @@ export default function RegisterPage() {
     const [phoneCountryCode, setPhoneCountryCode] = useState('+40');
     const [phone, setPhone] = useState('');
     // State for country & city selection
-    const [selectedCountry, setSelectedCountry] = useState<string>('Romania');
-    const [selectedCity, setSelectedCity] = useState<string>(() => getCitiesForCountry('Romania')[0] ?? '');
+    const [selectedCountry, setSelectedCountry] = useState('');
+    const [selectedCity, setSelectedCity] = useState('');
     const [countrySearch, setCountrySearch] = useState('');
     const [citySearch, setCitySearch] = useState('');
 
@@ -53,7 +53,7 @@ export default function RegisterPage() {
 
     const handleCountryChange = (country: string) => {
         setSelectedCountry(country);
-        setSelectedCity(getCitiesForCountry(country)[0] ?? '');
+        setSelectedCity('');
         setCitySearch('');
     };
 
@@ -71,6 +71,8 @@ export default function RegisterPage() {
         firstName.trim() !== '' &&
         lastName.trim() !== '' &&
         phone.trim() !== '' &&
+        selectedCountry !== '' &&
+        selectedCity.trim() !== '' &&
         password.length >= 8 &&
         passwordsMatch;
 
@@ -202,12 +204,17 @@ export default function RegisterPage() {
                 {/* Country */}
                 <div className="flex flex-col w-full gap-1">
                     <label className="font-medium text-sm text-[#0B1C2C]">Country</label>
+                    <p aria-live="polite" className="text-sm font-semibold text-[#0F4C81]">
+                        {selectedCountry
+                            ? `Selected: ${countryFlags[selectedCountry] ?? '🌐'} ${selectedCountry}`
+                            : 'Select a country to see its cities.'}
+                    </p>
                     <div className="space-y-2">
                         <input
                             aria-label="Search countries"
                             value={countrySearch}
                             onChange={(e) => setCountrySearch(e.target.value)}
-                            placeholder={`Selected: ${countryFlags[selectedCountry] ?? '🌐'} ${selectedCountry}`}
+                            placeholder="Search countries"
                             className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm font-medium text-[#0B1C2C] placeholder:text-[#42565d] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
                         />
                         <div className="max-h-36 overflow-y-auto rounded-xl border border-white/40 bg-white/80 p-1">
@@ -215,12 +222,13 @@ export default function RegisterPage() {
                                 <button
                                     key={country}
                                     type="button"
+                                    aria-pressed={selectedCountry === country}
                                     onClick={() => {
                                         handleCountryChange(country);
                                         setCountrySearch('');
                                     }}
                                     className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[#0B1C2C] hover:bg-[#0F4C81]/10 ${
-                                        selectedCountry === country ? 'font-semibold' : ''
+                                        selectedCountry === country ? 'bg-[#0F4C81]/10 font-semibold text-[#0F4C81]' : ''
                                     }`}
                                 >
                                     <span>{countryFlags[country] ?? '🌐'} {country}</span>
@@ -236,14 +244,23 @@ export default function RegisterPage() {
 
                 {/* City (filtered by selected country) */}
                 <div className="flex flex-col w-full gap-1">
-                    <label className="font-medium text-sm text-[#0B1C2C]">City</label>
-                    {availableCities.length > 0 ? (
+                    <label className="font-medium text-sm text-[#0B1C2C]">
+                        {selectedCountry ? `City in ${selectedCountry}` : 'City'}
+                    </label>
+                    {!selectedCountry ? (
+                        <p className="rounded-xl border border-white/40 bg-white/60 px-4 py-3 text-sm text-[#6f797d]">
+                            Select a country first.
+                        </p>
+                    ) : availableCities.length > 0 ? (
                         <div className="space-y-2">
+                            <p aria-live="polite" className="text-sm font-semibold text-[#0F4C81]">
+                                {selectedCity ? `Selected city: ${selectedCity}` : 'Choose a city from this country.'}
+                            </p>
                             <input
                                 aria-label={`Search cities in ${selectedCountry}`}
                                 value={citySearch}
                                 onChange={(e) => setCitySearch(e.target.value)}
-                                placeholder={`Selected: ${selectedCity || 'Choose a city'}`}
+                                placeholder={`Search cities in ${selectedCountry}`}
                                 className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm font-medium text-[#0B1C2C] placeholder:text-[#42565d] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
                             />
                             <div className="max-h-36 overflow-y-auto rounded-xl border border-white/40 bg-white/80 p-1">
@@ -251,12 +268,13 @@ export default function RegisterPage() {
                                     <button
                                         key={city}
                                         type="button"
+                                        aria-pressed={selectedCity === city}
                                         onClick={() => {
                                             setSelectedCity(city);
                                             setCitySearch('');
                                         }}
                                         className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[#0B1C2C] hover:bg-[#0F4C81]/10 ${
-                                            selectedCity === city ? 'font-semibold' : ''
+                                            selectedCity === city ? 'bg-[#0F4C81]/10 font-semibold text-[#0F4C81]' : ''
                                         }`}
                                     >
                                         <span>{city}</span>
