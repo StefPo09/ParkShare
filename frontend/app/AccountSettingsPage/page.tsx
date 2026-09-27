@@ -25,7 +25,7 @@ import {
 import { countryOptions, countryFlags } from '../../data/address/countries';
 import { useLanguage } from '../components/LanguageProvider';
 import { phoneCountryOptions } from '../../data/address/phonePrefixes';
-import { cityGroups } from '../../data/address/cities';
+import { cityGroups, normalizeAddressSearch } from '../../data/address/cities';
 
 type FieldKey = 'email' | 'phone' | 'country' | 'city' | 'firstName' | 'lastName';
 type ProfileState = Record<FieldKey, string>;
@@ -99,6 +99,7 @@ export default function AccountSettingsPage() {
   });
   const [countrySearch, setCountrySearch] = useState('');
   const [citySearch, setCitySearch] = useState('');
+  const [isAddressOptionsOpen, setIsAddressOptionsOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
@@ -123,8 +124,8 @@ export default function AccountSettingsPage() {
 
   const initials = `${draftProfile.firstName?.[0] ?? ''}${draftProfile.lastName?.[0] ?? ''}`.toUpperCase();
   const hasUnsavedChanges = Object.values(changedFields).some(Boolean);
-  const filteredCountryOptions = countryOptions.filter((country) => country.toLowerCase().includes(countrySearch.toLowerCase()));
-  const filteredCityOptions = getCountryCityOptions(draftProfile.country).filter((city) => city.toLowerCase().includes(citySearch.toLowerCase()));
+  const filteredCountryOptions = countryOptions.filter((country) => normalizeAddressSearch(country).includes(normalizeAddressSearch(countrySearch)));
+  const filteredCityOptions = getCountryCityOptions(draftProfile.country).filter((city) => normalizeAddressSearch(city).includes(normalizeAddressSearch(citySearch)));
 
   const loadProfilePicture = async () => {
     try {
@@ -184,6 +185,7 @@ export default function AccountSettingsPage() {
     setEditingField(field);
     setCountrySearch('');
     setCitySearch('');
+    setIsAddressOptionsOpen(false);
 
     if (field === 'phone') {
       const foundPrefix = phoneCountryOptions.find((entry) => draftProfile.phone.startsWith(entry.code));
@@ -421,27 +423,53 @@ export default function AccountSettingsPage() {
                         <div className="mt-1 w-full">
                           {field === 'country' ? (
                             <div className="space-y-2">
-                              <input value={countrySearch} onChange={(e) => setCountrySearch(e.target.value)} placeholder={t('searchCountryPlaceholder')} className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]" />
-                              <div className="max-h-52 overflow-y-auto rounded-lg border border-black/10 bg-white/80 p-1">
-                                {filteredCountryOptions.map((country) => (
-                                  <button key={country} type="button" onClick={() => { setTempValue(country); setDraftProfile((prev) => ({ ...prev, country })); setEditingField(null); setChangedFields((prev) => ({ ...prev, country: country !== savedProfile.country })); }} className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium">
-                                    <span className="flex items-center gap-2"><span>{getCountryFlag(country)}</span><span>{country}</span></span>
-                                    <span className="text-xs font-bold">✓</span>
-                                  </button>
-                                ))}
-                              </div>
+                              <button
+                                type="button"
+                                aria-expanded={isAddressOptionsOpen}
+                                onClick={() => setIsAddressOptionsOpen((open) => !open)}
+                                className="flex w-full items-center justify-between rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-left text-[15px] font-medium text-[#121212]"
+                              >
+                                <span>{getCountryFlag(tempValue || draftProfile.country)} {tempValue || draftProfile.country || t('labelCountry')}</span>
+                                <span aria-hidden="true">{isAddressOptionsOpen ? '▴' : '▾'}</span>
+                              </button>
+                              {isAddressOptionsOpen && (
+                                <>
+                                  <input value={countrySearch} onChange={(e) => setCountrySearch(e.target.value)} placeholder={t('searchCountryPlaceholder')} className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]" />
+                                  <div className="max-h-52 overflow-y-auto rounded-lg border border-black/10 bg-white/80 p-1">
+                                    {filteredCountryOptions.map((country) => (
+                                      <button key={country} type="button" onClick={() => { setTempValue(country); setDraftProfile((prev) => ({ ...prev, country })); setEditingField(null); setIsAddressOptionsOpen(false); setChangedFields((prev) => ({ ...prev, country: country !== savedProfile.country })); }} className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium ${country === (tempValue || draftProfile.country) ? 'bg-[#0f4c81]/10 text-[#0f4c81]' : ''}`}>
+                                        <span className="flex items-center gap-2"><span>{getCountryFlag(country)}</span><span>{country}</span></span>
+                                        {country === (tempValue || draftProfile.country) && <span className="text-xs font-bold">✓</span>}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           ) : field === 'city' ? (
                             <div className="space-y-2">
-                              <input value={citySearch} onChange={(e) => setCitySearch(e.target.value)} placeholder={t('searchCityPlaceholder')} className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]" />
-                              <div className="max-h-52 overflow-y-auto rounded-lg border border-black/10 bg-white/80 p-1">
-                                {filteredCityOptions.map((city) => (
-                                  <button key={city} type="button" onClick={() => { setTempValue(city); setDraftProfile((prev) => ({ ...prev, city })); setEditingField(null); setChangedFields((prev) => ({ ...prev, city: city !== savedProfile.city })); }} className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium">
-                                    <span>{city}</span>
-                                    <span className="text-xs font-bold">✓</span>
-                                  </button>
-                                ))}
-                              </div>
+                              <button
+                                type="button"
+                                aria-expanded={isAddressOptionsOpen}
+                                onClick={() => setIsAddressOptionsOpen((open) => !open)}
+                                className="flex w-full items-center justify-between rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-left text-[15px] font-medium text-[#121212]"
+                              >
+                                <span>{tempValue || draftProfile.city || t('labelCity')}</span>
+                                <span aria-hidden="true">{isAddressOptionsOpen ? '▴' : '▾'}</span>
+                              </button>
+                              {isAddressOptionsOpen && (
+                                <>
+                                  <input value={citySearch} onChange={(e) => setCitySearch(e.target.value)} placeholder={t('searchCityPlaceholder')} className="w-full rounded-lg border border-black/10 bg-white/80 px-2.5 py-1.5 text-[15px] font-medium text-[#121212]" />
+                                  <div className="max-h-52 overflow-y-auto rounded-lg border border-black/10 bg-white/80 p-1">
+                                    {filteredCityOptions.map((city) => (
+                                      <button key={city} type="button" onClick={() => { setTempValue(city); setDraftProfile((prev) => ({ ...prev, city })); setEditingField(null); setIsAddressOptionsOpen(false); setChangedFields((prev) => ({ ...prev, city: city !== savedProfile.city })); }} className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[15px] font-medium ${city === (tempValue || draftProfile.city) ? 'bg-[#0f4c81]/10 text-[#0f4c81]' : ''}`}>
+                                        <span>{city}</span>
+                                        {city === (tempValue || draftProfile.city) && <span className="text-xs font-bold">✓</span>}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           ) : field === 'phone' ? (
                             <div className="space-y-2">
