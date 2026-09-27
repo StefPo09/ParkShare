@@ -220,17 +220,39 @@ def api_register():
 
 @auth.route('/api/auth/login', methods=['POST'])
 def api_login():
-    data = request.get_json(silent=True) or {}
+    # Accept JSON (AJAX) or form-encoded submissions (non-JS fallback).
+    data = request.get_json(silent=True)
+    source_is_form = False
+    if not data:
+        # Try form data / query values as fallback
+        data = {}
+        if request.form:
+            data.update(request.form.to_dict())
+            source_is_form = True
+        elif request.values:
+            data.update(request.values.to_dict())
+            source_is_form = True
     email = str(data.get('email', '')).strip().lower()
     password = str(data.get('password', ''))
     user = User.query.filter_by(email=email).first()
 
     if not user or not check_password_hash(user.password, password):
+        if source_is_form:
+            # For form submissions, redirect back to the frontend login or referrer
+            target = request.form.get('next') or request.args.get('next') or request.referrer or _default_frontend_redirect()
+            return redirect(target)
         return jsonify({'error': 'Invalid email or password.'}), 401
     if user.is_banned:
         return jsonify({'error': 'account_banned'}), 403
 
     login_user(user, remember=bool(data.get('remember')))
+
+    if source_is_form:
+        # Redirect form submitters back to frontend (referrer/next) rather than server-side profile
+        target = request.form.get('next') or request.args.get('next') or request.referrer or _default_frontend_redirect()
+        return redirect(target)
+
+    # AJAX/JSON API login: return user payload
     return jsonify({'user': _user_payload(user)}), 200
 
 

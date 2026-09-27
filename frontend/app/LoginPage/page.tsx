@@ -32,9 +32,7 @@ export default function LoginPage() {
     window.location.href = `${API}/api/auth/google/login?redirect_to=${encodeURIComponent(redirectTo)}`;
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!canLogIn || isSubmitting) {
       return;
     }
@@ -50,14 +48,23 @@ export default function LoginPage() {
         credentials: 'include',
         body: JSON.stringify({ email: email.trim().toLowerCase(), password, remember }),
       });
-      const isJson = response.headers.get('content-type')?.includes('application/json');
-      const data = isJson ? await response.json() : null;
 
       if (!response.ok) {
+        const isJson = response.headers.get('content-type')?.includes('application/json');
+        const data = isJson ? await response.json() : null;
         throw new Error(data?.error || 'The backend is unavailable. Please make sure it is running and try again.');
       }
 
-      window.location.href = ROUTES.HOME;
+      const isJson = response.headers.get('content-type')?.includes('application/json');
+      if (isJson) {
+        const data = await response.json();
+        if (data?.user) {
+          window.location.assign(ROUTES.HOME);
+          return;
+        }
+      }
+
+      window.location.assign(ROUTES.HOME);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to connect to the backend.');
       setIsSubmitting(false);
@@ -84,7 +91,7 @@ export default function LoginPage() {
           <h2 className="text-lg font-bold text-[#0B1C2C] dark:text-white">Welcome back!</h2>
           <p className="mt-1 text-center text-sm text-[#33475A] dark:text-white/80">Please enter your details</p>
 
-          <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit}>
+          <form className="mt-6 w-full space-y-3" onSubmit={handleSubmit} aria-label="Login form">
             <div>
               <label htmlFor="email" className="sr-only">Email</label>
               <input
@@ -124,13 +131,14 @@ export default function LoginPage() {
             <div className="flex w-full items-center justify-between text-sm">
               <label className="flex items-center text-[#33475A] dark:text-white/80">
                 <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="h-4 w-4 mr-2 rounded border-white/40 cursor-pointer"
-                />
-                Remember me for 30 days
-              </label>
+                    name="remember"
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="h-4 w-4 mr-2 rounded border-white/40 cursor-pointer"
+                  />
+                  Remember me for 30 days
+                </label>
               <Link href={ROUTES.FORGOT_PASSWORD} className="text-[#0F4C81] underline dark:text-white">
                 Forgot password?
               </Link>
@@ -143,7 +151,8 @@ export default function LoginPage() {
             )}
 
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={!canLogIn || isSubmitting}
               className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45"
             >
@@ -161,17 +170,17 @@ export default function LoginPage() {
             <SocialButton
                 label="Continue with Google"
                 icon={<GoogleIcon/>}
-                onClick={handleGoogleContinue}
+                onClick={`/api/auth/google/login?redirect_to=${encodeURIComponent(ROUTES.HOME)}`}
             />
             <SocialButton
                 label="Continue with Apple"
                 icon={<AppleIcon/>}
-                onClick={() => undefined}
+                onClick="/api/auth/apple/login"
             />
             <SocialButton
                 label="Continue with Facebook"
                 icon={<FacebookIcon/>}
-                onClick={() => undefined}
+                onClick="/api/auth/facebook/login"
             />
           </div>
 
@@ -194,8 +203,21 @@ function SocialButton({
                       }: {
   label: string
   icon: React.ReactNode
-  onClick?: () => void
+  onClick?: (() => void) | string
 }) {
+  if (typeof onClick === 'string') {
+    // If onClick is used as href string, render as progressive anchor
+    return (
+      <a
+        href={onClick}
+        className="flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-[#EEEEEE] text-sm font-medium text-[#0B1C2C] transition hover:bg-[#E4E4E4] active:scale-[0.99] dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+      >
+        {icon}
+        <span>{label}</span>
+      </a>
+    );
+  }
+
   return (
       <button
           type="button"

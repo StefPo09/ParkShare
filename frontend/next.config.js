@@ -23,8 +23,11 @@ const nextConfig = {
         ],
     },
 
-    // Allow phones and other computers on the local network to load dev assets.
-    allowedDevOrigins: lanAddresses,
+    // Allow local LAN IPs and your external proxy domain for dev assets & WebSockets
+    allowedDevOrigins: [
+        ...lanAddresses,
+        'parkshare.adv.ro',
+    ],
 
     async rewrites() {
         return [

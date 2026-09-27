@@ -7,12 +7,14 @@ try:
     from authlib.integrations.flask_client import OAuth
 except Exception:
     OAuth = None
-from flask import Flask, jsonify, redirect, request, url_for
+from flask import Flask, request, Response, stream_with_context, abort, jsonify, redirect, url_for
 from flask_cors import CORS
 from flask_login import LoginManager, current_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, text
 from werkzeug.middleware.proxy_fix import ProxyFix
+import requests
+
 
 
 db = SQLAlchemy()
@@ -30,9 +32,28 @@ def create_app():
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+    # Session / cookie defaults. In production behind HTTPS set SESSION_COOKIE_SECURE=True
+    # Use FRONTEND_DOMAIN to set cookie domain (e.g., parkshare.adv.ro)
     app.config['SESSION_COOKIE_SECURE'] = False
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+    frontend_domain = None
+    raw_frontend_domain = os.environ.get('FRONTEND_DOMAIN') or os.environ.get('FRONTEND_ORIGINS')
+    if raw_frontend_domain:
+        # FRONTEND_DOMAIN may be set to 'https://parkshare.adv.ro' or 'parkshare.adv.ro' or comma separated origins
+        # Normalize to bare hostname
+        first = (raw_frontend_domain.split(',')[0] if ',' in raw_frontend_domain else raw_frontend_domain).strip()
+        first = re.sub(r'^https?://', '', first).split('/')[0]
+        if first:
+            frontend_domain = first
+
+    if frontend_domain:
+        # Use a wildcard cookie domain for subdomains and ensure secure cookies
+        app.config['SESSION_COOKIE_DOMAIN'] = '.' + frontend_domain
+        app.config['SESSION_COOKIE_SECURE'] = True
+        app.config['PREFERRED_URL_SCHEME'] = 'https'
+
     app.config['UPLOAD_DIR'] = os.path.join(os.path.dirname(__file__), '..', 'uploads')
     os.makedirs(app.config['UPLOAD_DIR'], exist_ok=True)
 
@@ -87,6 +108,19 @@ def create_app():
         if remote not in trusted:
             for header in ('HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED_PROTO', 'HTTP_X_FORWARDED_HOST', 'HTTP_X_FORWARDED_PORT', 'HTTP_X_FORWARDED_PREFIX'):
                 request.environ.pop(header, None)
+
+        # If request appears to be from the frontend hostname (non-localhost) and uses HTTPS
+        # ensure session cookies are marked secure and, if missing, set cookie domain to the host.
+        try:
+            host = (request.host or '').split(':')[0]
+            proto = request.headers.get('X-Forwarded-Proto') or request.scheme
+            if host and host not in ('localhost', '127.0.0.1') and proto == 'https':
+                app.config['SESSION_COOKIE_SECURE'] = True
+                app.config['PREFERRED_URL_SCHEME'] = 'https'
+                if not app.config.get('SESSION_COOKIE_DOMAIN'):
+                    app.config['SESSION_COOKIE_DOMAIN'] = '.' + host
+        except Exception:
+            pass
 
     with app.app_context():
         from .models import Booking, Car, City, ParkingSpot, PersonalDetails, ProfilePicture, User, UserReport
@@ -185,6 +219,40 @@ def create_app():
             app.add_url_rule('/api/auth/google/callback', endpoint='google_callback_proxy', view_func=_google_callback_handler)
         except Exception:
             pass
+    except Exception:
+        pass
+
+    # Proxy /_next/* requests to the local Next.js server. This allows Nginx to route
+    # _next asset requests to the Flask app (if needed) and avoids client bundles being
+    # blocked when the proxy cannot directly reach the Next server. Configure the
+    # NEXT_SERVER_URL env var (e.g. http://127.0.0.1:3000).
+    NEXT_SERVER_URL = os.environ.get('NEXT_SERVER_URL', 'http://127.0.0.1:3000')
+
+    def _proxy_next(subpath):
+        # Only allow GET/HEAD to fetch static assets
+        if request.method not in ('GET', 'HEAD'):
+            abort(405)
+        upstream = f"{NEXT_SERVER_URL}/_next/{subpath}"
+        try:
+            # Forward minimal headers; avoid sending Host to upstream
+            upstream_headers = {k: v for k, v in request.headers.items() if k.lower() != 'host'}
+            resp = requests.get(upstream, headers=upstream_headers, stream=True, timeout=10)
+        except requests.RequestException as e:
+            app.logger.warning('Failed to fetch _next asset from %s: %s', upstream, e)
+            return jsonify({'error': 'Upstream asset fetch failed'}), 502
+
+        excluded_headers = {'transfer-encoding', 'connection', 'content-encoding'}
+        headers = [(name, value) for name, value in resp.headers.items() if name.lower() not in excluded_headers]
+        return Response(stream_with_context(resp.iter_content(chunk_size=8192)), status=resp.status_code, headers=headers)
+
+    # Register both general and static-specific patterns
+    try:
+        app.add_url_rule('/_next/<path:subpath>', endpoint='proxy_next', view_func=_proxy_next, methods=['GET', 'HEAD'])
+    except Exception:
+        pass
+
+    try:
+        app.add_url_rule('/_next/static/<path:subpath>', endpoint='proxy_next_static', view_func=_proxy_next, methods=['GET', 'HEAD'])
     except Exception:
         pass
 
