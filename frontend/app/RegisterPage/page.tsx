@@ -7,12 +7,10 @@ import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
 import { countryOptions, countryFlags } from '../../data/address/countries';
-import { cityGroups } from '../../data/address/cities';
+import { cityGroups, normalizeAddressSearch } from '../../data/address/cities';
 
 const getCitiesForCountry = (country: string) =>
     (cityGroups[country] ?? []).slice().sort((a, b) => a.localeCompare(b));
-const normalizeSearchText = (value: string) =>
-    value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -61,10 +59,10 @@ export default function RegisterPage() {
 
     const availableCities = getCitiesForCountry(selectedCountry);
     const filteredCountries = countryOptions.filter((country) =>
-        normalizeSearchText(country).includes(normalizeSearchText(countrySearch.trim())),
+        normalizeAddressSearch(country).includes(normalizeAddressSearch(countrySearch.trim())),
     );
     const filteredCities = availableCities.filter((city) =>
-        normalizeSearchText(city).includes(normalizeSearchText(citySearch.trim())),
+        normalizeAddressSearch(city).includes(normalizeAddressSearch(citySearch.trim())),
     );
 
     const passwordsMatch = confirmPassword === '' || password === confirmPassword;

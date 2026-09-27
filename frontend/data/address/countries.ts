@@ -1,5 +1,5 @@
 export const countryOptions = [
-  'Algeria', 'Argentina', 'Australia', 'Austria', 'Belgium', 'Brazil', 'Bulgaria', 'Canada',
+  'Algeria', 'Andorra', 'Argentina', 'Australia', 'Austria', 'Belgium', 'Brazil', 'Bulgaria', 'Canada',
   'Chile', 'China', 'Croatia', 'Czech Republic', 'Denmark', 'Egypt', 'Finland', 'France', 'Germany',
   'Greece', 'Hungary', 'Iceland', 'India', 'Ireland', 'Israel', 'Italy', 'Japan', 'Luxembourg',
   'Mexico', 'Morocco', 'Netherlands', 'New Zealand', 'Nigeria', 'Norway', 'Pakistan', 'Poland',
@@ -9,6 +9,7 @@ export const countryOptions = [
 ];
 
 export const countryFlags: Record<string, string> = {
+  Andorra: '🇦🇩',
   'United States': '🇺🇸',
   Canada: '🇨🇦',
   'United Kingdom': '🇬🇧',

@@ -25,7 +25,7 @@ import {
 import { countryOptions, countryFlags } from '../../data/address/countries';
 import { useLanguage } from '../components/LanguageProvider';
 import { phoneCountryOptions } from '../../data/address/phonePrefixes';
-import { cityGroups } from '../../data/address/cities';
+import { cityGroups, normalizeAddressSearch } from '../../data/address/cities';
 
 type FieldKey = 'email' | 'phone' | 'country' | 'city' | 'firstName' | 'lastName';
 type ProfileState = Record<FieldKey, string>;
@@ -123,8 +123,8 @@ export default function AccountSettingsPage() {
 
   const initials = `${draftProfile.firstName?.[0] ?? ''}${draftProfile.lastName?.[0] ?? ''}`.toUpperCase();
   const hasUnsavedChanges = Object.values(changedFields).some(Boolean);
-  const filteredCountryOptions = countryOptions.filter((country) => country.toLowerCase().includes(countrySearch.toLowerCase()));
-  const filteredCityOptions = getCountryCityOptions(draftProfile.country).filter((city) => city.toLowerCase().includes(citySearch.toLowerCase()));
+  const filteredCountryOptions = countryOptions.filter((country) => normalizeAddressSearch(country).includes(normalizeAddressSearch(countrySearch)));
+  const filteredCityOptions = getCountryCityOptions(draftProfile.country).filter((city) => normalizeAddressSearch(city).includes(normalizeAddressSearch(citySearch)));
 
   const loadProfilePicture = async () => {
     try {

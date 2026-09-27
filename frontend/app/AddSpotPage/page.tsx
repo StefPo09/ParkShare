@@ -6,7 +6,7 @@ import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
 import { useLanguage } from '../components/LanguageProvider';
 import { countryOptions } from '../../data/address/countries';
-import { cityGroups } from '../../data/address/generatedCities';
+import { cityGroups, normalizeAddressSearch } from '../../data/address/cities';
 import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
 import {
   X,
@@ -290,10 +290,10 @@ export default function AddSpotPage() {
 
   const cityOptions = selectedCountry ? cityGroups[selectedCountry] || [] : [];
   const filteredCountries = countries.filter((country) =>
-    country.toLowerCase().includes(countrySearch.trim().toLowerCase())
+    normalizeAddressSearch(country).includes(normalizeAddressSearch(countrySearch.trim()))
   );
   const filteredCities = cityOptions.filter((cityName) =>
-    cityName.toLowerCase().includes(citySearch.trim().toLowerCase())
+    normalizeAddressSearch(cityName).includes(normalizeAddressSearch(citySearch.trim()))
   );
 
   const canSubmit =

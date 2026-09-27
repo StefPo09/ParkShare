@@ -1,1 +1,1 @@
-export { cityGroups } from './generatedCities';
+export { cityGroups } from './cities';
