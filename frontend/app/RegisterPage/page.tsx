@@ -6,17 +6,11 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
+import { countryOptions, countryFlags } from '../../data/address/countries';
+import { cityGroups } from '../../data/address/cities';
 
-// Country-to-cities dictionary
-const CITIES_BY_COUNTRY: Record<string, string[]> = {
-    Romania: ['Bucharest', 'Cluj-Napoca', 'Timișoara', 'Iași', 'Brașov', 'Constanța'],
-    UK: ['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Glasgow'],
-    USA: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami'],
-    Germany: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'],
-    France: ['Paris', 'Marseille', 'Lyon', 'Toulouse', 'Nice'],
-    Italy: ['Rome', 'Milan', 'Naples', 'Turin', 'Palermo'],
-    Spain: ['Madrid', 'Barcelona', 'Valencia', 'Seville', 'Zaragoza'],
-};
+const getCitiesForCountry = (country: string) =>
+    (cityGroups[country] ?? []).slice().sort((a, b) => a.localeCompare(b));
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -27,7 +21,9 @@ export default function RegisterPage() {
     const [phone, setPhone] = useState('');
     // State for country & city selection
     const [selectedCountry, setSelectedCountry] = useState<string>('Romania');
-    const [selectedCity, setSelectedCity] = useState<string>(CITIES_BY_COUNTRY['Romania'][0]);
+    const [selectedCity, setSelectedCity] = useState<string>(() => getCitiesForCountry('Romania')[0] ?? '');
+    const [countrySearch, setCountrySearch] = useState('');
+    const [citySearch, setCitySearch] = useState('');
 
     // State for passwords
     const [password, setPassword] = useState('');
@@ -55,13 +51,19 @@ export default function RegisterPage() {
         }
     }, []);
 
-    // Automatically update cities dropdown when country changes
     const handleCountryChange = (country: string) => {
         setSelectedCountry(country);
-        if (CITIES_BY_COUNTRY[country]) {
-            setSelectedCity(CITIES_BY_COUNTRY[country][0]);
-        }
+        setSelectedCity(getCitiesForCountry(country)[0] ?? '');
+        setCitySearch('');
     };
+
+    const availableCities = getCitiesForCountry(selectedCountry);
+    const filteredCountries = countryOptions.filter((country) =>
+        country.toLowerCase().includes(countrySearch.trim().toLowerCase()),
+    );
+    const filteredCities = availableCities.filter((city) =>
+        city.toLowerCase().includes(citySearch.trim().toLowerCase()),
+    );
 
     const passwordsMatch = confirmPassword === '' || password === confirmPassword;
     const canSubmit =
@@ -200,41 +202,82 @@ export default function RegisterPage() {
                 {/* Country */}
                 <div className="flex flex-col w-full gap-1">
                     <label className="font-medium text-sm text-[#0B1C2C]">Country</label>
-                    <div className="flex w-full rounded-xl border border-white/40 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-[#0F4C81]/40 transition">
-                        <select
-                            aria-label="Select country"
-                            value={selectedCountry}
-                            onChange={(e) => handleCountryChange(e.target.value)}
-                            className="h-12 bg-white px-4 text-sm text-[#0B1C2C] font-medium outline-none cursor-pointer w-full"
-                        >
-                            <option value="Romania">Romania</option>
-                            <option value="UK">United Kingdom</option>
-                            <option value="USA">United States of America</option>
-                            <option value="Germany">Germany</option>
-                            <option value="France">France</option>
-                            <option value="Italy">Italy</option>
-                            <option value="Spain">Spain</option>
-                        </select>
+                    <div className="space-y-2">
+                        <input
+                            aria-label="Search countries"
+                            value={countrySearch}
+                            onChange={(e) => setCountrySearch(e.target.value)}
+                            placeholder={`Selected: ${countryFlags[selectedCountry] ?? '🌐'} ${selectedCountry}`}
+                            className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm font-medium text-[#0B1C2C] placeholder:text-[#42565d] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                        />
+                        <div className="max-h-36 overflow-y-auto rounded-xl border border-white/40 bg-white/80 p-1">
+                            {filteredCountries.map((country) => (
+                                <button
+                                    key={country}
+                                    type="button"
+                                    onClick={() => {
+                                        handleCountryChange(country);
+                                        setCountrySearch('');
+                                    }}
+                                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[#0B1C2C] hover:bg-[#0F4C81]/10 ${
+                                        selectedCountry === country ? 'font-semibold' : ''
+                                    }`}
+                                >
+                                    <span>{countryFlags[country] ?? '🌐'} {country}</span>
+                                    {selectedCountry === country && <span aria-hidden="true">✓</span>}
+                                </button>
+                            ))}
+                            {filteredCountries.length === 0 && (
+                                <p className="px-3 py-2 text-sm text-[#6f797d]">No matching countries.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* City (Dynamic based on selected country) */}
+                {/* City (filtered by selected country) */}
                 <div className="flex flex-col w-full gap-1">
                     <label className="font-medium text-sm text-[#0B1C2C]">City</label>
-                    <div className="flex w-full rounded-xl border border-white/40 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-[#0F4C81]/40 transition">
-                        <select
-                            aria-label="Select city"
+                    {availableCities.length > 0 ? (
+                        <div className="space-y-2">
+                            <input
+                                aria-label={`Search cities in ${selectedCountry}`}
+                                value={citySearch}
+                                onChange={(e) => setCitySearch(e.target.value)}
+                                placeholder={`Selected: ${selectedCity || 'Choose a city'}`}
+                                className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm font-medium text-[#0B1C2C] placeholder:text-[#42565d] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                            />
+                            <div className="max-h-36 overflow-y-auto rounded-xl border border-white/40 bg-white/80 p-1">
+                                {filteredCities.map((city) => (
+                                    <button
+                                        key={city}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedCity(city);
+                                            setCitySearch('');
+                                        }}
+                                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[#0B1C2C] hover:bg-[#0F4C81]/10 ${
+                                            selectedCity === city ? 'font-semibold' : ''
+                                        }`}
+                                    >
+                                        <span>{city}</span>
+                                        {selectedCity === city && <span aria-hidden="true">✓</span>}
+                                    </button>
+                                ))}
+                                {filteredCities.length === 0 && (
+                                    <p className="px-3 py-2 text-sm text-[#6f797d]">No matching cities.</p>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <input
+                            type="text"
+                            required
                             value={selectedCity}
                             onChange={(e) => setSelectedCity(e.target.value)}
-                            className="h-12 bg-white px-4 text-sm text-[#0B1C2C] font-medium outline-none cursor-pointer w-full"
-                        >
-                            {CITIES_BY_COUNTRY[selectedCountry]?.map((city) => (
-                                <option key={city} value={city}>
-                                    {city}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                            placeholder={`Enter a city in ${selectedCountry}`}
+                            className="h-12 w-full rounded-xl border border-white/40 bg-white px-4 text-sm text-[#0B1C2C] placeholder:text-[#8A97A0] focus:outline-none focus:ring-2 focus:ring-[#0F4C81]/40"
+                        />
+                    )}
                 </div>
 
                 {/* Password */}
