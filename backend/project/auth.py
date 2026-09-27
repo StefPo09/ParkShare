@@ -56,6 +56,7 @@ def _user_payload(user):
         'id': user.id,
         'email': user.email,
         'name': user.name,
+        'profile_picture_url': user.google_picture_url,
         'role': user.role,
         'phone_country_code': user.phone_country_code,
         'phone': user.phone,
@@ -298,15 +299,17 @@ def google_callback():
     user = User.query.filter_by(email=email).first()
     if user and user.is_banned:
         return redirect(_default_frontend_redirect())
+    first_name = str(userinfo.get('given_name') or '').strip()
+    last_name = str(userinfo.get('family_name') or '').strip()
+    full_name = str(userinfo.get('name') or '').strip()
+    if not full_name and (first_name or last_name):
+        full_name = ' '.join(part for part in (first_name, last_name) if part)
+    picture_url = str(userinfo.get('picture') or '').strip() or None
     if not user:
-        full_name = str(userinfo.get('name') or userinfo.get('given_name', '')).strip()
-        first_name = str(userinfo.get('given_name') or '').strip()
-        last_name = str(userinfo.get('family_name') or '').strip()
-        if not full_name and (first_name or last_name):
-            full_name = ' '.join(part for part in (first_name, last_name) if part)
         user = User(
             email=email,
             name=full_name or email,
+            google_picture_url=picture_url,
             country='',
             city='',
             phone_country_code='',
@@ -322,6 +325,17 @@ def google_callback():
             city=None,
         )
         db.session.add(personal_details)
+    else:
+        if not user.personal_details:
+            user.personal_details = PersonalDetails(user_id=user.id)
+        if user.personal_details and first_name and not user.personal_details.first_name:
+            user.personal_details.first_name = first_name
+        if user.personal_details and last_name and not user.personal_details.last_name:
+            user.personal_details.last_name = last_name
+        if full_name and not user.name:
+            user.name = full_name
+        if picture_url and not user.google_picture_url:
+            user.google_picture_url = picture_url
 
     db.session.commit()
     login_user(user)

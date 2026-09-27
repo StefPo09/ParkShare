@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
@@ -42,6 +41,7 @@ interface ApiUser {
   first_name: string | null;
   last_name: string | null;
   date_of_birth: string | null;
+  profile_picture_url: string | null;
 }
 
 function mapApiUserToProfile(u: ApiUser): UserProfile {
@@ -53,7 +53,7 @@ function mapApiUserToProfile(u: ApiUser): UserProfile {
   return {
     firstName: u.first_name || nameParts[0] || '',
     lastName: u.last_name || nameParts.slice(1).join(' ') || '',
-    avatarUrl: '', // loaded separately, see fetchAvatar
+    avatarUrl: u.profile_picture_url || '',
     username,
     birthDate: u.date_of_birth || '',
     location,
@@ -127,7 +127,6 @@ export default function ProfilePage() {
         if (cancelled) return;
 
         setProfile(mapApiUserToProfile(data.user));
-        fetchAvatar();
       } catch (e) {
         console.warn('Failed to load profile:', e);
       } finally {
@@ -314,11 +313,11 @@ export default function ProfilePage() {
 
             <div className={`w-32 h-32 rounded-full overflow-hidden flex items-center justify-center border border-black/10 dark:border-white/10 shadow-md relative ${profile.avatarUrl ? 'bg-black/5 dark:bg-white/10' : `bg-gradient-to-br ${avatarGradient}`}`}>
               {profile.avatarUrl ? (
-                <Image
+                <img
                   src={profile.avatarUrl}
                   alt="User avatar"
-                  fill
-                  className="object-cover"
+                  className="h-full w-full object-cover"
+                  onError={() => setProfile((prev) => ({ ...prev, avatarUrl: '' }))}
                 />
               ) : initials ? (
                 <span className="text-2xl font-bold tracking-[0.12em] text-white select-none">{initials}</span>

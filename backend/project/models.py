@@ -12,6 +12,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(255))
     name = db.Column(db.String(1000))
+    google_picture_url = db.Column(db.String(1024), nullable=True)
     phone_country_code = db.Column(db.String(8), nullable=True)
     phone = db.Column(db.String(30), nullable=True)
     country = db.Column(db.String(100), nullable=True)
