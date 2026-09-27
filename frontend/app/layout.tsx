@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./components/LanguageProvider";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
+import GoogleMapsProvider from "./components/GoogleMapsProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -67,7 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             disableTransitionOnChange
           >
             <ServiceWorkerRegistration />
-            {children}
+            <GoogleMapsProvider>{children}</GoogleMapsProvider>
           </ThemeProvider>
         </LanguageProvider>
       </body>

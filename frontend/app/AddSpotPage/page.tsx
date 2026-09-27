@@ -7,7 +7,8 @@ import { getApiBaseUrl } from '../../constants/api';
 import { useLanguage } from '../components/LanguageProvider';
 import { countryOptions } from '../../data/address/countries';
 import { cityGroups, normalizeAddressSearch } from '../../data/address/cities';
-import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, Circle } from '@react-google-maps/api';
+import { useGoogleMaps } from '../components/GoogleMapsProvider';
 import {
   X,
   Upload,
@@ -109,14 +110,7 @@ export default function AddSpotPage() {
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
-  // Load Google Maps SDK
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-  const { isLoaded, loadError } = useJsApiLoader({
-      id: 'google-map-script',
-      googleMapsApiKey,
-      authReferrerPolicy: 'origin',
-      version: 'weekly',
-  });
+  const { apiKey: googleMapsApiKey, isLoaded, loadError } = useGoogleMaps();
 
   const [values, setValues] = useState({
     country: '',
