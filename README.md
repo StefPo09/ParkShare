@@ -180,6 +180,22 @@ The rental page can use Google Maps when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is co
 
 Run Flask and Next.js in separate terminals. Flask must be running before testing the frontend login.
 
+## Installing ParkShare as a PWA
+
+The Next.js frontend includes a web app manifest, install icons, and a service worker. Deploy it at
+the site root over HTTPS (as on `https://parkshare.adv.ro`), then open the site in a supported
+browser:
+
+- In Chrome or Edge on desktop/Android, use the install icon in the address bar or the browser menu's
+  **Install ParkShare** option.
+- On iPhone or iPad, open the site in Safari, tap **Share**, then choose **Add to Home Screen**.
+
+The service worker caches the app's static JavaScript bundles and the offline page, but deliberately
+does not cache account pages, API responses, bookings, or other personal data. Parking and account
+features therefore still need an internet connection; offline use displays an explanatory page.
+After deploying an update to the service worker, close and reopen the app or reload once while
+online so the browser can activate the new version.
+
 ## Google Sign-In Setup
 
 Google sign-in is handled by the Flask backend. The backend loads `backend/.env` at startup if present, or you can configure these variables in the backend service environment (do not commit the client secret):
