@@ -37,6 +37,7 @@ export default function ProfileMenu() {
               email: data.user.email || '',
               role: data.user.role || '',
             });
+            setAvatarUrl(data.user.profile_picture_url || '');
           }
         }
       } catch (err) {

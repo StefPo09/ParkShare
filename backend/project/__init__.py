@@ -135,6 +135,7 @@ def create_app():
             'role': "ALTER TABLE user ADD COLUMN role VARCHAR(20) DEFAULT 'user'",
             'phone_country_code': 'ALTER TABLE user ADD COLUMN phone_country_code VARCHAR(8)',
             'phone': 'ALTER TABLE user ADD COLUMN phone VARCHAR(30)',
+            'google_picture_url': 'ALTER TABLE user ADD COLUMN google_picture_url VARCHAR(1024)',
             'is_banned': 'ALTER TABLE user ADD COLUMN is_banned BOOLEAN NOT NULL DEFAULT 0',
             'banned_at': 'ALTER TABLE user ADD COLUMN banned_at DATETIME',
         }.items():

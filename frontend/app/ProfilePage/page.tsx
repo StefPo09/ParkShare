@@ -42,6 +42,7 @@ interface ApiUser {
   first_name: string | null;
   last_name: string | null;
   date_of_birth: string | null;
+  profile_picture_url: string | null;
 }
 
 function mapApiUserToProfile(u: ApiUser): UserProfile {
@@ -53,7 +54,7 @@ function mapApiUserToProfile(u: ApiUser): UserProfile {
   return {
     firstName: u.first_name || nameParts[0] || '',
     lastName: u.last_name || nameParts.slice(1).join(' ') || '',
-    avatarUrl: '', // loaded separately, see fetchAvatar
+    avatarUrl: u.profile_picture_url || '',
     username,
     birthDate: u.date_of_birth || '',
     location,

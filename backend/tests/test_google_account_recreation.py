@@ -32,6 +32,7 @@ class GoogleAccountRecreationTests(unittest.TestCase):
             'name': 'Google User',
             'given_name': 'Google',
             'family_name': 'User',
+            'picture': 'https://lh3.googleusercontent.com/test-avatar',
         }
         oauth_client = Mock()
         oauth_client.authorize_access_token.return_value = {'access_token': 'test-token'}
@@ -45,6 +46,14 @@ class GoogleAccountRecreationTests(unittest.TestCase):
             self.assertEqual(first_login.status_code, 302)
             self.assertEqual(first_login.headers['Location'], '/HomePage')
             self.assertEqual(User.query.filter_by(email=google_user['email']).count(), 1)
+            first_user = User.query.filter_by(email=google_user['email']).one()
+            self.assertEqual(first_user.personal_details.first_name, 'Google')
+            self.assertEqual(first_user.personal_details.last_name, 'User')
+            self.assertEqual(first_user.google_picture_url, google_user['picture'])
+            first_user_payload = self.client.get('/api/auth/me').get_json()['user']
+            self.assertEqual(first_user_payload['first_name'], 'Google')
+            self.assertEqual(first_user_payload['last_name'], 'User')
+            self.assertEqual(first_user_payload['profile_picture_url'], google_user['picture'])
 
             deleted = self.client.delete('/api/user/account')
             self.assertEqual(deleted.status_code, 200, deleted.get_json())
@@ -58,8 +67,12 @@ class GoogleAccountRecreationTests(unittest.TestCase):
             self.assertEqual(second_login.headers['Location'], '/HomePage')
             recreated_user = User.query.filter_by(email=google_user['email']).one()
             self.assertEqual(recreated_user.name, 'Google User')
+            self.assertEqual(recreated_user.personal_details.first_name, 'Google')
+            self.assertEqual(recreated_user.personal_details.last_name, 'User')
+            self.assertEqual(recreated_user.google_picture_url, google_user['picture'])
             current_user = self.client.get('/api/auth/me').get_json()['user']
             self.assertEqual(current_user['email'], google_user['email'])
+            self.assertEqual(current_user['profile_picture_url'], google_user['picture'])
 
 
 if __name__ == '__main__':

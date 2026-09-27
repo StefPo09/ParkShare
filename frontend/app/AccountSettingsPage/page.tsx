@@ -41,6 +41,7 @@ type CountryPhoneEntry = {
 type ApiUser = {
   email: string;
   name?: string | null;
+  profile_picture_url?: string | null;
   phone_country_code: string | null;
   phone: string | null;
   country: string | null;
@@ -167,6 +168,7 @@ export default function AccountSettingsPage() {
         if (cancelled) return;
         setSavedProfile(nextProfile);
         setDraftProfile(nextProfile);
+        setAvatarUrl(u.profile_picture_url || '');
         await loadProfilePicture();
       } catch (e) {
         console.warn('Failed to load account settings:', e);
