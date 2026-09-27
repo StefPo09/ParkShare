@@ -180,6 +180,25 @@ The rental page can use Google Maps when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is co
 
 Run Flask and Next.js in separate terminals. Flask must be running before testing the frontend login.
 
+## Google Sign-In Setup
+
+Google sign-in is handled by the Flask backend. The backend loads `backend/.env` at startup if present, or you can configure these variables in the backend service environment (do not commit the client secret):
+
+```text
+GOOGLE_CLIENT_ID=<Google OAuth client ID>
+GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
+FRONTEND_URL=https://parkshare.adv.ro
+FRONTEND_DOMAIN=parkshare.adv.ro
+```
+
+In Google Cloud Console, add this exact authorized redirect URI to the OAuth client:
+
+```text
+https://parkshare.adv.ro/api/auth/google/callback
+```
+
+After setting the variables, restart the Flask backend. Verify the deployment with `https://parkshare.adv.ro/api/auth/google/info`; it should report `"configured": true` and the expected callback URL. If `configured` remains false, check that both Google credentials are present in the backend process environment and that Authlib is installed from `backend/requirements.txt`.
+
 ## Validation Completed
 
 The backend authentication flow was tested with Flask's test client:

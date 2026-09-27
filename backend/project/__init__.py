@@ -2,11 +2,13 @@
 from datetime import timedelta
 import os
 import re
+from pathlib import Path
 
 try:
     from authlib.integrations.flask_client import OAuth
 except Exception:
     OAuth = None
+from dotenv import load_dotenv
 from flask import Flask, request, Response, stream_with_context, abort, jsonify, redirect, url_for
 from flask_cors import CORS
 from flask_login import LoginManager, current_user, logout_user
@@ -22,6 +24,7 @@ oauth = OAuth()
 
 
 def create_app():
+    load_dotenv(Path(__file__).resolve().parent.parent / '.env')
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
     app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY')
