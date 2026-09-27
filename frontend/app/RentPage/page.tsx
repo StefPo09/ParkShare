@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
 import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
-import { GoogleMap, useJsApiLoader, MarkerF, Circle } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, Circle } from '@react-google-maps/api';
+import { useGoogleMaps } from '../components/GoogleMapsProvider';
 import {
   Menu,
   Search,
@@ -196,14 +197,7 @@ function RentPageContent() {
     }
   };
 
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey,
-    authReferrerPolicy: 'origin',
-    version: 'weekly',
-  });
+  const { apiKey: googleMapsApiKey, isLoaded, loadError } = useGoogleMaps();
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
