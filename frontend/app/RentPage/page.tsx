@@ -386,7 +386,7 @@ function RentPageContent() {
           <main className="relative flex-1 bg-[#e8e8e8] dark:bg-[#121c1a] overflow-hidden transform-gpu z-10">
             {loadError ? (
                 <div className="flex h-full items-center justify-center px-6 text-center text-[#6f797d] dark:text-[#9db0b6]">
-                  Google Maps is blocked for this host. In Google Cloud, allow this URL in the API key restrictions: {typeof window !== 'undefined' ? window.location.origin : 'this device'}.
+                  Google Maps is blocked for this host. In Google Cloud, allow this app's domain in the API key restrictions.
                 </div>
             ) : !googleMapsApiKey ? (
                 <div className="flex h-full items-center justify-center text-[#6f797d] dark:text-[#9db0b6]">

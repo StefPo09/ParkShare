@@ -771,7 +771,7 @@ export default function AddSpotPage() {
                   <button
                     type="button"
                     onClick={() => selectedCountry && setIsCityOpen((prev) => !prev)}
-                    disabled={typeof window !== 'undefined' ? !selectedCountry : false}
+                    disabled={!selectedCountry}
                     className="flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-[18px] font-medium text-[#121212] disabled:cursor-not-allowed disabled:opacity-60 dark:text-white"
                   >
                     <span className={selectedCityName ? 'text-[#121212] dark:text-white' : 'text-[#6f797d] dark:text-[#9db0b6]'}>
@@ -872,7 +872,7 @@ export default function AddSpotPage() {
                 <div className="relative w-full h-60 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 shadow-inner bg-[#e8e8e8] dark:bg-[#121c1a]">
                   {loadError ? (
                     <div className="flex h-full items-center justify-center px-4 text-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">
-                      Google Maps is blocked for this host. In Google Cloud, allow this URL in the API key restrictions: {typeof window !== 'undefined' ? window.location.origin : 'this device'}.
+                      Google Maps is blocked for this host. In Google Cloud, allow this app's domain in the API key restrictions.
                     </div>
                   ) : !googleMapsApiKey ? (
                     <div className="flex h-full items-center justify-center text-sm font-medium text-[#6f797d] dark:text-[#9db0b6]">

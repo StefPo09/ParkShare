@@ -86,7 +86,7 @@ export default function SignUpScreen() {
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            disabled={typeof window !== 'undefined' ? !isEmailValid : false}
+                            disabled={!isEmailValid}
                             className="h-12 w-full rounded-xl bg-[#0F4C81] text-sm font-semibold text-white transition hover:bg-[#0D3E68] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#0F4C81]/45 disabled:hover:bg-[#0F4C81]/45 cursor-pointer"
                         >
                             Continue
