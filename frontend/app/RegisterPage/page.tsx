@@ -11,6 +11,8 @@ import { cityGroups } from '../../data/address/cities';
 
 const getCitiesForCountry = (country: string) =>
     (cityGroups[country] ?? []).slice().sort((a, b) => a.localeCompare(b));
+const normalizeSearchText = (value: string) =>
+    value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -59,10 +61,10 @@ export default function RegisterPage() {
 
     const availableCities = getCitiesForCountry(selectedCountry);
     const filteredCountries = countryOptions.filter((country) =>
-        country.toLowerCase().includes(countrySearch.trim().toLowerCase()),
+        normalizeSearchText(country).includes(normalizeSearchText(countrySearch.trim())),
     );
     const filteredCities = availableCities.filter((city) =>
-        city.toLowerCase().includes(citySearch.trim().toLowerCase()),
+        normalizeSearchText(city).includes(normalizeSearchText(citySearch.trim())),
     );
 
     const passwordsMatch = confirmPassword === '' || password === confirmPassword;
