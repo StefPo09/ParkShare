@@ -7,7 +7,6 @@ const PUBLIC_PATHS = new Set([
   '/SignUpPage',
   '/RegisterPage',
   '/ForgotPasswordPage',
-  '/PasswordResetPage',
 ]);
 
 export function middleware(request: NextRequest) {
@@ -24,11 +23,14 @@ export function middleware(request: NextRequest) {
   }
 
   if (PUBLIC_PATHS.has(pathname)) {
+    if (hasSessionCookie) {
+      return NextResponse.redirect(new URL('/HomePage', request.url));
+    }
     return NextResponse.next();
   }
 
   if (!hasSessionCookie) {
-    return NextResponse.redirect(new URL('/LoginPage', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
