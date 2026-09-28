@@ -106,6 +106,7 @@ export default function ManageSpotsPage() {
                             const currency = spot.price_currency || 'RON';
                             return (
                                 <a
+                                    key={spot.id}
                                     href={`${ROUTES.EDIT_SPOT}?id=${spot.id}`}
                                     onClick={(e) => { e.preventDefault(); router.push(`${ROUTES.EDIT_SPOT}?id=${spot.id}`); }}
                                     className="group relative flex items-center justify-between p-4 rounded-3xl bg-[#0f4c81] text-white shadow-[0_10px_25px_rgba(15,76,129,0.2)] cursor-pointer"
