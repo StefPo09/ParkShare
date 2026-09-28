@@ -9,7 +9,7 @@ const PUBLIC_PATHS = new Set([
   '/ForgotPasswordPage',
 ]);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get('session');
   const hasSessionCookie = Boolean(sessionCookie && sessionCookie.value.trim() !== '');
