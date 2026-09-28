@@ -12,12 +12,22 @@ const nextConfig = {
     // React Strict Mode helps catch common bugs during development
     reactStrictMode: true,
 
+    // Keep Turbopack scoped to the frontend app rather than the repository root.
+    turbopack: {
+        root: __dirname,
+    },
+
     // External image configuration for <Image /> component
     images: {
         remotePatterns: [
             {
                 protocol: 'https',
                 hostname: 'images.unsplash.com',
+                pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: '**.googleusercontent.com',
                 pathname: '/**',
             },
         ],

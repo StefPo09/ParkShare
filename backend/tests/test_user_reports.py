@@ -140,6 +140,10 @@ class UserReportTests(unittest.TestCase):
             'end_date': '2026-10-01T10:00:00',
         })
         self.assertEqual(overlapping_booking.status_code, 409)
+        self.assertEqual(
+            overlapping_booking.get_json()['error'],
+            'The selected time slot is already booked.',
+        )
 
         spot_response = renter_client.get('/api/spots?available_only=true')
         serialized_spot = spot_response.get_json()['spots'][0]

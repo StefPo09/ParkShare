@@ -156,6 +156,7 @@ function PaymentContent() {
     const [customEndTime, setCustomEndTime] = useState('10:00');
 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [bookingError, setBookingError] = useState<string | null>(null);
 
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -546,55 +547,128 @@ function PaymentContent() {
         setShowCarsModal(false);
     };
 
-    const handlePaymentSuccess = async () => {
-        if (spotDetails && selectedDate && timeValidation.isValid && timeValidation.startMinutes !== undefined && timeValidation.endMinutes !== undefined) {
-            try {
-                const toLocalIso = (date: Date) => {
-                    const pad = (value: number) => String(value).padStart(2, '0');
-                    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-                };
-
-                const startDate = new Date(selectedDate);
-                startDate.setHours(Math.floor(timeValidation.startMinutes / 60), timeValidation.startMinutes % 60, 0, 0);
-
-                const endDate = new Date(selectedDate);
-                endDate.setHours(Math.floor(timeValidation.endMinutes / 60), timeValidation.endMinutes % 60, 0, 0);
-
-                const payload = {
-                    spot_id: Number(spotDetails.id),
-                    start_date: toLocalIso(startDate),
-                    end_date: toLocalIso(endDate),
-                };
-
-                const res = await fetch(`${API}/api/bookings`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify(payload),
-                });
-
-                if (!res.ok) {
-                    const text = await res.text();
-                    let errData: unknown = {};
-                    try {
-                        errData = text ? JSON.parse(text) : {};
-                    } catch {
-                        errData = { raw: text || 'Empty response body' };
-                    }
-
-                    if (res.status === 404) {
-                        console.warn('Booking API endpoint not available on the configured backend host. Check that the backend server is running and the API URL is correct.', {
-                            status: res.status,
-                            errData,
-                        });
-                    } else {
-                        console.error('Backend booking creation failed:', res.status, errData);
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to create booking in backend:', err);
-            }
+    const getRequestedBooking = () => {
+        if (
+            !spotDetails ||
+            !selectedDate ||
+            !timeValidation.isValid ||
+            timeValidation.startMinutes === undefined ||
+            timeValidation.endMinutes === undefined
+        ) {
+            return null;
         }
+
+        const startDate = new Date(selectedDate);
+        startDate.setHours(
+            Math.floor(timeValidation.startMinutes / 60),
+            timeValidation.startMinutes % 60,
+            0,
+            0,
+        );
+        const endDate = new Date(selectedDate);
+        endDate.setHours(
+            Math.floor(timeValidation.endMinutes / 60),
+            timeValidation.endMinutes % 60,
+            0,
+            0,
+        );
+
+        return {
+            spotId: Number(spotDetails.id),
+            startDate,
+            endDate,
+        };
+    };
+
+    const validateAvailabilityBeforePayment = async () => {
+        const requestedBooking = getRequestedBooking();
+        if (!requestedBooking) return 'Please select a valid date and time before paying.';
+        if (!spotIdParam) return 'This parking spot is not available for online booking.';
+
+        try {
+            const response = await fetch(`${API}/api/spots/${requestedBooking.spotId}`, {
+                credentials: 'include',
+                cache: 'no-store',
+            });
+            if (!response.ok) {
+                return 'Could not verify availability. Please reload the page before paying.';
+            }
+
+            const data = await response.json();
+            const freshSpot = data.spot as SpotDetails | undefined;
+            if (!freshSpot) return 'Could not verify availability. Please reload the page before paying.';
+
+            setSpotDetails((current) => current ? {
+                ...current,
+                is_available: freshSpot.is_available,
+                bookings: Array.isArray(freshSpot.bookings) ? freshSpot.bookings : [],
+            } : current);
+
+            if (freshSpot.is_available === false) {
+                const message = 'This parking spot is no longer available.';
+                setBookingError(message);
+                return message;
+            }
+
+            const requestedStart = requestedBooking.startDate.getTime();
+            const requestedEnd = requestedBooking.endDate.getTime();
+            const hasConflict = (freshSpot.bookings || []).some((booking) => {
+                if (booking.status === 'cancelled') return false;
+                const bookedStart = new Date(booking.start_date).getTime();
+                const bookedEnd = new Date(booking.end_date).getTime();
+                return bookedStart < requestedEnd && bookedEnd > requestedStart;
+            });
+
+            if (hasConflict) {
+                const message = 'This time slot has just been reserved. Choose another available time.';
+                setBookingError(message);
+                return message;
+            }
+
+            setBookingError(null);
+            return null;
+        } catch (error) {
+            console.error('Could not verify parking availability:', error);
+            return 'Could not verify availability. Please reload the page before paying.';
+        }
+    };
+
+    const handlePaymentSuccess = async () => {
+        const requestedBooking = getRequestedBooking();
+        if (!requestedBooking) {
+            throw new Error('Please select a valid date and time before paying.');
+        }
+
+        const res = await fetch(`${API}/api/bookings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                spot_id: requestedBooking.spotId,
+                start_date: requestedBooking.startDate.toISOString(),
+                end_date: requestedBooking.endDate.toISOString(),
+            }),
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            let errorMessage = text;
+            try {
+                const errorData = text ? JSON.parse(text) : {};
+                errorMessage = errorData.error || text;
+            } catch {
+                errorMessage = text || `Request failed (${res.status})`;
+            }
+
+            if (res.status === 409) {
+                setBookingError('This time slot was reserved before your booking could be confirmed. Your payment was processed; please check its status before attempting another payment.');
+                throw new Error(errorMessage || 'The selected time slot is already booked.');
+            }
+
+            throw new Error(errorMessage || `Could not create booking (${res.status}).`);
+        }
+
+        setBookingError(null);
 
         const queryParams = new URLSearchParams();
         if (spotDetails) {
@@ -1166,6 +1240,13 @@ function PaymentContent() {
                             </div>
                         )}
 
+                        {bookingError && (
+                            <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-sm font-medium text-red-700 dark:text-red-300">
+                                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                                <span>{bookingError}</span>
+                            </div>
+                        )}
+
                         {clientSecret ? (
                             <Elements
                                 stripe={stripePromise}
@@ -1176,6 +1257,7 @@ function PaymentContent() {
                             >
                                 <CheckoutForm
                                     disabled={!isBookingValid}
+                                    onBeforeConfirm={validateAvailabilityBeforePayment}
                                     onSuccess={handlePaymentSuccess}
                                 />
                             </Elements>
