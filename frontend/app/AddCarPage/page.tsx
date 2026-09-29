@@ -28,6 +28,7 @@ export default function AddCarPage() {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [showRequiredErrors, setShowRequiredErrors] = useState(false);
     const [form, setForm] = useState({
         name: '',
         plate: '',
@@ -93,7 +94,11 @@ export default function AddCarPage() {
     };
 
     const handleSubmit = async () => {
-        if (!canSubmit) return;
+        setShowRequiredErrors(true);
+        if (!canSubmit) {
+            setErrorMessage('Please complete all required fields before adding your car.');
+            return;
+        }
 
         setIsLoading(true);
         setErrorMessage(null);
@@ -164,7 +169,11 @@ export default function AddCarPage() {
                             <button
                                 type="button"
                                 onClick={handlePhotoAreaClick}
-                                className="relative h-full w-full cursor-pointer overflow-hidden rounded-4xl border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                                className={`relative h-full w-full cursor-pointer overflow-hidden rounded-4xl border bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:bg-white/5 dark:hover:bg-white/10 ${
+                                    showRequiredErrors && !carImage
+                                        ? 'border-red-500 dark:border-red-400'
+                                        : 'border-white/40 dark:border-white/10'
+                                }`}
                                 aria-label="Upload car photo options"
                             >
                                 <input
@@ -198,7 +207,11 @@ export default function AddCarPage() {
                                 value={form.name}
                                 onChange={(event) => updateField('name', event.target.value)}
                                 placeholder={t('carName')}
-                                className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                                className={`w-full rounded-xl border bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6] ${
+                                    showRequiredErrors && !form.name.trim()
+                                        ? 'border-red-500 dark:border-red-400'
+                                        : 'border-black/10 dark:border-white/10'
+                                }`}
                             />
                         </div>
 
@@ -211,7 +224,11 @@ export default function AddCarPage() {
                                 value={form.plate}
                                 onChange={(event) => updateField('plate', event.target.value)}
                                 placeholder="DT 123 RAL"
-                                className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                                className={`w-full rounded-xl border bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6] ${
+                                    showRequiredErrors && !form.plate.trim()
+                                        ? 'border-red-500 dark:border-red-400'
+                                        : 'border-black/10 dark:border-white/10'
+                                }`}
                             />
                         </div>
 
@@ -224,12 +241,20 @@ export default function AddCarPage() {
                                 value={form.model}
                                 onChange={(event) => updateField('model', event.target.value)}
                                 placeholder="CarModel_a83"
-                                className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                                className={`w-full rounded-xl border bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6] ${
+                                    showRequiredErrors && !form.model.trim()
+                                        ? 'border-red-500 dark:border-red-400'
+                                        : 'border-black/10 dark:border-white/10'
+                                }`}
                             />
                         </div>
 
                         {/* Legal Documents */}
-                        <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5">
+                        <div className={`rounded-2xl border bg-white/20 p-2 dark:bg-white/5 ${
+                            showRequiredErrors && !form.document.trim()
+                                ? 'border-red-500 dark:border-red-400'
+                                : 'border-black/5 dark:border-white/10'
+                        }`}>
                             <div className="mb-2 flex items-center justify-between gap-2">
                                 <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                                     {t('legalDocuments')}
@@ -264,7 +289,11 @@ export default function AddCarPage() {
                                 onChange={handleDocumentChange}
                             />
 
-                            <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
+                            <div className={`flex min-h-12.5 items-center justify-between gap-2 rounded-xl border bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:bg-white/5 dark:text-white ${
+                                showRequiredErrors && !form.document.trim()
+                                    ? 'border-red-500 dark:border-red-400'
+                                    : 'border-[#111827]/15 dark:border-white/10'
+                            }`}>
                                 {form.document ? (
                                     <>
                                         <span className="truncate pr-2 font-medium">{form.document}</span>
@@ -293,10 +322,10 @@ export default function AddCarPage() {
                         )}
                         <button
                             type="button"
-                            disabled={!canSubmit || isLoading}
+                            disabled={isLoading}
                             onClick={handleSubmit}
                             className={`flex w-full cursor-pointer items-center justify-center rounded-2xl px-5 py-3.5 text-base font-semibold shadow-[0_16px_28px_rgba(15,76,129,0.28)] transition hover:scale-[1.01] active:scale-[0.99] ${
-                                canSubmit && !isLoading
+                                !isLoading
                                     ? 'bg-[#0f4c81] text-white hover:bg-[#0c3e67]'
                                     : 'bg-[#0f4c81]/45 text-white cursor-not-allowed shadow-none'
                             }`}
