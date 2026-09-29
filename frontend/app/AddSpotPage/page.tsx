@@ -102,6 +102,7 @@ function AddSpotPageContent() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showRequiredErrors, setShowRequiredErrors] = useState(false);
   const [countries, setCountries] = useState<string[]>(countryOptions);
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -309,7 +310,7 @@ function AddSpotPageContent() {
     values.document.trim().length > 0 &&
     spotPhotos.length > 0;
 
-  const isAddSpotDisabled = !canSubmit || isLoading;
+  const isAddSpotDisabled = isLoading;
   const activePhoto = spotPhotos[activePhotoIndex] || null;
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -443,6 +444,7 @@ function AddSpotPageContent() {
   };
 
   const handleAddSpotSubmit = async () => {
+    setShowRequiredErrors(true);
     if (!canSubmit) {
       setErrorMessage('Please complete all required fields and select a spot location on the map.');
       return;
@@ -688,7 +690,11 @@ function AddSpotPageContent() {
                   <button
                     type="button"
                     onClick={handlePhotoAreaClick}
-                    className="relative h-55 w-full max-w-70 cursor-pointer overflow-hidden rounded-[32px] border border-white/40 bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    className={`relative h-55 w-full max-w-70 cursor-pointer overflow-hidden rounded-[32px] border bg-[#cce5e7] shadow-md transition duration-200 hover:scale-[1.01] dark:bg-white/5 dark:hover:bg-white/10 ${
+                      showRequiredErrors
+                        ? 'border-red-500 dark:border-red-400'
+                        : 'border-white/40 dark:border-white/10'
+                    }`}
                     aria-label="Spot photo options"
                   >
                     <div className="flex h-full flex-col items-center justify-center gap-2 text-[#404b51] dark:text-[#8ba2a6]">
@@ -711,7 +717,11 @@ function AddSpotPageContent() {
                 <label className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   Country
                 </label>
-                <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                <div className={`rounded-xl border bg-white/60 dark:bg-white/5 ${
+                  showRequiredErrors && !values.country.trim()
+                    ? 'border-red-500 dark:border-red-400'
+                    : 'border-black/10 dark:border-white/10'
+                }`}>
                   <button
                     type="button"
                     onClick={() => setIsCountryOpen((prev) => !prev)}
@@ -769,7 +779,11 @@ function AddSpotPageContent() {
                 <label className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   City
                 </label>
-                <div className="rounded-xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5">
+                <div className={`rounded-xl border bg-white/60 dark:bg-white/5 ${
+                  showRequiredErrors && !selectedCityName.trim()
+                    ? 'border-red-500 dark:border-red-400'
+                    : 'border-black/10 dark:border-white/10'
+                }`}>
                   <button
                     type="button"
                     onClick={() => selectedCountry && setIsCityOpen((prev) => !prev)}
@@ -834,7 +848,11 @@ function AddSpotPageContent() {
                     value={values.name}
                     onChange={(e) => updateValue('name', e.target.value)}
                     placeholder="e.g. Center Secure Parking"
-                    className="w-full rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                    className={`w-full rounded-xl border bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6] ${
+                      showRequiredErrors && !values.name.trim()
+                        ? 'border-red-500 dark:border-red-400'
+                        : 'border-black/10 dark:border-white/10'
+                    }`}
                 />
               </div>
 
@@ -843,7 +861,11 @@ function AddSpotPageContent() {
                 <label htmlFor="spot-address" className="mb-1 block text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea]">
                   {t('address')}
                 </label>
-                <div className="w-full rounded-xl border border-black/10 bg-white/30 px-3 py-2 text-[18px] font-medium text-[#121212] dark:border-white/10 dark:bg-white/5 dark:text-white min-h-[44px] flex items-center select-none cursor-not-allowed opacity-90">
+                <div className={`w-full rounded-xl border bg-white/30 px-3 py-2 text-[18px] font-medium text-[#121212] dark:bg-white/5 dark:text-white min-h-[44px] flex items-center select-none cursor-not-allowed opacity-90 ${
+                  showRequiredErrors && !values.address.trim()
+                    ? 'border-red-500 dark:border-red-400'
+                    : 'border-black/10 dark:border-white/10'
+                }`}>
                   {values.address ? (
                     <span>{values.address}</span>
                   ) : (
@@ -855,7 +877,11 @@ function AddSpotPageContent() {
               </div>
 
               {/* Precise Location Map Box */}
-              <div className="rounded-2xl border border-black/5 bg-white/20 p-2 dark:border-white/10 dark:bg-white/5 space-y-2">
+              <div className={`rounded-2xl border bg-white/20 p-2 dark:bg-white/5 space-y-2 ${
+                showRequiredErrors && !selectedLocation
+                  ? 'border-red-500 dark:border-red-400'
+                  : 'border-black/5 dark:border-white/10'
+              }`}>
                 <div className="flex items-center justify-between px-1">
                   <label className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#42565d] dark:text-[#d6e7ea] flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-[#0f4c81] dark:text-[#2dd4bf]" />
@@ -994,13 +1020,21 @@ function AddSpotPageContent() {
                       onChange={handlePriceChange}
                       onBlur={handlePriceBlur}
                       placeholder="0.00"
-                      className="w-full flex-1 rounded-xl border border-black/10 bg-[#fff] bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6]"
+                      className={`w-full flex-1 rounded-xl border bg-[#fff] bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none placeholder:text-[#6f797d] dark:bg-white/5 dark:text-white dark:placeholder:text-[#9db0b6] ${
+                        showRequiredErrors && !values.rentalPriceAmount.trim()
+                          ? 'border-red-500 dark:border-red-400'
+                          : 'border-black/10 dark:border-white/10'
+                      }`}
                   />
                   <select
                       aria-label="Currency"
                       value={values.rentalPriceCurrency}
                       onChange={(e) => updateValue('rentalPriceCurrency', e.target.value)}
-                      className="rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:border-white/10 dark:bg-white/5 dark:text-white cursor-pointer"
+                      className={`rounded-xl border bg-white/60 px-3 py-2 text-[18px] font-medium text-[#121212] outline-none dark:bg-white/5 dark:text-white cursor-pointer ${
+                        showRequiredErrors && !values.rentalPriceAmount.trim()
+                          ? 'border-red-500 dark:border-red-400'
+                          : 'border-black/10 dark:border-white/10'
+                      }`}
                   >
                     <option value="RON" className="text-black bg-white">RON</option>
                     <option value="$" className="text-black bg-white">$</option>
@@ -1063,7 +1097,11 @@ function AddSpotPageContent() {
                     className="hidden"
                     onChange={handleDocumentFileChange}
                 />
-                <div className="flex min-h-12.5 items-center justify-between gap-2 rounded-xl border border-[#111827]/15 bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
+                <div className={`flex min-h-12.5 items-center justify-between gap-2 rounded-xl border bg-white/50 px-3 py-2 text-[18px] text-[#121212] shadow-sm dark:bg-white/5 dark:text-white ${
+                  showRequiredErrors && !values.document.trim()
+                    ? 'border-red-500 dark:border-red-400'
+                    : 'border-[#111827]/15 dark:border-white/10'
+                }`}>
                   {values.document ? (
                       <>
                         <span className="truncate pr-2 font-medium">{values.document}</span>
