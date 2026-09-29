@@ -5,7 +5,7 @@ import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
 import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { GoogleMap, MarkerF, Circle } from '@react-google-maps/api';
-import { useGoogleMaps } from '../components/GoogleMapsProvider';
+import GoogleMapsProvider, { useGoogleMaps } from '../components/GoogleMapsProvider';
 import {
   Menu,
   Search,
@@ -701,6 +701,7 @@ function RentPageContent() {
 
 export default function ParkingRentPage() {
   return (
+    <GoogleMapsProvider>
       <Suspense fallback={
         <div className="flex h-screen items-center justify-center bg-[#dfeef0] dark:bg-[#011b1b]">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#0f4c81] border-t-transparent" />
@@ -708,5 +709,6 @@ export default function ParkingRentPage() {
       }>
         <RentPageContent />
       </Suspense>
+    </GoogleMapsProvider>
   );
 }
