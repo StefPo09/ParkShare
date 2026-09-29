@@ -8,7 +8,7 @@ import { useLanguage } from '../components/LanguageProvider';
 import { countryOptions } from '../../data/address/countries';
 import { cityGroups, normalizeAddressSearch } from '../../data/address/cities';
 import { GoogleMap, MarkerF, Circle } from '@react-google-maps/api';
-import { useGoogleMaps } from '../components/GoogleMapsProvider';
+import GoogleMapsProvider, { useGoogleMaps } from '../components/GoogleMapsProvider';
 import {
   X,
   Upload,
@@ -78,6 +78,14 @@ const darkMapStyle: google.maps.MapTypeStyle[] = [
 const defaultMapCenter = { lat: 44.4323, lng: 26.1063 };
 
 export default function AddSpotPage() {
+  return (
+    <GoogleMapsProvider>
+      <AddSpotPageContent />
+    </GoogleMapsProvider>
+  );
+}
+
+function AddSpotPageContent() {
   const router = useRouter();
   const { t } = useLanguage();
   const API = getApiBaseUrl();
