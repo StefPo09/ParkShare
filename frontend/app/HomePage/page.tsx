@@ -433,29 +433,29 @@ export default function HomePage() {
                   <ChevronRight className="h-7 w-7 text-[#42565d] dark:text-[#dfeef0]" strokeWidth={2.5} />
                 </a>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {parkingListings.map((spot) => (
                   <a
                           key={spot.id}
                       href={ROUTES.RENT}
                       onClick={(e) => { e.preventDefault(); router.push(ROUTES.RENT); }}
-                          className="min-w-0 cursor-pointer overflow-hidden rounded-[22px] border border-black/5 bg-white/40 p-2 text-left shadow-sm transition hover:bg-white/50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                          className="min-w-0 cursor-pointer overflow-hidden rounded-[22px] border border-black/5 bg-white/40 p-2 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/50 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                       >
-                        <div className="relative h-28 overflow-hidden rounded-[18px] bg-[#d9d9d9]">
+                        <div className="relative h-32 overflow-hidden rounded-[18px] bg-[#d9d9d9] sm:h-36 xl:h-40">
                           <Image
                               src={spot.image}
                               alt={spot.title}
                               fill
-                              sizes="(max-width: 430px) 33vw, 130px"
+                              sizes="(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 33vw"
                               className="object-cover"
                           />
                         </div>
 
                         <div className="mt-2 space-y-1">
-                          <p className="text-[11px] font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.title}</p>
-                          <p className="text-[13px] font-bold text-[#121212] dark:text-white">{spot.name}</p>
-                          <p className="text-[11px] font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.address}</p>
-                          <p className="text-[18px] font-bold text-[#121212] dark:text-white">{spot.price}</p>
+                          <p className="truncate text-xs font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.title}</p>
+                          <p className="truncate text-sm font-bold text-[#121212] dark:text-white">{spot.name}</p>
+                          <p className="truncate text-xs font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.address}</p>
+                          <p className="text-xl font-bold text-[#121212] dark:text-white">{spot.price}</p>
                         </div>
                       </a>
                   ))}

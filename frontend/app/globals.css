@@ -3,6 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --app-shell-width: 100%;
   color-scheme: light;
   --page-bg: #dfeef0;
   --panel: rgba(255, 255, 255, 0.2);
@@ -18,6 +19,9 @@
 
 html {
   background-color: var(--page-bg);
+  max-width: 100%;
+  overflow-x: clip;
+  scrollbar-gutter: stable;
 }
 
 html.dark {
@@ -34,9 +38,37 @@ html.dark {
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 100%;
+  overflow-x: clip;
   background-color: var(--page-bg);
   color: var(--text);
+}
+
+.min-h-screen {
+  min-height: 100dvh;
+}
+
+.h-screen {
+  height: 100dvh;
+}
+
+.w-screen {
+  width: 100%;
+}
+
+.mx-auto.max-w-107\.5 {
+  width: var(--app-shell-width);
+  max-width: none;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+nav.fixed:has(> a:nth-child(3)) {
+  right: 0;
+  left: 0;
+  width: 100%;
 }
 
 html.dark body {
