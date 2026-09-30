@@ -12,6 +12,7 @@ import {
   Settings,
   Newspaper,
   HelpCircle,
+  Info,
 } from 'lucide-react';
 
 interface NavMenuProps {
@@ -105,6 +106,15 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
             >
               <HelpCircle className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
               <span className="tracking-wide">{t('help')}</span>
+            </a>
+
+            <a
+              href={ROUTES.ABOUT_US}
+              onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.ABOUT_US); }}
+              className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-[var(--border)] hover:bg-white/40 active:scale-[0.99]"
+            >
+              <Info className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
+              <span className="tracking-wide">{t('aboutUs')}</span>
             </a>
           </nav>
         </div>

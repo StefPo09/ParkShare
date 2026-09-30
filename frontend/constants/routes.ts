@@ -17,6 +17,7 @@ export const ROUTES = {
   NOTIFICATIONS: '/NotificationsPage',
   NEWS_UPDATES: '/News&UpdatesPage',
   HELP: '/HelpPage',
+  ABOUT_US: '/AboutUsPage',
   PAYMENT: '/PaymentPage',
   TERMS_OF_SERVICE: '/TermsOfService',
   PRIVACY_POLICY: '/PrivacyPolicy',
