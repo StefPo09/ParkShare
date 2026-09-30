@@ -73,6 +73,7 @@ export default function HelpPage() {
         <a
           href={ROUTES.HOME}
           onClick={(e) => { e.preventDefault(); router.push(ROUTES.HOME); }}
+          aria-current="page"
           className="cursor-pointer rounded-full p-1.5 text-slate-500 transition-all dark:text-slate-400"
         >
           <Home className="h-6 w-6" strokeWidth={2} />
