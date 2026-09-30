@@ -3,6 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --app-shell-width: 100%;
   color-scheme: light;
   --page-bg: #dfeef0;
   --panel: rgba(255, 255, 255, 0.2);
@@ -18,6 +19,9 @@
 
 html {
   background-color: var(--page-bg);
+  max-width: 100%;
+  overflow-x: clip;
+  scrollbar-gutter: stable;
 }
 
 html.dark {
@@ -34,12 +38,115 @@ html.dark {
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 100%;
+  overflow-x: clip;
   background-color: var(--page-bg);
   color: var(--text);
+}
+
+.min-h-screen {
+  min-height: 100dvh;
+}
+
+.h-screen {
+  height: 100dvh;
+}
+
+.w-screen {
+  width: 100%;
+}
+
+.mx-auto.max-w-107\.5 {
+  width: var(--app-shell-width);
+  max-width: none;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+nav.fixed:has(> a:nth-child(3)) {
+  right: 0;
+  left: 0;
+  width: 100%;
 }
 
 html.dark body {
   background-color: var(--page-bg);
   color: var(--text);
+}
+
+.page-transition-enter {
+  animation: page-transition-enter 220ms cubic-bezier(0.2, 0.65, 0.3, 1) both;
+}
+
+@keyframes page-transition-enter {
+  from {
+    opacity: 0.82;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-enter {
+    animation: none;
+  }
+}
+
+nav:has(> a[class*="scale-110"]),
+nav:has(> a[aria-current="page"]) {
+  isolation: isolate;
+}
+
+nav:has(> a[class*="scale-110"])::before,
+nav:has(> a[aria-current="page"])::before {
+  position: absolute;
+  top: 50%;
+  left: 16.6667%;
+  z-index: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgba(15, 76, 129, 0.12);
+  border-radius: 9999px;
+  background: rgba(15, 76, 129, 0.12);
+  content: "";
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: left 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+nav:has(> a:nth-child(2)[class*="scale-110"])::before,
+nav:has(> a:nth-child(2)[aria-current="page"])::before {
+  left: 50%;
+}
+
+nav:has(> a:nth-child(3)[class*="scale-110"])::before,
+nav:has(> a:nth-child(3)[aria-current="page"])::before {
+  left: 83.3333%;
+}
+
+nav:has(> a[class*="scale-110"]) > a,
+nav:has(> a[aria-current="page"]) > a {
+  position: relative;
+  z-index: 1;
+}
+
+nav:has(> a[aria-current="page"]) > a[aria-current="page"] {
+  color: #0f4c81;
+}
+
+html.dark nav:has(> a[aria-current="page"]) > a[aria-current="page"] {
+  color: #2dd4bf;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  nav:has(> a[class*="scale-110"])::before,
+  nav:has(> a[aria-current="page"])::before {
+    transition: none;
+  }
 }
