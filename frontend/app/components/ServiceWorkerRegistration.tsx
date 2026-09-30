@@ -6,23 +6,25 @@ export default function ServiceWorkerRegistration() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    const isLocalDevelopment =
-      process.env.NODE_ENV === 'development' &&
-      (window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1');
-
-    if (isLocalDevelopment) {
-      navigator.serviceWorker.getRegistrations()
-        .then((registrations) =>
+    if (process.env.NODE_ENV === 'development') {
+      Promise.all([
+        navigator.serviceWorker.getRegistrations().then((registrations) =>
           Promise.all(
             registrations
               .filter((registration) => registration.scope === new URL('/', window.location.origin).href)
               .map((registration) => registration.unregister()),
           ),
-        )
-        .catch((error: unknown) => {
-          console.error('ParkShare service worker cleanup failed:', error);
-        });
+        ),
+        caches.keys().then((cacheNames) =>
+          Promise.all(
+            cacheNames
+              .filter((cacheName) => cacheName.startsWith('parkshare-shell-'))
+              .map((cacheName) => caches.delete(cacheName)),
+          ),
+        ),
+      ]).catch((error: unknown) => {
+        console.error('ParkShare development service worker cleanup failed:', error);
+      });
       return;
     }
 
