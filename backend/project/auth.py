@@ -142,7 +142,11 @@ def login_post():
     password = request.form.get('password', '')
     user = User.query.filter_by(email=email).first()
 
-    if not user or not check_password_hash(user.password, password):
+    password_matches = user is not None and bool(user.password) and check_password_hash(
+        user.password,
+        password,
+    )
+    if not password_matches:
         flash('Please check your login details and try again.')
         return redirect(url_for('auth.login'))
     if user.is_banned:
@@ -237,7 +241,11 @@ def api_login():
     password = str(data.get('password', ''))
     user = User.query.filter_by(email=email).first()
 
-    if not user or not check_password_hash(user.password, password):
+    password_matches = user is not None and bool(user.password) and check_password_hash(
+        user.password,
+        password,
+    )
+    if not password_matches:
         if source_is_form:
             # For form submissions, redirect back to the frontend login or referrer
             target = request.form.get('next') or request.args.get('next') or request.referrer or _default_frontend_redirect()

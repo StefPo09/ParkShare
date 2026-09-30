@@ -90,6 +90,28 @@ class UserReportTests(unittest.TestCase):
         )
         self.assertEqual(blocked_login.status_code, 403)
 
+    def test_passwordless_account_login_returns_invalid_credentials(self):
+        passwordless_user = User(
+            email='google-user@example.test',
+            name='Google User',
+            password=None,
+        )
+        db.session.add(passwordless_user)
+        db.session.commit()
+
+        api_response = self.app.test_client().post(
+            '/api/auth/login',
+            json={'email': passwordless_user.email, 'password': 'any-password'},
+        )
+        self.assertEqual(api_response.status_code, 401)
+        self.assertEqual(api_response.get_json()['error'], 'Invalid email or password.')
+
+        form_response = self.app.test_client().post(
+            '/api/auth/login',
+            data={'email': passwordless_user.email, 'password': 'any-password'},
+        )
+        self.assertEqual(form_response.status_code, 302)
+
     def test_only_admin_can_review_and_account_delete_cleans_reports(self):
         reporter_client = self._client_for(self.reporters[0])
         created = reporter_client.post(

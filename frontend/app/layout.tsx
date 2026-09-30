@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./components/LanguageProvider";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
+import ProfileCompletionGuard from "./components/ProfileCompletionGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,14 +35,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <LanguageProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
+          <ThemeProvider>
             <ServiceWorkerRegistration />
-            {children}
+            <ProfileCompletionGuard>{children}</ProfileCompletionGuard>
           </ThemeProvider>
         </LanguageProvider>
       </body>

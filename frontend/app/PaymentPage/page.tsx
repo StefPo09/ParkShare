@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useTheme } from 'next-themes';
+import { useTheme } from '../components/ThemeProvider';
 import { Elements } from '@stripe/react-stripe-js';
 import type { Appearance } from '@stripe/stripe-js';
 import { stripePromise } from '../../lib/stripe';
