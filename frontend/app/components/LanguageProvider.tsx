@@ -12,7 +12,7 @@ const LanguageContext = createContext<{
 }>({
   language: 'en',
   setLanguage: () => undefined,
-  t: (key: string) => key,
+  t: (key: string) => translations.en[key] ?? key,
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {

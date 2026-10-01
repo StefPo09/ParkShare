@@ -1,9 +1,14 @@
 import os
+import threading
+import time
+from collections import defaultdict, deque
 from datetime import date
 from urllib.parse import urlparse
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
+import requests
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_user, logout_user
+from requests.exceptions import RequestException
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -12,6 +17,10 @@ from .models import PersonalDetails, User
 
 
 auth = Blueprint('auth', __name__)
+_AI_CHAT_WINDOW_SECONDS = 60
+_AI_CHAT_REQUEST_LIMIT = 6
+_ai_chat_requests: dict[int, deque[float]] = defaultdict(deque)
+_ai_chat_requests_lock = threading.Lock()
 
 
 def _default_frontend_redirect():
@@ -377,11 +386,98 @@ def facebook_login():
 
 @auth.route('/api/ai/health', methods=['GET'])
 def ai_health():
-    api_key = os.getenv('GOOGLE_API_KEY') or os.getenv('GEMINI_API_KEY')
+    api_key = current_app.config.get('GROQ_API_KEY')
     return jsonify({
         'configured': bool(api_key),
-        'provider': 'google-ai-studio',
+        'provider': 'groq',
+        'model': current_app.config.get('GROQ_MODEL'),
     }), 200
+
+
+@auth.route('/api/ai/chat', methods=['POST'])
+def ai_chat():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Authentication required.'}), 401
+
+    api_key = current_app.config.get('GROQ_API_KEY')
+    if not api_key:
+        return jsonify({'error': 'The AI assistant is not configured.'}), 503
+
+    data = request.get_json(silent=True)
+    messages = data.get('messages') if isinstance(data, dict) else None
+    if not isinstance(messages, list) or not messages or len(messages) > 12:
+        return jsonify({'error': 'Send between 1 and 12 chat messages.'}), 400
+
+    validated_messages = []
+    total_characters = 0
+    for message in messages:
+        if not isinstance(message, dict) or message.get('role') not in ('user', 'assistant'):
+            return jsonify({'error': 'Chat message format is invalid.'}), 400
+        content = message.get('content')
+        if not isinstance(content, str):
+            return jsonify({'error': 'Chat message format is invalid.'}), 400
+        content = content.strip()
+        if not content or len(content) > 2000:
+            return jsonify({'error': 'Each message must contain 1 to 2000 characters.'}), 400
+        total_characters += len(content)
+        if total_characters > 10000:
+            return jsonify({'error': 'The conversation is too long. Start a new conversation.'}), 400
+        validated_messages.append({'role': message['role'], 'content': content})
+
+    if validated_messages[-1]['role'] != 'user':
+        return jsonify({'error': 'The latest chat message must be from you.'}), 400
+
+    now = time.monotonic()
+    with _ai_chat_requests_lock:
+        user_requests = _ai_chat_requests[current_user.id]
+        while user_requests and now - user_requests[0] >= _AI_CHAT_WINDOW_SECONDS:
+            user_requests.popleft()
+        if len(user_requests) >= _AI_CHAT_REQUEST_LIMIT:
+            return jsonify({'error': 'You have sent too many messages. Please wait a minute and try again.'}), 429
+        user_requests.append(now)
+
+    provider_messages = [{
+        'role': 'system',
+        'content': (
+            'You are ParkShare support, an assistant for an app where people find and share parking. '
+            'Give concise, practical help with using ParkShare. Do not claim to access accounts, '
+            'bookings, payments, or private data. Never request passwords or authentication codes. '
+            'If a question requires account access or a human decision, direct the user to contact support.'
+        ),
+    }, *validated_messages]
+
+    try:
+        response = requests.post(
+            'https://api.groq.com/openai/v1/chat/completions',
+            headers={'Authorization': f'Bearer {api_key}'},
+            json={
+                'model': current_app.config.get('GROQ_MODEL', 'openai/gpt-oss-20b'),
+                'messages': provider_messages,
+                'max_tokens': 500,
+                'temperature': 0.5,
+            },
+            timeout=(5, 30),
+        )
+    except RequestException as error:
+        current_app.logger.warning('Groq chat request failed (%s).', type(error).__name__)
+        return jsonify({'error': 'The AI assistant is temporarily unavailable. Please try again.'}), 502
+
+    if response.status_code == 429:
+        return jsonify({'error': 'The AI assistant is busy. Please try again shortly.'}), 503
+    if response.status_code < 200 or response.status_code >= 300:
+        current_app.logger.warning('Groq chat returned HTTP %s.', response.status_code)
+        return jsonify({'error': 'The AI assistant could not answer right now. Please try again.'}), 502
+
+    try:
+        choices = response.json().get('choices')
+        reply = choices[0]['message']['content'].strip()
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError):
+        current_app.logger.warning('Groq chat returned an invalid response payload.')
+        return jsonify({'error': 'The AI assistant returned an invalid response. Please try again.'}), 502
+
+    if not reply:
+        return jsonify({'error': 'The AI assistant returned an empty response. Please try again.'}), 502
+    return jsonify({'reply': reply}), 200
 
 
 @auth.route('/api/auth/me')
