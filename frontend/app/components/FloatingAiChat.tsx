@@ -7,6 +7,16 @@ import { useLanguage } from './LanguageProvider';
 import AiChatConversation from './AiChatConversation';
 import { ROUTES } from '../../constants/routes';
 
+const HIDDEN_ROUTES = new Set<string>([
+  ROUTES.AI_CHAT,
+  ROUTES.START,
+  ROUTES.LOGIN,
+  ROUTES.SIGN_UP,
+  ROUTES.REGISTER,
+  ROUTES.FORGOT_PASSWORD,
+  ROUTES.PASSWORD_RESET,
+]);
+
 export default function FloatingAiChat() {
   const pathname = usePathname();
   const { t } = useLanguage();
@@ -35,7 +45,7 @@ export default function FloatingAiChat() {
     };
   }, [isOpen]);
 
-  if (pathname === ROUTES.AI_CHAT) return null;
+  if (HIDDEN_ROUTES.has(pathname)) return null;
 
   return (
     <div ref={chatRef} className="pointer-events-none fixed inset-x-0 bottom-0 z-[60]">
