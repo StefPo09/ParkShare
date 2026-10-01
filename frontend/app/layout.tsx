@@ -6,6 +6,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./components/LanguageProvider";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import ProfileCompletionGuard from "./components/ProfileCompletionGuard";
+import FloatingAiChat from "./components/FloatingAiChat";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <ServiceWorkerRegistration />
             <ProfileCompletionGuard>{children}</ProfileCompletionGuard>
+            <FloatingAiChat />
           </ThemeProvider>
         </LanguageProvider>
       </body>
