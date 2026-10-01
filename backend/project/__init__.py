@@ -28,6 +28,8 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
     app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY')
+    app.config['GROQ_API_KEY'] = os.environ.get('GROQ_API_KEY')
+    app.config['GROQ_MODEL'] = os.environ.get('GROQ_MODEL', 'openai/gpt-oss-20b')
     app.config['GOOGLE_CLIENT_ID'] = os.environ.get('GOOGLE_CLIENT_ID')
     app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get('GOOGLE_CLIENT_SECRET')
     app.config['SQLALCHEMY_DATABASE_URI'] = (

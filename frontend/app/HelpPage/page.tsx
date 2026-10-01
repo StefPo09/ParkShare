@@ -12,7 +12,6 @@ export default function HelpPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-
   return (
     <div className="relative min-h-screen bg-[#dfeef0] px-0 py-0 text-[#121212] dark:bg-[#011b1b] dark:text-white">
       <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[#dfeef0] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[#011b1b]">
@@ -55,6 +54,7 @@ export default function HelpPage() {
                   <p className="mt-2 text-sm text-[#42565d] dark:text-[#9db0b6]">{t('faq3Text')}</p>
                 </article>
               </div>
+
             </div>
           </div>
         </main>

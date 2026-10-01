@@ -28,6 +28,7 @@ frontend/.env.local
 frontend/.env.*.local
 backend/.env
 backend/.env.*
+!backend/.env.example
 
 # Operating system files
 .DS_Store
