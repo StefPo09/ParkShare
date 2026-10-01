@@ -75,6 +75,12 @@ class AiChatTests(unittest.TestCase):
         self.assertEqual(groq_request.call_args.kwargs['headers']['Authorization'], 'Bearer test-groq-key')
         payload = groq_request.call_args.kwargs['json']
         self.assertEqual(payload['model'], 'test-model')
+        self.assertEqual(payload['messages'][0]['role'], 'system')
+        self.assertIn('Answer only questions within that scope', payload['messages'][0]['content'])
+        self.assertIn(
+            'I can only help with ParkShare, parking, and topics directly related to this app.',
+            payload['messages'][0]['content'],
+        )
         self.assertEqual(payload['messages'][-1], {
             'role': 'user',
             'content': 'How do I add a car?',
