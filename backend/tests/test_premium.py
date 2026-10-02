@@ -121,6 +121,38 @@ class PremiumTests(unittest.TestCase):
         self.assertFalse(self.user.is_premium)
         self.assertFalse(self.client.get('/api/spots?available_only=false').get_json()['spots'][0]['is_promoted'])
 
+    def test_cancel_at_period_end_immediately_removes_premium_access(self):
+        self.user.premium_subscriptions.append(PremiumSubscription(
+            stripe_subscription_id='sub_cancel_test',
+            stripe_customer_id='cus_cancel_test',
+            status='active',
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
+            cancel_at_period_end=False,
+        ))
+        db.session.commit()
+        self.assertTrue(self.user.is_premium)
+
+        subscription = SimpleNamespace(
+            id='sub_cancel_test',
+            customer='cus_cancel_test',
+            status='active',
+            current_period_end=int((datetime.now(timezone.utc) + timedelta(days=30)).timestamp()),
+            cancel_at_period_end=True,
+            metadata={'user_id': str(self.user.id)},
+        )
+        with patch(
+            'backend.project.premium.stripe.Subscription.retrieve',
+            return_value=subscription,
+        ):
+            response = self.client.get('/api/premium/status')
+
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertFalse(response.get_json()['is_premium'])
+        self.assertTrue(response.get_json()['cancel_at_period_end'])
+        self.assertFalse(self.user.is_premium)
+        self.assertFalse(self.client.get('/api/auth/me').get_json()['user']['is_premium'])
+        self.assertFalse(self.client.get('/api/spots?available_only=false').get_json()['spots'][0]['is_promoted'])
+
     def test_checkout_return_verifies_stripe_session_and_activates_premium(self):
         checkout_session = SimpleNamespace(
             mode='subscription',
