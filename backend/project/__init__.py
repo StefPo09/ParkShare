@@ -128,7 +128,7 @@ def create_app():
             pass
 
     with app.app_context():
-        from .models import Booking, Car, City, ParkingSpot, PersonalDetails, ProfilePicture, User, UserReport
+        from .models import Booking, Car, City, FavoriteSpot, ParkingSpot, PersonalDetails, ProfilePicture, User, UserReport
         db.create_all()
         user_columns = {column['name'] for column in inspect(db.engine).get_columns('user')}
         for col_name, ddl in {

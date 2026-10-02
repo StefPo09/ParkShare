@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 import os
 
 from . import db
-from .models import Booking, Car, City, ParkingSpot, User
+from .models import Booking, Car, City, FavoriteSpot, ParkingSpot, User
 
 parking = Blueprint('parking', __name__)
 
@@ -239,6 +239,46 @@ def get_spots():
 
     spots = query.order_by(ParkingSpot.created_at.desc()).all()
     return jsonify({'spots': [spot.to_dict() for spot in spots]}), 200
+
+
+@parking.route('/api/favorites', methods=['GET'])
+@login_required
+def get_favorite_spots():
+    favorites = (
+        FavoriteSpot.query
+        .join(ParkingSpot)
+        .filter(FavoriteSpot.user_id == current_user.id)
+        .order_by(FavoriteSpot.created_at.desc())
+        .all()
+    )
+    return jsonify({
+        'spots': [favorite.spot.to_dict() for favorite in favorites],
+        'spot_ids': [favorite.spot_id for favorite in favorites],
+    }), 200
+
+
+@parking.route('/api/favorites/<int:spot_id>', methods=['POST'])
+@login_required
+def add_favorite_spot(spot_id):
+    spot = db.session.get(ParkingSpot, spot_id)
+    if not spot:
+        return jsonify({'error': 'Spot not found.'}), 404
+
+    favorite = FavoriteSpot.query.filter_by(user_id=current_user.id, spot_id=spot.id).first()
+    if favorite is None:
+        db.session.add(FavoriteSpot(user_id=current_user.id, spot_id=spot.id))
+        db.session.commit()
+    return jsonify({'message': 'Spot added to favorites.', 'spot_id': spot.id}), 200
+
+
+@parking.route('/api/favorites/<int:spot_id>', methods=['DELETE'])
+@login_required
+def remove_favorite_spot(spot_id):
+    favorite = FavoriteSpot.query.filter_by(user_id=current_user.id, spot_id=spot_id).first()
+    if favorite is not None:
+        db.session.delete(favorite)
+        db.session.commit()
+    return jsonify({'message': 'Spot removed from favorites.', 'spot_id': spot_id}), 200
 
 
 @parking.route('/api/cities/<int:city_id>/spots', methods=['GET'])
