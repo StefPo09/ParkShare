@@ -1,6 +1,6 @@
 import React from "react"
 
-export default function PaymentPageLayout({ children }: { children: React.ReactNode }) {
+export default function PremiumPageLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
