@@ -30,6 +30,7 @@ class User(UserMixin, db.Model):
     profile_picture = db.relationship('ProfilePicture', uselist=False, back_populates='user', cascade='all, delete-orphan')
     reports_made = db.relationship('UserReport', foreign_keys='UserReport.reporter_id', back_populates='reporter', cascade='all, delete-orphan')
     reports_received = db.relationship('UserReport', foreign_keys='UserReport.target_id', back_populates='target', cascade='all, delete-orphan')
+    favorite_spots = db.relationship('FavoriteSpot', back_populates='user', cascade='all, delete-orphan')
 
     def has_role(self, role):
         return self.role == role
@@ -154,6 +155,7 @@ class ParkingSpot(db.Model):
     owner = db.relationship('User', back_populates='parking_spots')
     city = db.relationship('City', back_populates='spots')
     bookings = db.relationship('Booking', back_populates='spot', cascade='all, delete-orphan')
+    favorited_by = db.relationship('FavoriteSpot', back_populates='spot', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
@@ -187,6 +189,19 @@ class ParkingSpot(db.Model):
                 if b.status != 'cancelled'
             ] if self.bookings else [],
         }
+
+
+class FavoriteSpot(db.Model):
+    __tablename__ = 'favorite_spot'
+    __table_args__ = (db.UniqueConstraint('user_id', 'spot_id', name='uq_favorite_spot_user_spot'),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    spot_id = db.Column(db.Integer, db.ForeignKey('parking_spot.id'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='favorite_spots')
+    spot = db.relationship('ParkingSpot', back_populates='favorited_by')
 
 
 class Booking(db.Model):

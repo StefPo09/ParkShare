@@ -24,6 +24,7 @@ export const ROUTES = {
   PRIVACY_POLICY: '/PrivacyPolicy',
   EDIT_SPOT: '/EditSpotPage',
   MANAGE_SPOT: '/ManageSpotsPage',
+  FAVORITES: '/FavoritesPage',
   ADD_SPOT: '/AddSpotPage',
   SUCCESS_PAYMENT: '/SuccessPaymentPage',
   ADMIN_REPORTS: '/AdminReportsPage',

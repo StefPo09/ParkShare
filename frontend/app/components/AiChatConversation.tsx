@@ -13,9 +13,11 @@ type ChatMessage = {
 export default function AiChatConversation({
   compact = false,
   fullHeight = false,
+  privacyText,
 }: {
   compact?: boolean;
   fullHeight?: boolean;
+  privacyText?: string;
 }) {
   const { t } = useLanguage();
   const inputId = React.useId();
@@ -72,9 +74,11 @@ export default function AiChatConversation({
         </div>
       </div>
 
-      <p className="border-b border-black/5 px-4 py-2 text-xs leading-5 text-[#6f797d] dark:border-white/10 dark:text-[#9db0b6]">
-        {t('aiChatPrivacy')}
-      </p>
+      {privacyText !== '' && (
+        <p className="border-b border-black/5 px-4 py-2 text-xs leading-5 text-[#6f797d] dark:border-white/10 dark:text-[#9db0b6]">
+          {privacyText ?? t('aiChatPrivacy')}
+        </p>
+      )}
 
       <div
         className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4"

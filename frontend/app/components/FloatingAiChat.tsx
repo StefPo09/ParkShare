@@ -52,7 +52,7 @@ export default function FloatingAiChat() {
       <section
         role="dialog"
         aria-label={t('aiChatTitle')}
-        className={`${isOpen ? 'flex' : 'hidden'} pointer-events-auto absolute bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-4 h-[min(34rem,calc(100dvh-9rem))] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl border border-black/10 bg-[#dfeef0] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.28)] dark:border-white/10 dark:bg-[#011b1b] sm:right-6`}
+        className={`${isOpen ? 'flex' : 'hidden'} pointer-events-auto absolute bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-[calc(1rem+3.5rem)] h-[min(34rem,calc(100dvh-9rem-env(safe-area-inset-bottom)))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-3xl border border-black/10 bg-[#dfeef0] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.28)] dark:border-white/10 dark:bg-[#011b1b]`}
       >
         <div className="flex items-center justify-between px-2 pb-2 pt-1">
           <span className="text-sm font-semibold text-[#121212] dark:text-white">{t('aiChatTitle')}</span>
@@ -60,7 +60,7 @@ export default function FloatingAiChat() {
             type="button"
             onClick={() => setIsOpen(false)}
             aria-label={t('close')}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#42565d] transition hover:bg-black/5 dark:text-[#dfeef0] dark:hover:bg-white/10"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-[#42565d] transition hover:bg-black/5 dark:text-[#dfeef0] dark:hover:bg-white/10"
           >
             <X className="h-4 w-4" />
           </button>
@@ -73,7 +73,7 @@ export default function FloatingAiChat() {
         onClick={() => setIsOpen((open) => !open)}
         aria-label={isOpen ? t('close') : t('aiChatTitle')}
         aria-expanded={isOpen}
-        className="pointer-events-auto absolute bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#0f4c81] text-white shadow-lg transition hover:scale-105 hover:bg-[#0d3e68] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0f4c81]/30 dark:bg-[#2dd4bf] dark:text-[#011b1b] dark:hover:bg-[#5be0cf] sm:right-6"
+        className="pointer-events-auto absolute bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-4 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-[#0f4c81] text-white shadow-lg transition hover:scale-105 hover:bg-[#0d3e68] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0f4c81]/30 dark:bg-[#2dd4bf] dark:text-[#011b1b] dark:hover:bg-[#5be0cf] sm:right-6"
       >
         {isOpen ? <X className="h-6 w-6" /> : <Bot className="h-7 w-7" />}
       </button>
