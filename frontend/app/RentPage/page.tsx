@@ -16,6 +16,7 @@ import {
   MapPin,
   X,
   Flag,
+  Heart,
 } from 'lucide-react';
 import Image from 'next/image';
 import NavMenu from "../components/NavMenu";
@@ -163,6 +164,9 @@ function RentPageContent() {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [searchValue, setSearchValue] = useState(initialQuery);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [favoriteSpotIds, setFavoriteSpotIds] = useState<Set<number>>(new Set());
+  const [favoriteUpdatingId, setFavoriteUpdatingId] = useState<number | null>(null);
+  const [favoriteMessage, setFavoriteMessage] = useState('');
   const [reportFormOpen, setReportFormOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reportDetails, setReportDetails] = useState('');
@@ -287,6 +291,55 @@ function RentPageContent() {
 
     fetchSpots();
   }, [API]);
+
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const response = await fetch(`${API}/api/favorites`, { credentials: 'include' });
+        if (response.status === 401 || response.redirected) return;
+        if (!response.ok) throw new Error(`Status ${response.status}`);
+
+        const data: { spot_ids?: number[] } = await response.json();
+        setFavoriteSpotIds(new Set(Array.isArray(data.spot_ids) ? data.spot_ids : []));
+      } catch {
+        setFavoriteMessage(t('favoriteActionError'));
+      }
+    };
+
+    void fetchFavorites();
+  }, [API, t]);
+
+  const toggleFavorite = async (spot: ParkingSpot) => {
+    const spotId = Number(spot.id);
+    if (!Number.isInteger(spotId) || spotId <= 0 || favoriteUpdatingId !== null) return;
+
+    const isFavorite = favoriteSpotIds.has(spotId);
+    setFavoriteUpdatingId(spotId);
+    setFavoriteMessage('');
+    try {
+      const response = await fetch(`${API}/api/favorites/${spotId}`, {
+        method: isFavorite ? 'DELETE' : 'POST',
+        credentials: 'include',
+      });
+      if (response.status === 401 || response.redirected) {
+        setFavoriteMessage(t('loginRequired'));
+        return;
+      }
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+
+      setFavoriteSpotIds((current) => {
+        const next = new Set(current);
+        if (isFavorite) next.delete(spotId);
+        else next.add(spotId);
+        return next;
+      });
+      setFavoriteMessage(t(isFavorite ? 'favoriteRemoved' : 'favoriteSaved'));
+    } catch {
+      setFavoriteMessage(t('favoriteActionError'));
+    } finally {
+      setFavoriteUpdatingId(null);
+    }
+  };
 
   const submitReport = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -617,7 +670,7 @@ function RentPageContent() {
                 </div>
 
                 {/* Price & Action Row */}
-                <div className="mt-2 flex items-center justify-between px-1">
+                <div className="mt-2 flex items-center justify-between gap-2 px-1">
                   <div className="flex items-baseline gap-1">
                     <span className="text-[20px] font-bold text-[#143d49] dark:text-white">
                       {selectedSpot.price} {selectedSpot.price_currency || 'RON'}
@@ -627,22 +680,40 @@ function RentPageContent() {
                     </span>
                   </div>
 
-                  <button
-                      type="button"
-                      disabled={!selectedSpot.is_on_sale}
-                      onClick={() => {
-                        if (!selectedSpot.is_on_sale) return;
-                        router.push(`${ROUTES.PAYMENT}?spot=${selectedSpot.id}`);
-                      }}
-                      className={`rounded-[14px] px-5 py-1.5 text-[15px] font-extrabold tracking-wider text-white shadow-md transition duration-200 ${
-                          selectedSpot.is_on_sale
-                              ? 'bg-[#0c4a75] hover:bg-[#0a3c5f] active:scale-95 dark:bg-[#155b8a] cursor-pointer'
-                              : 'bg-slate-400 dark:bg-slate-600 opacity-60 cursor-not-allowed pointer-events-none shadow-none'
-                      }`}
-                  >
-                    PAY
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => void toggleFavorite(selectedSpot)}
+                        disabled={favoriteUpdatingId !== null}
+                        aria-label={t(favoriteSpotIds.has(Number(selectedSpot.id)) ? 'removeFavorite' : 'addFavorite')}
+                        aria-pressed={favoriteSpotIds.has(Number(selectedSpot.id))}
+                        title={t(favoriteSpotIds.has(Number(selectedSpot.id)) ? 'removeFavorite' : 'addFavorite')}
+                        className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-black/10 bg-white/80 text-rose-500 shadow-sm transition hover:scale-105 hover:bg-rose-50 disabled:cursor-wait disabled:opacity-60 dark:border-white/10 dark:bg-white/10 dark:hover:bg-rose-950/30"
+                    >
+                      <Heart className="h-5 w-5" fill={favoriteSpotIds.has(Number(selectedSpot.id)) ? 'currentColor' : 'none'} />
+                    </button>
+                    <button
+                        type="button"
+                        disabled={!selectedSpot.is_on_sale}
+                        onClick={() => {
+                          if (!selectedSpot.is_on_sale) return;
+                          router.push(`${ROUTES.PAYMENT}?spot=${selectedSpot.id}`);
+                        }}
+                        className={`rounded-[14px] px-5 py-1.5 text-[15px] font-extrabold tracking-wider text-white shadow-md transition duration-200 ${
+                            selectedSpot.is_on_sale
+                                ? 'bg-[#0c4a75] hover:bg-[#0a3c5f] active:scale-95 dark:bg-[#155b8a] cursor-pointer'
+                                : 'bg-slate-400 dark:bg-slate-600 opacity-60 cursor-not-allowed pointer-events-none shadow-none'
+                        }`}
+                    >
+                      PAY
+                    </button>
+                  </div>
                 </div>
+                {favoriteMessage && (
+                  <p role="status" className="mt-1 px-1 text-xs text-[#42565d] dark:text-[#a0ece0]">
+                    {favoriteMessage}
+                  </p>
+                )}
 
                 {/* Location Name Section */}
                 <div className="mt-2 border-t border-black/5 dark:border-white/10 pt-1.5 px-1">
