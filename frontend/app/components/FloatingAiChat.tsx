@@ -52,7 +52,7 @@ export default function FloatingAiChat() {
       <section
         role="dialog"
         aria-label={t('aiChatTitle')}
-        className={`${isOpen ? 'flex' : 'hidden'} pointer-events-auto absolute bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-4 h-[min(34rem,calc(100dvh-9rem))] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl border border-black/10 bg-[#dfeef0] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.28)] dark:border-white/10 dark:bg-[#011b1b] sm:right-6`}
+        className={`${isOpen ? 'flex' : 'hidden'} pointer-events-auto absolute bottom-[calc(9.75rem+env(safe-area-inset-bottom))] right-[calc(1rem+3.5rem)] h-[min(34rem,calc(100dvh-12rem-env(safe-area-inset-bottom)))] w-[min(24rem,calc(100vw-6rem))] flex-col overflow-hidden rounded-3xl border border-black/10 bg-[#dfeef0] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.28)] dark:border-white/10 dark:bg-[#011b1b]`}
       >
         <div className="flex items-center justify-between px-2 pb-2 pt-1">
           <span className="text-sm font-semibold text-[#121212] dark:text-white">{t('aiChatTitle')}</span>

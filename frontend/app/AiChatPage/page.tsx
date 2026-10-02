@@ -43,7 +43,7 @@ export default function AiChatPage() {
                 <p className="text-sm text-[#42565d] dark:text-[#9db0b6]">{t('aiChatIntro')}</p>
               </div>
             </div>
-            <AiChatConversation fullHeight />
+            <AiChatConversation fullHeight privacyText={t('aiChatPrivacyWarning')} />
           </div>
         </main>
       </div>
