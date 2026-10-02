@@ -2,38 +2,11 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Car, Crown, Home, Key, MapPin, Menu, Newspaper } from 'lucide-react';
+import { Car, Home, Key, Menu, Newspaper } from 'lucide-react';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import NavMenu from '../components/NavMenu';
 import ProfileMenu from '../components/ProfileMenu';
-
-const updates = [
-  {
-    icon: MapPin,
-    titleKey: 'newsNearbyTitle',
-    descriptionKey: 'newsNearbyDescription',
-    actionKey: 'newsExploreSpots',
-    href: ROUTES.RENT,
-    accent: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  },
-  {
-    icon: Crown,
-    titleKey: 'premiumPageTitle',
-    descriptionKey: 'newsPremiumDescription',
-    actionKey: 'newsExplorePremium',
-    href: ROUTES.PREMIUM,
-    accent: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  },
-  {
-    icon: Car,
-    titleKey: 'newsManageTitle',
-    descriptionKey: 'newsManageDescription',
-    actionKey: 'newsManageSpots',
-    href: ROUTES.MANAGE_SPOT,
-    accent: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  },
-];
 
 export default function NewsUpdatesPage() {
   const { t } = useLanguage();
@@ -73,34 +46,12 @@ export default function NewsUpdatesPage() {
               </p>
             </section>
 
-            <div className="mt-5 space-y-3">
-              {updates.map(({ icon: Icon, titleKey, descriptionKey, actionKey, href, accent }) => (
-                <article
-                  key={titleKey}
-                  className="rounded-3xl border border-black/5 bg-white/60 p-4 shadow-sm dark:border-white/10 dark:bg-white/5"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${accent}`}>
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-bold">{t(titleKey)}</h3>
-                      <p className="mt-1.5 text-sm leading-6 text-[#42565d] dark:text-[#9db0b6]">
-                        {t(descriptionKey)}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => router.push(href)}
-                        className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-[#0f4c81] transition hover:gap-3 dark:text-[#2dd4bf]"
-                      >
-                        {t(actionKey)}
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+            <p
+              role="status"
+              className="mt-5 rounded-3xl border border-dashed border-black/10 bg-white/30 px-5 py-10 text-center text-sm font-semibold text-[#42565d] dark:border-white/10 dark:bg-white/5 dark:text-[#9db0b6]"
+            >
+              {t('newsNothingNew')}
+            </p>
           </div>
         </main>
       </div>
