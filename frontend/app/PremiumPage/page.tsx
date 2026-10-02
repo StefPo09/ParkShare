@@ -164,12 +164,22 @@ export default function PremiumPage() {
               {isLoading && <p className="mt-6 text-sm text-[#6b5a35] dark:text-[#dbcda9]">{t('premiumWaiting')}</p>}
               {notice && <p role="status" className="mt-6 text-sm font-semibold text-amber-800 dark:text-amber-200">{notice}</p>}
               {error && <p role="alert" className="mt-6 text-sm font-semibold text-red-600 dark:text-red-300">{error}</p>}
-              {status?.cancel_at_period_end && (
-                <p className="mt-4 text-sm font-semibold text-amber-800 dark:text-amber-200">{t('premiumCancelPeriod')}</p>
-              )}
-
               <div className="mt-8">
-                {status?.is_premium ? (
+                {status?.cancel_at_period_end ? (
+                  <div className="flex flex-wrap items-center gap-4">
+                    <p role="status" className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                      {t('premiumCancelPeriod')}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isWorking}
+                      onClick={() => void startBillingAction('portal')}
+                      className="cursor-pointer rounded-xl bg-[#302817] px-5 py-3 text-sm font-bold text-white transition hover:bg-black disabled:opacity-60 dark:bg-amber-300 dark:text-[#211a0c] dark:hover:bg-amber-200"
+                    >
+                      {t('premiumManageSubscription')}
+                    </button>
+                  </div>
+                ) : status?.is_premium ? (
                   <div className="flex flex-wrap items-center gap-4">
                     <span className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-200">
                       <Check className="h-5 w-5" /> {t('premiumActive')}

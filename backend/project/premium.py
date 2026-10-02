@@ -121,6 +121,26 @@ def cancel_user_subscriptions(user):
 @premium.route('/api/premium/status', methods=['GET'])
 @login_required
 def premium_status():
+    api_key = current_app.config.get('STRIPE_SECRET_KEY')
+    latest_subscription = max(
+        current_user.premium_subscriptions,
+        key=lambda subscription: subscription.created_at,
+        default=None,
+    )
+    if api_key and latest_subscription:
+        try:
+            stripe_subscription = stripe.Subscription.retrieve(
+                latest_subscription.stripe_subscription_id,
+                api_key=api_key,
+            )
+            _sync_subscription(stripe_subscription, current_user.id, latest_subscription.stripe_customer_id)
+        except (StripeError, ValueError) as error:
+            current_app.logger.warning(
+                'Unable to refresh Premium status from Stripe (%s).',
+                type(error).__name__,
+            )
+            return jsonify({'error': 'Unable to refresh your subscription status. Please try again.'}), 502
+
     active_subscription = next(
         (
             item for item in sorted(
@@ -140,9 +160,7 @@ def premium_status():
             if active_subscription and active_subscription.current_period_end
             else None
         ),
-        'cancel_at_period_end': (
-            active_subscription.cancel_at_period_end if active_subscription else False
-        ),
+        'cancel_at_period_end': bool(latest_subscription and latest_subscription.cancel_at_period_end),
     }), 200
 
 
