@@ -159,6 +159,22 @@ npm install
 npm run dev
 ```
 
+## ParkShare Premium and Stripe
+
+Premium billing uses Stripe Checkout for a €5 monthly subscription. The Flask backend is
+the source of subscription status: configure `STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET`, and `FRONTEND_URL` in `backend/.env`. Set
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in the frontend environment. Use the matching
+Stripe test-mode keys while developing.
+
+Register the public webhook endpoint `https://<backend-host>/api/premium/webhook` in
+Stripe and subscribe it to `checkout.session.completed`,
+`customer.subscription.created`, `customer.subscription.updated`, and
+`customer.subscription.deleted`. Enable Stripe's customer billing portal so users can
+manage or cancel their subscriptions. The booking API creates and verifies Stripe
+PaymentIntents itself; successful bookings receive the Premium 10% discount only when
+the authenticated account has an active subscription.
+
 The Next.js app runs at `http://localhost:3000`.
 
 From Git Bash:

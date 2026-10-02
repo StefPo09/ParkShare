@@ -10,7 +10,7 @@ export function CheckoutForm({
                                                           }: {
                                  disabled: boolean;
                                  onBeforeConfirm: () => Promise<string | null>;
-                                 onSuccess: () => void | Promise<void>;
+                                 onSuccess: (paymentIntentId: string) => void | Promise<void>;
 }) {
     const stripe = useStripe();
     const elements = useElements();
@@ -45,7 +45,7 @@ export function CheckoutForm({
         if (paymentIntent?.status === 'succeeded') {
             setHasPaymentSucceeded(true);
             try {
-                await onSuccess();
+                await onSuccess(paymentIntent.id);
             } catch (error) {
                 setErrorMessage(
                     error instanceof Error

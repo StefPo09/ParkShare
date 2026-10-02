@@ -14,11 +14,13 @@ export default function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [userInfo, setUserInfo] = useState<{ firstName: string; lastName: string; email: string; role: string }>({
+  const [hasLoadedUser, setHasLoadedUser] = useState(false);
+  const [userInfo, setUserInfo] = useState<{ firstName: string; lastName: string; email: string; role: string; isPremium: boolean }>({
     firstName: '',
     lastName: '',
     email: '',
     role: '',
+    isPremium: false,
   });
 
   useEffect(() => {
@@ -31,22 +33,31 @@ export default function ProfileMenu() {
         if (meRes.ok) {
           const data = await meRes.json();
           if (!isCancelled && data.user) {
+            const isPremium = Boolean(data.user.is_premium);
             setUserInfo({
               firstName: data.user.first_name || '',
               lastName: data.user.last_name || '',
               email: data.user.email || '',
               role: data.user.role || '',
+              isPremium,
             });
             setAvatarUrl(data.user.profile_picture_url || '');
+            document.documentElement.dataset.premium = String(isPremium);
           }
+        } else if (!isCancelled) {
+          delete document.documentElement.dataset.premium;
+          setUserInfo({ firstName: '', lastName: '', email: '', role: '', isPremium: false });
+          setAvatarUrl('');
         }
       } catch (err) {
         console.warn('Backend unavailable for user data in ProfileMenu');
+      } finally {
+        if (!isCancelled) setHasLoadedUser(true);
       }
-
     };
 
     fetchUserData();
+    window.addEventListener('parkshare-premium-updated', fetchUserData);
 
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -57,6 +68,7 @@ export default function ProfileMenu() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       isCancelled = true;
+      window.removeEventListener('parkshare-premium-updated', fetchUserData);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
@@ -105,6 +117,7 @@ export default function ProfileMenu() {
     }
 
     setShowSignOutModal(false);
+    delete document.documentElement.dataset.premium;
     router.push(ROUTES.START);
     router.refresh();
   };
@@ -115,9 +128,24 @@ export default function ProfileMenu() {
         type="button"
         aria-label="Open profile menu"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
+        className="flex min-h-9 cursor-pointer items-center gap-2 rounded-full text-[#121212] transition hover:scale-[1.02] dark:text-white"
       >
-        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/10">
+        {hasLoadedUser && userInfo.email && (
+          <span
+            className={`rounded-full px-2 py-1 text-[10px] font-extrabold leading-none tracking-wide shadow-sm ${
+              userInfo.isPremium
+                ? 'border border-amber-400/70 bg-amber-100 text-amber-800 dark:border-amber-300/50 dark:bg-amber-400/15 dark:text-amber-200'
+                : 'border border-white/20 bg-[#0f4c81] text-white dark:bg-white/10'
+            }`}
+          >
+            {t(userInfo.isPremium ? 'premiumPlan' : 'freePlan')}
+          </span>
+        )}
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black/5 dark:bg-white/10 ${
+          userInfo.isPremium
+            ? 'border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.55)]'
+            : 'border border-black/10 dark:border-white/10'
+        }`}>
           {avatarUrl ? (
             <img
               src={avatarUrl}
