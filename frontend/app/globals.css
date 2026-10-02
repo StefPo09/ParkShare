@@ -116,6 +116,115 @@ html[data-premium="true"] [class~="ring-[#2dd4bf]"] {
   --tw-ring-color: rgba(230, 185, 65, 0.55);
 }
 
+html[data-premium="true"] .premium-home-shell {
+  background:
+    radial-gradient(ellipse at 50% -15%, rgba(226, 177, 54, 0.2), transparent 58%),
+    #f7f0dc;
+}
+
+html.dark[data-premium="true"] .premium-home-shell {
+  background:
+    radial-gradient(ellipse at 50% -15%, rgba(226, 177, 54, 0.14), transparent 58%),
+    #17150f;
+}
+
+html[data-premium="true"] .premium-home-frame {
+  background-color: rgba(250, 246, 232, 0.86);
+  box-shadow: 0 25px 60px rgba(128, 91, 19, 0.15);
+}
+
+html.dark[data-premium="true"] .premium-home-frame {
+  background-color: rgba(23, 21, 15, 0.92);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.32), 0 0 50px rgba(226, 177, 54, 0.06);
+}
+
+html[data-premium="true"] .premium-home-header {
+  border-bottom: 1px solid rgba(166, 120, 25, 0.18);
+  background: linear-gradient(110deg, #faf4e4, #f7f0dc 55%, #f6edcf);
+}
+
+html.dark[data-premium="true"] .premium-home-header {
+  border-bottom-color: rgba(245, 196, 77, 0.18);
+  background: linear-gradient(110deg, #17150f, #201b10 55%, #17150f);
+}
+
+html[data-premium="true"] .premium-home-menu-button {
+  color: #94630d;
+  background-color: rgba(218, 165, 32, 0.1);
+}
+
+html[data-premium="true"] .premium-home-title {
+  color: #77520e;
+}
+
+html.dark[data-premium="true"] .premium-home-title {
+  color: #f4d477;
+}
+
+html[data-premium="true"] .premium-home-card {
+  border-color: rgba(166, 120, 25, 0.2);
+  background-color: rgba(255, 252, 241, 0.64);
+  box-shadow: 0 14px 30px rgba(128, 91, 19, 0.07);
+}
+
+html.dark[data-premium="true"] .premium-home-card {
+  border-color: rgba(245, 196, 77, 0.19);
+  background-color: rgba(245, 196, 77, 0.055);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.17);
+}
+
+html[data-premium="true"] .premium-home-featured {
+  position: relative;
+  border-color: rgba(184, 134, 11, 0.28);
+  background: linear-gradient(145deg, rgba(255, 252, 241, 0.82), rgba(247, 240, 220, 0.66));
+}
+
+html[data-premium="true"] .premium-home-featured::before {
+  position: absolute;
+  top: 0;
+  left: 1.25rem;
+  width: 4rem;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #b8860b, #f3d36b);
+  content: "";
+}
+
+html.dark[data-premium="true"] .premium-home-featured {
+  background: linear-gradient(145deg, rgba(245, 196, 77, 0.075), rgba(245, 196, 77, 0.025));
+}
+
+html[data-premium="true"] .premium-home-search {
+  border-color: rgba(166, 120, 25, 0.24);
+  background-color: rgba(255, 252, 241, 0.8);
+  box-shadow: 0 8px 24px rgba(128, 91, 19, 0.08);
+}
+
+html.dark[data-premium="true"] .premium-home-search {
+  border-color: rgba(245, 196, 77, 0.2);
+  background-color: rgba(245, 196, 77, 0.06);
+}
+
+html[data-premium="true"] .premium-home-search-button {
+  background: linear-gradient(145deg, #c39320, #9a6c12);
+  box-shadow: 0 6px 18px rgba(154, 108, 18, 0.25);
+}
+
+html.dark[data-premium="true"] .premium-home-search-button {
+  background: linear-gradient(145deg, #f1cd65, #c89a32);
+  color: #211a0c;
+}
+
+html[data-premium="true"] .premium-home-upcoming-time {
+  background-color: rgba(218, 165, 32, 0.18);
+  color: #80590e;
+}
+
+html.dark[data-premium="true"] .premium-home-upcoming-time {
+  background-color: rgba(245, 196, 77, 0.16);
+  color: #f2d47b;
+}
+
 body {
   min-height: 100dvh;
   max-width: 100%;
