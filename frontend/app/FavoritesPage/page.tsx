@@ -91,7 +91,7 @@ export default function FavoritesPage() {
             type="button"
             aria-label="Open menu"
             onClick={() => setIsMenuOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/5"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/5"
           >
             <Menu className="h-6 w-6" />
           </button>
