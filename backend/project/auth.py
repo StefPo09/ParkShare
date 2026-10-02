@@ -78,6 +78,7 @@ def _user_payload(user):
             if personal_details and personal_details.date_of_birth
             else None
         ),
+        'is_premium': user.is_premium,
     }
 
 
@@ -556,6 +557,12 @@ def api_delete_account():
         return jsonify({'error': 'Authentication required.'}), 401
 
     user = current_user._get_current_object()
+    from .premium import cancel_user_subscriptions
+
+    cancellation_error = cancel_user_subscriptions(user)
+    if cancellation_error:
+        return jsonify({'error': cancellation_error}), 502
+
     logout_user()
     db.session.delete(user)
     db.session.commit()

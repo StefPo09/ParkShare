@@ -1,6 +1,7 @@
 import os
 import unittest
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from backend.project import create_app, db
@@ -16,6 +17,7 @@ class UserReportTests(unittest.TestCase):
         })
         self.database_override.start()
         self.app = create_app()
+        self.app.config['STRIPE_SECRET_KEY'] = 'sk_test_parkshare'
         self.context = self.app.app_context()
         self.context.push()
 
@@ -43,6 +45,38 @@ class UserReportTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200, response.get_json())
         return client
+
+    def _create_test_payment(self, client, spot_id, start_date, end_date, intent_id):
+        with patch(
+            'backend.project.parking.stripe.PaymentIntent.create',
+            return_value=SimpleNamespace(id=intent_id, client_secret=f'{intent_id}_secret'),
+        ) as create_intent:
+            response = client.post('/api/bookings/payment-intent', json={
+                'spot_id': spot_id,
+                'start_date': start_date,
+                'end_date': end_date,
+            })
+        self.assertEqual(response.status_code, 200, response.get_json())
+        return create_intent.call_args.kwargs
+
+    def _confirm_test_booking(self, client, spot_id, start_date, end_date, intent_id, intent_args):
+        payment_intent = SimpleNamespace(
+            status='succeeded',
+            metadata=intent_args['metadata'],
+            amount=intent_args['amount'],
+            amount_received=intent_args['amount'],
+            currency=intent_args['currency'],
+        )
+        with patch(
+            'backend.project.parking.stripe.PaymentIntent.retrieve',
+            return_value=payment_intent,
+        ):
+            return client.post('/api/bookings', json={
+                'spot_id': spot_id,
+                'start_date': start_date,
+                'end_date': end_date,
+                'payment_intent_id': intent_id,
+            })
 
     def test_third_valid_report_bans_account(self):
         self.assertFalse(self.target.is_banned)
@@ -144,11 +178,19 @@ class UserReportTests(unittest.TestCase):
         db.session.commit()
 
         renter_client = self._client_for(self.reporters[0])
-        first_booking = renter_client.post('/api/bookings', json={
-            'spot_id': spot.id,
-            'start_date': '2026-10-01T09:00:00+02:00',
-            'end_date': '2026-10-01T11:30:00+02:00',
-        })
+        first_start = '2026-10-01T09:00:00+02:00'
+        first_end = '2026-10-01T11:30:00+02:00'
+        overlapping_start = '2026-10-01T08:00:00'
+        overlapping_end = '2026-10-01T10:00:00'
+        first_payment = self._create_test_payment(
+            renter_client, spot.id, first_start, first_end, 'pi_first_booking',
+        )
+        overlapping_payment = self._create_test_payment(
+            renter_client, spot.id, overlapping_start, overlapping_end, 'pi_overlapping_booking',
+        )
+        first_booking = self._confirm_test_booking(
+            renter_client, spot.id, first_start, first_end, 'pi_first_booking', first_payment,
+        )
         self.assertEqual(first_booking.status_code, 201, first_booking.get_json())
         booking_data = first_booking.get_json()['booking']
         self.assertEqual(booking_data['status'], 'confirmed')
@@ -156,11 +198,14 @@ class UserReportTests(unittest.TestCase):
         self.assertEqual(booking_data['spot']['id'], spot.id)
         self.assertEqual(booking_data['start_date'], '2026-10-01T07:00:00+00:00')
 
-        overlapping_booking = renter_client.post('/api/bookings', json={
-            'spot_id': spot.id,
-            'start_date': '2026-10-01T08:00:00',
-            'end_date': '2026-10-01T10:00:00',
-        })
+        overlapping_booking = self._confirm_test_booking(
+            renter_client,
+            spot.id,
+            overlapping_start,
+            overlapping_end,
+            'pi_overlapping_booking',
+            overlapping_payment,
+        )
         self.assertEqual(overlapping_booking.status_code, 409)
         self.assertEqual(
             overlapping_booking.get_json()['error'],

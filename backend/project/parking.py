@@ -5,11 +5,14 @@ from datetime import datetime, timezone
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
+from stripe import StripeError
+import stripe
 
 from werkzeug.utils import secure_filename
 import os
 
 from . import db
+from .billing import PREMIUM_DISCOUNT_PERCENT, calculate_booking_price, parse_booking_datetime, to_stripe_amount
 from .models import Booking, Car, City, FavoriteSpot, ParkingSpot, User
 
 parking = Blueprint('parking', __name__)
@@ -564,40 +567,54 @@ def create_booking():
     if not spot:
         return jsonify({'error': 'Spot not found.'}), 404
 
-    def parse_booking_datetime(value):
-        if value is None:
-            raise ValueError('Missing datetime value')
-        if isinstance(value, str):
-            candidate = value.strip()
-            if not candidate:
-                raise ValueError('Empty datetime value')
-            if candidate.endswith('Z'):
-                candidate = candidate[:-1] + '+00:00'
-            try:
-                parsed = datetime.fromisoformat(candidate)
-            except ValueError:
-                try:
-                    parsed = datetime.fromisoformat(candidate.replace(' ', 'T'))
-                except ValueError:
-                    raise
-            return parsed
-        try:
-            return datetime.fromisoformat(str(value))
-        except ValueError:
-            raise
-
     try:
         start_date = parse_booking_datetime(start_date_raw)
         end_date = parse_booking_datetime(end_date_raw)
-        if start_date.tzinfo is not None:
-            start_date = start_date.astimezone(timezone.utc).replace(tzinfo=None)
-        if end_date.tzinfo is not None:
-            end_date = end_date.astimezone(timezone.utc).replace(tzinfo=None)
     except ValueError:
         return jsonify({'error': 'start_date and end_date must be valid ISO datetime strings.'}), 400
 
     if end_date <= start_date:
         return jsonify({'error': 'end_date must be after start_date.'}), 400
+
+    payment_intent_id = data.get('payment_intent_id')
+    api_key = current_app.config.get('STRIPE_SECRET_KEY')
+    if not api_key:
+        return jsonify({'error': 'Stripe payments are not configured.'}), 503
+    if not payment_intent_id:
+        return jsonify({'error': 'A successful payment is required to confirm this booking.'}), 400
+
+    try:
+        payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, api_key=api_key)
+    except StripeError:
+        return jsonify({'error': 'Unable to verify payment. Please contact support before retrying.'}), 502
+
+    metadata = payment_intent.metadata or {}
+    expected_start = start_date.isoformat()
+    expected_end = end_date.isoformat()
+    if (
+        payment_intent.status != 'succeeded'
+        or str(metadata.get('user_id')) != str(current_user.id)
+        or str(metadata.get('spot_id')) != str(spot.id)
+        or metadata.get('start_date') != expected_start
+        or metadata.get('end_date') != expected_end
+    ):
+        return jsonify({'error': 'The payment does not match this booking.'}), 400
+
+    try:
+        discount_percent = int(metadata.get('discount_percent', '0'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'The payment contains invalid pricing information.'}), 400
+    if discount_percent not in {0, PREMIUM_DISCOUNT_PERCENT}:
+        return jsonify({'error': 'The payment contains invalid pricing information.'}), 400
+
+    pricing = calculate_booking_price(spot, start_date, end_date, discount_percent)
+    expected_amount = to_stripe_amount(pricing['total'])
+    if (
+        payment_intent.currency.lower() != (spot.price_currency or 'RON').lower()
+        or payment_intent.amount != expected_amount
+        or payment_intent.amount_received != expected_amount
+    ):
+        return jsonify({'error': 'The paid amount does not match the booking price.'}), 400
 
     overlapping = Booking.query.filter(
         Booking.spot_id == spot.id,
@@ -608,31 +625,79 @@ def create_booking():
     if overlapping:
         return jsonify({'error': 'The selected time slot is already booked.'}), 409
 
-    operating_hours = 24.0
-    if spot.start_hour and spot.end_hour:
-        try:
-            sh_parts = [int(p) for p in spot.start_hour.split(':')]
-            eh_parts = [int(p) for p in spot.end_hour.split(':')]
-            sh_val = sh_parts[0] + (sh_parts[1] / 60.0 if len(sh_parts) > 1 else 0)
-            eh_val = eh_parts[0] + (eh_parts[1] / 60.0 if len(eh_parts) > 1 else 0)
-            if eh_val > sh_val:
-                operating_hours = eh_val - sh_val
-        except Exception:
-            operating_hours = 24.0
-    hourly_rate = float(spot.price_per_day) / operating_hours
-    duration_hours = (end_date - start_date).total_seconds() / 3600.0
-    total_price = round(duration_hours * hourly_rate, 2)
     booking = Booking(
         spot_id=spot.id,
         user_id=current_user.id,
         start_date=start_date,
         end_date=end_date,
-        total_price=total_price,
+        total_price=pricing['total'],
         status='confirmed',
     )
     db.session.add(booking)
     db.session.commit()
     return jsonify({'booking': booking.to_dict()}), 201
+
+
+@parking.route('/api/bookings/payment-intent', methods=['POST'])
+@login_required
+def create_booking_payment_intent():
+    api_key = current_app.config.get('STRIPE_SECRET_KEY')
+    if not api_key:
+        return jsonify({'error': 'Stripe payments are not configured.'}), 503
+
+    data = request.get_json(silent=True) or {}
+    spot_id = data.get('spot_id')
+    if not spot_id or not data.get('start_date') or not data.get('end_date'):
+        return jsonify({'error': 'spot_id, start_date, and end_date are required.'}), 400
+    spot = db.session.get(ParkingSpot, spot_id)
+    if not spot or not spot.is_available:
+        return jsonify({'error': 'This parking spot is not available.'}), 404
+
+    try:
+        start_date = parse_booking_datetime(data['start_date'])
+        end_date = parse_booking_datetime(data['end_date'])
+    except ValueError:
+        return jsonify({'error': 'start_date and end_date must be valid ISO datetime strings.'}), 400
+    if end_date <= start_date:
+        return jsonify({'error': 'end_date must be after start_date.'}), 400
+
+    conflicting_booking = Booking.query.filter(
+        Booking.spot_id == spot.id,
+        Booking.status != 'cancelled',
+        Booking.start_date < end_date,
+        Booking.end_date > start_date,
+    ).first()
+    if conflicting_booking:
+        return jsonify({'error': 'The selected time slot is already booked.'}), 409
+
+    discount_percent = PREMIUM_DISCOUNT_PERCENT if current_user.is_premium else 0
+    pricing = calculate_booking_price(spot, start_date, end_date, discount_percent)
+    currency = (spot.price_currency or 'RON').lower()
+    try:
+        intent = stripe.PaymentIntent.create(
+            amount=to_stripe_amount(pricing['total']),
+            currency=currency,
+            automatic_payment_methods={'enabled': True},
+            metadata={
+                'user_id': str(current_user.id),
+                'spot_id': str(spot.id),
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'discount_percent': str(discount_percent),
+            },
+            api_key=api_key,
+        )
+    except StripeError:
+        current_app.logger.exception('Stripe PaymentIntent creation failed.')
+        return jsonify({'error': 'Unable to start payment. Please try again.'}), 502
+
+    return jsonify({
+        'clientSecret': intent.client_secret,
+        'paymentIntentId': intent.id,
+        **pricing,
+        'currency': spot.price_currency or 'RON',
+        'is_premium': bool(discount_percent),
+    }), 200
 
 
 @parking.route('/api/dashboard/timers', methods=['GET'])

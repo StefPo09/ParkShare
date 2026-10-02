@@ -30,6 +30,9 @@ def create_app():
     app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY')
     app.config['GROQ_API_KEY'] = os.environ.get('GROQ_API_KEY')
     app.config['GROQ_MODEL'] = os.environ.get('GROQ_MODEL', 'openai/gpt-oss-20b')
+    app.config['STRIPE_SECRET_KEY'] = os.environ.get('STRIPE_SECRET_KEY')
+    app.config['STRIPE_WEBHOOK_SECRET'] = os.environ.get('STRIPE_WEBHOOK_SECRET')
+    app.config['FRONTEND_URL'] = os.environ.get('FRONTEND_URL') or os.environ.get('NEXT_PUBLIC_FRONTEND_URL')
     app.config['GOOGLE_CLIENT_ID'] = os.environ.get('GOOGLE_CLIENT_ID')
     app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get('GOOGLE_CLIENT_SECRET')
     app.config['SQLALCHEMY_DATABASE_URI'] = (
@@ -128,7 +131,7 @@ def create_app():
             pass
 
     with app.app_context():
-        from .models import Booking, Car, City, FavoriteSpot, ParkingSpot, PersonalDetails, ProfilePicture, User, UserReport
+        from .models import Booking, Car, City, FavoriteSpot, ParkingSpot, PersonalDetails, PremiumSubscription, ProfilePicture, User, UserReport
         db.create_all()
         user_columns = {column['name'] for column in inspect(db.engine).get_columns('user')}
         for col_name, ddl in {
@@ -137,6 +140,7 @@ def create_app():
             'role': "ALTER TABLE user ADD COLUMN role VARCHAR(20) DEFAULT 'user'",
             'phone_country_code': 'ALTER TABLE user ADD COLUMN phone_country_code VARCHAR(8)',
             'phone': 'ALTER TABLE user ADD COLUMN phone VARCHAR(30)',
+            'stripe_customer_id': 'ALTER TABLE user ADD COLUMN stripe_customer_id VARCHAR(255)',
             'google_picture_url': 'ALTER TABLE user ADD COLUMN google_picture_url VARCHAR(1024)',
             'is_banned': 'ALTER TABLE user ADD COLUMN is_banned BOOLEAN NOT NULL DEFAULT 0',
             'banned_at': 'ALTER TABLE user ADD COLUMN banned_at DATETIME',
@@ -183,6 +187,9 @@ def create_app():
 
     from .reports import reports as reports_blueprint
     app.register_blueprint(reports_blueprint)
+
+    from .premium import premium as premium_blueprint
+    app.register_blueprint(premium_blueprint)
 
     # Debug: print registered routes to help diagnose missing-route issues
     try:
