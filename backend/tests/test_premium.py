@@ -267,6 +267,42 @@ class PremiumTests(unittest.TestCase):
         self.assertEqual(booking_response.status_code, 201, booking_response.get_json())
         self.assertEqual(booking_response.get_json()['booking']['total_price'], 18)
 
+    def test_promoted_premium_spots_are_returned_before_free_spots(self):
+        premium_owner = User(
+            email='promoted-owner@example.test',
+            name='Promoted Owner',
+            password=generate_password_hash('password123'),
+        )
+        db.session.add(premium_owner)
+        db.session.flush()
+        premium_owner.premium_subscriptions.append(PremiumSubscription(
+            stripe_subscription_id='sub_promoted_spot',
+            stripe_customer_id='cus_promoted_spot',
+            status='active',
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
+        ))
+        promoted_spot = ParkingSpot(
+            user_id=premium_owner.id,
+            city_id=self.city.id,
+            title='Promoted premium spot',
+            address='2 Test Street',
+            price_per_day=90,
+            price_currency='RON',
+            start_hour='08:00',
+            end_hour='18:00',
+        )
+        db.session.add(promoted_spot)
+        db.session.commit()
+
+        response = self.client.get('/api/spots?available_only=false')
+
+        self.assertEqual(response.status_code, 200, response.get_json())
+        spots = response.get_json()['spots']
+        self.assertEqual(spots[0]['id'], promoted_spot.id)
+        self.assertTrue(spots[0]['is_promoted'])
+        self.assertEqual(spots[1]['id'], self.spot.id)
+        self.assertFalse(spots[1]['is_promoted'])
+
     def test_customer_portal_uses_linked_stripe_customer(self):
         self.user.stripe_customer_id = 'cus_portal_test'
         db.session.commit()

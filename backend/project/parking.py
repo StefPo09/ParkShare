@@ -241,7 +241,9 @@ def get_spots():
         query = query.filter(ParkingSpot.price_per_day <= max_price)
 
     spots = query.order_by(ParkingSpot.created_at.desc()).all()
-    return jsonify({'spots': [spot.to_dict() for spot in spots]}), 200
+    spot_data = [spot.to_dict() for spot in spots]
+    spot_data.sort(key=lambda spot: spot['is_promoted'], reverse=True)
+    return jsonify({'spots': spot_data}), 200
 
 
 @parking.route('/api/favorites', methods=['GET'])
