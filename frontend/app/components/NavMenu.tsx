@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from './LanguageProvider';
 import {
+  getActiveNotificationUser,
   getUnreadNotificationIds,
   unreadNotificationsChangedEvent,
 } from './notificationState';
@@ -34,9 +35,9 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
 
   useEffect(() => {
     const updateUnreadCount = () => {
-      const userId = Number(window.localStorage.getItem('parkshare-notification-user-id'));
+      const userId = getActiveNotificationUser();
       setUnreadNotificationCount(
-        Number.isInteger(userId) && userId > 0 ? getUnreadNotificationIds(userId).length : 0,
+        userId !== null ? getUnreadNotificationIds(userId).length : 0,
       );
     };
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Menu } from 'lucide-react';
 import {
+  getActiveNotificationUser,
   getUnreadNotificationIds,
   unreadNotificationsChangedEvent,
 } from './notificationState';
@@ -17,9 +18,9 @@ export default function MenuButton({ onClick, className = '' }: MenuButtonProps)
 
   useEffect(() => {
     const updateUnreadState = () => {
-      const userId = Number(window.localStorage.getItem('parkshare-notification-user-id'));
+      const userId = getActiveNotificationUser();
       setHasUnreadNotifications(
-        Number.isInteger(userId) && userId > 0 && getUnreadNotificationIds(userId).length > 0,
+        userId !== null && getUnreadNotificationIds(userId).length > 0,
       );
     };
 

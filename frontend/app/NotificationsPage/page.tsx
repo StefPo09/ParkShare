@@ -2,51 +2,29 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, CalendarDays, Car, CheckCircle2, Clock3, Home, Key, RefreshCw, XCircle } from 'lucide-react';
+import { Bell, CalendarDays, Car, Check, CheckCircle2, Clock3, Home, Key, RefreshCw, XCircle } from 'lucide-react';
 import { getApiBaseUrl } from '../../constants/api';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import NavMenu from '../components/NavMenu';
 import ProfileMenu from '../components/ProfileMenu';
 import MenuButton from '../components/MenuButton';
-
-type Booking = {
-  id: number;
-  start_date: string;
-  end_date: string;
-  created_at?: string | null;
-  status: string;
-  spot?: { title?: string; address?: string } | null;
-};
-
-type NotificationItem = {
-  id: string;
-  kind: 'received' | 'reservation';
-  status: 'confirmed' | 'pending' | 'cancelled' | 'other';
-  spotTitle: string;
-  spotAddress: string;
-  date: string;
-  createdAt: number;
-};
-
-function toNotification(booking: Booking, kind: NotificationItem['kind']): NotificationItem {
-  const status = booking.status.toLowerCase();
-  return {
-    id: `${kind}-${booking.id}`,
-    kind,
-    status: status === 'confirmed' || status === 'pending' || status === 'cancelled' ? status : 'other',
-    spotTitle: booking.spot?.title || '',
-    spotAddress: booking.spot?.address || '',
-    date: booking.start_date,
-    createdAt: new Date(booking.created_at || booking.start_date).getTime(),
-  };
-}
+import {
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  setActiveNotificationUser,
+  syncBookingNotifications,
+  unreadNotificationsChangedEvent,
+  type NotificationRecord,
+} from '../components/notificationState';
 
 export default function NotificationsPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -55,6 +33,12 @@ export default function NotificationsPage() {
     setError('');
     try {
       const API = getApiBaseUrl();
+      const userResponse = await fetch(`${API}/api/auth/me`, { credentials: 'include', cache: 'no-store' });
+      if (!userResponse.ok) throw new Error(t('notificationsLoadError'));
+      const userData = await userResponse.json();
+      const currentUserId = Number(userData?.user?.id);
+      if (!Number.isInteger(currentUserId) || currentUserId <= 0) throw new Error(t('notificationsLoadError'));
+
       const [reservationsResponse, receivedResponse] = await Promise.all([
         fetch(`${API}/api/bookings`, { credentials: 'include', cache: 'no-store' }),
         fetch(`${API}/api/owner-bookings`, { credentials: 'include', cache: 'no-store' }),
@@ -67,16 +51,19 @@ export default function NotificationsPage() {
         reservationsResponse.json(),
         receivedResponse.json(),
       ]);
-      const reservations: Booking[] = Array.isArray(reservationsData?.bookings)
+      const reservations = Array.isArray(reservationsData?.bookings)
         ? reservationsData.bookings
         : [];
-      const receivedBookings: Booking[] = Array.isArray(receivedData?.bookings)
+      const receivedBookings = Array.isArray(receivedData?.bookings)
         ? receivedData.bookings
         : [];
-      setNotifications([
-        ...reservations.map((booking) => toNotification(booking, 'reservation')),
-        ...receivedBookings.map((booking) => toNotification(booking, 'received')),
-      ].sort((a, b) => b.createdAt - a.createdAt));
+      const records = syncBookingNotifications(currentUserId, {
+        reservations,
+        received: receivedBookings,
+      });
+      setActiveNotificationUser(currentUserId);
+      setUserId(currentUserId);
+      setNotifications(records);
     } catch (loadError) {
       console.error('Unable to load notifications:', loadError);
       setError(loadError instanceof Error ? loadError.message : t('notificationsLoadError'));
@@ -89,18 +76,43 @@ export default function NotificationsPage() {
     void loadNotifications();
   }, [loadNotifications]);
 
-  const statusLabel = (notification: NotificationItem) => {
+  useEffect(() => {
+    if (userId === null) return;
+    const refreshNotifications = () => setNotifications(getNotifications(userId));
+    window.addEventListener(unreadNotificationsChangedEvent(), refreshNotifications);
+    window.addEventListener('storage', refreshNotifications);
+    return () => {
+      window.removeEventListener(unreadNotificationsChangedEvent(), refreshNotifications);
+      window.removeEventListener('storage', refreshNotifications);
+    };
+  }, [userId]);
+
+  const markAsRead = (notificationId: string) => {
+    if (userId === null) return;
+    markNotificationRead(userId, notificationId);
+    setNotifications(getNotifications(userId));
+  };
+
+  const markAllAsRead = () => {
+    if (userId === null) return;
+    markAllNotificationsRead(userId);
+    setNotifications(getNotifications(userId));
+  };
+
+  const statusLabel = (notification: NotificationRecord) => {
+    if (notification.kind === 'start-reminder') return t('bookingStartsSoon');
+    if (notification.kind === 'end-reminder') return t('bookingEndsSoon');
     if (notification.status === 'confirmed') {
-      return notification.kind === 'received' ? t('notificationBookingConfirmed') : t('notificationReservationConfirmed');
+      return notification.audience === 'received' ? t('notificationBookingConfirmed') : t('notificationReservationConfirmed');
     }
     if (notification.status === 'cancelled') return t('notificationBookingCancelled');
     if (notification.status === 'pending') {
-      return notification.kind === 'received' ? t('notificationBookingRequest') : t('notificationReservationPending');
+      return notification.audience === 'received' ? t('notificationBookingRequest') : t('notificationReservationPending');
     }
-    return notification.kind === 'received' ? t('notificationBookingUpdate') : t('notificationReservationUpdate');
+    return notification.audience === 'received' ? t('notificationBookingUpdate') : t('notificationReservationUpdate');
   };
 
-  const statusStyle = (status: NotificationItem['status']) => {
+  const statusStyle = (status: string) => {
     if (status === 'confirmed') return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
     if (status === 'cancelled') return 'bg-red-500/10 text-red-700 dark:text-red-300';
     return 'bg-amber-500/10 text-amber-700 dark:text-amber-300';
@@ -158,29 +170,57 @@ export default function NotificationsPage() {
               </p>
             ) : (
               <div className="mt-5 space-y-3">
+                {notifications.some((notification) => !notification.read) && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={markAllAsRead}
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-[#0f4c81] transition hover:bg-[#0f4c81]/5 dark:text-[#2dd4bf] dark:hover:bg-white/5"
+                    >
+                      <Check className="h-4 w-4" />
+                      {t('notificationsMarkAllRead')}
+                    </button>
+                  </div>
+                )}
                 {notifications.map((notification) => {
-                  const Icon = notification.status === 'confirmed'
-                    ? CheckCircle2
-                    : notification.status === 'cancelled'
-                      ? XCircle
-                      : notification.kind === 'received'
-                        ? Bell
-                        : Clock3;
-                  const destination = notification.kind === 'received' ? ROUTES.MANAGE_SPOT : ROUTES.RENT;
-                  const startsAt = new Date(notification.date);
+                  const isReminder = notification.kind !== 'status';
+                  const Icon = isReminder
+                    ? Clock3
+                    : notification.status === 'confirmed'
+                      ? CheckCircle2
+                      : notification.status === 'cancelled'
+                        ? XCircle
+                        : notification.audience === 'received'
+                          ? Bell
+                          : Clock3;
+                  const destination = notification.audience === 'received' ? ROUTES.MANAGE_SPOT : ROUTES.RENT;
+                  const startsAt = new Date(notification.startDate);
+                  const createdAt = new Date(notification.createdAt);
 
                   return (
-                    <button
+                    <div
                       key={notification.id}
-                      type="button"
-                      onClick={() => router.push(destination)}
-                      className="flex w-full cursor-pointer items-start gap-3 rounded-3xl border border-black/5 bg-white/60 p-4 text-left shadow-sm transition hover:bg-white/80 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                      className={`flex items-start gap-3 rounded-3xl border p-4 shadow-sm transition ${
+                        notification.read
+                          ? 'border-black/5 bg-white/60 dark:border-white/10 dark:bg-white/5'
+                          : 'border-red-500/25 bg-white/80 ring-1 ring-red-500/10 dark:border-red-400/20 dark:bg-white/10'
+                      }`}
                     >
                       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${statusStyle(notification.status)}`}>
                         <Icon className="h-5 w-5" />
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-bold">{statusLabel(notification)}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          markAsRead(notification.id);
+                          router.push(destination);
+                        }}
+                        className="min-w-0 flex-1 cursor-pointer text-left"
+                      >
+                        <span className="flex items-center gap-2 font-bold">
+                          {!notification.read && <span aria-label={t('notificationUnread')} className="h-2 w-2 shrink-0 rounded-full bg-red-600" />}
+                          {statusLabel(notification)}
+                        </span>
                         {notification.spotTitle && (
                           <span className="mt-1 block truncate text-sm font-medium text-[#121212] dark:text-white">
                             {notification.spotTitle}
@@ -197,8 +237,24 @@ export default function NotificationsPage() {
                             {startsAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                           </span>
                         )}
-                      </span>
-                    </button>
+                        {Number.isFinite(createdAt.getTime()) && (
+                          <span className="mt-1 block text-[11px] text-[#6b7c82] dark:text-[#84989f]">
+                            {t('notificationReceivedAt')}: {createdAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                          </span>
+                        )}
+                      </button>
+                      {!notification.read && (
+                        <button
+                          type="button"
+                          aria-label={t('notificationMarkRead')}
+                          title={t('notificationMarkRead')}
+                          onClick={() => markAsRead(notification.id)}
+                          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#0f4c81] transition hover:bg-[#0f4c81]/10 dark:text-[#2dd4bf] dark:hover:bg-white/10"
+                        >
+                          <Check className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
