@@ -22,7 +22,7 @@ export default function AiChatPage() {
             type="button"
             aria-label="Open menu"
             onClick={() => setIsMenuOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-[#121212] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
           >
             <Menu className="h-6 w-6" strokeWidth={2.2} />
           </button>
