@@ -4,9 +4,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
-import { Menu, ChevronRight, Plus, Key, Home, MapPin, Car } from 'lucide-react';
+import { ChevronRight, Plus, Key, Home, MapPin, Car } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
+import MenuButton from '../components/MenuButton';
 import { useLanguage } from '../components/LanguageProvider';
 
 interface SpotItem {
@@ -70,13 +71,10 @@ export default function ManageSpotsPage() {
 
                 {/* Header */}
                 <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10">
-                    <button
-                        aria-label="Open menu"
+                    <MenuButton
                         onClick={() => setIsMenuOpen(true)}
                         className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full"
-                    >
-                        <Menu className="w-6 h-6" strokeWidth={2.2} />
-                    </button>
+                    />
 
                     <h1 className="text-[28px] font-bold tracking-tight">
                         {t('manageYourSpots')}

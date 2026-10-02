@@ -7,7 +7,6 @@ import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react
 import { GoogleMap, MarkerF, Circle } from '@react-google-maps/api';
 import GoogleMapsProvider, { useGoogleMaps } from '../components/GoogleMapsProvider';
 import {
-  Menu,
   Search,
   Key,
   Home,
@@ -21,6 +20,7 @@ import {
 import Image from 'next/image';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
+import MenuButton from '../components/MenuButton';
 import { useLanguage } from '../components/LanguageProvider';
 
 const darkMapStyle: google.maps.MapTypeStyle[] = [
@@ -435,13 +435,10 @@ function RentPageContent() {
 
           {/* Header Navigation */}
           <header className="relative z-30 flex items-center justify-between px-5 pt-5 pb-2 bg-[#dfeef0] dark:bg-[#011b1b]">
-            <button
-                aria-label="Open menu"
-                onClick={() => setIsMenuOpen(true)}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
-            >
-              <Menu className="w-6 h-6" strokeWidth={2.2} />
-            </button>
+            <MenuButton
+              onClick={() => setIsMenuOpen(true)}
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
+            />
 
             <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
               {t('parkShare')}

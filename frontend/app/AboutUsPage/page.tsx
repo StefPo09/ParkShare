@@ -2,11 +2,12 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Car, HeartHandshake, Home, Key, Menu, ParkingCircle } from 'lucide-react';
+import { ArrowRight, Car, HeartHandshake, Home, Key, ParkingCircle } from 'lucide-react';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import NavMenu from '../components/NavMenu';
 import ProfileMenu from '../components/ProfileMenu';
+import MenuButton from '../components/MenuButton';
 
 export default function AboutUsPage() {
   const { t } = useLanguage();
@@ -17,14 +18,10 @@ export default function AboutUsPage() {
     <div className="relative min-h-screen bg-[#dfeef0] px-0 py-0 text-[#121212] dark:bg-[#011b1b] dark:text-white">
       <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[#dfeef0] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[#011b1b]">
         <header className="z-10 flex items-center justify-between bg-[#dfeef0] px-5 pt-5 pb-3 dark:bg-[#011b1b]">
-          <button
-            type="button"
-            aria-label="Open menu"
+          <MenuButton
             onClick={() => setIsMenuOpen(true)}
             className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
-          >
-            <Menu className="h-6 w-6" strokeWidth={2.2} />
-          </button>
+          />
           <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
             {t('parkShare')}
           </h1>

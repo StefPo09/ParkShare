@@ -45,14 +45,45 @@ export default function SettingsPage() {
   };
 
   const [notifications, setNotifications] = useState({
-    push: true,
+    push: false,
     sound: true,
   });
+  const [notificationError, setNotificationError] = useState('');
 
   const [showModal, setShowModal] = useState(false);
 
-  const toggleNotification = (field: 'push' | 'sound') => {
-    setNotifications((prev) => ({ ...prev, [field]: !prev[field] }));
+  useEffect(() => {
+    setNotifications((current) => ({
+      ...current,
+      push: window.localStorage.getItem('parkshare-push-notifications') === 'true',
+    }));
+  }, []);
+
+  const toggleNotification = async (field: 'push' | 'sound') => {
+    if (field === 'sound') {
+      setNotifications((prev) => ({ ...prev, sound: !prev.sound }));
+      return;
+    }
+
+    setNotificationError('');
+    if (!notifications.push) {
+      if (!('Notification' in window)) {
+        setNotificationError(t('notificationsUnsupported'));
+        return;
+      }
+      const permission = Notification.permission === 'default'
+        ? await Notification.requestPermission()
+        : Notification.permission;
+      if (permission !== 'granted') {
+        setNotificationError(t('notificationsPermissionDenied'));
+        return;
+      }
+    }
+
+    const enabled = !notifications.push;
+    window.localStorage.setItem('parkshare-push-notifications', String(enabled));
+    setNotifications((prev) => ({ ...prev, push: enabled }));
+    window.dispatchEvent(new Event('parkshare-notification-preferences-updated'));
   };
 
   const handleClearCache = () => {
@@ -162,7 +193,8 @@ export default function SettingsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => toggleNotification('push')}
+                onClick={() => void toggleNotification('push')}
+                aria-pressed={notifications.push}
                 className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors duration-200 ${
                   notifications.push ? 'bg-[#0f4c81]' : 'bg-black/10 dark:bg-white/10'
                 }`}
@@ -172,6 +204,11 @@ export default function SettingsPage() {
                 }`} />
               </button>
             </div>
+            {notificationError && (
+              <p role="alert" className="px-3 text-xs text-red-600 dark:text-red-400">
+                {notificationError}
+              </p>
+            )}
 
             <div className="flex items-center justify-between rounded-xl border border-black/10 bg-white/50 px-3 py-2.5 dark:border-white/10 dark:bg-white/10">
               <div className="flex items-center gap-2">
@@ -180,7 +217,7 @@ export default function SettingsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => toggleNotification('sound')}
+                onClick={() => void toggleNotification('sound')}
                 className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors duration-200 ${
                   notifications.sound ? 'bg-[#0f4c81]' : 'bg-black/10 dark:bg-white/10'
                 }`}

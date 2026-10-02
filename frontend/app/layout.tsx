@@ -5,6 +5,8 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./components/LanguageProvider";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
+import BookingReminderNotifications from "./components/BookingReminderNotifications";
+import UnreadNotificationsTracker from "./components/UnreadNotificationsTracker";
 import ProfileCompletionGuard from "./components/ProfileCompletionGuard";
 import FloatingAiChat from "./components/FloatingAiChat";
 import RouteTransition from "./components/RouteTransition";
@@ -40,6 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <ThemeProvider>
             <ServiceWorkerRegistration />
+            <BookingReminderNotifications />
+            <UnreadNotificationsTracker />
             <ProfileCompletionGuard>
               <RouteTransition>{children}</RouteTransition>
             </ProfileCompletionGuard>

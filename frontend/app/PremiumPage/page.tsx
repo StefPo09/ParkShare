@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BadgeCheck, Car, Check, Crown, Home, Key, Menu, Percent, Sparkles } from 'lucide-react';
+import { BadgeCheck, Car, Check, Crown, Home, Key, Percent, Sparkles } from 'lucide-react';
 import { getApiBaseUrl } from '../../constants/api';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from '../components/LanguageProvider';
 import NavMenu from '../components/NavMenu';
 import ProfileMenu from '../components/ProfileMenu';
+import MenuButton from '../components/MenuButton';
 
 type PremiumStatus = {
   is_premium: boolean;
@@ -119,14 +120,10 @@ export default function PremiumPage() {
     <div className="min-h-screen bg-[#f8f3e4] text-[#302817] dark:bg-[#17150f] dark:text-[#fff9e9]">
       <div className="relative mx-auto flex min-h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[#f8f3e4] shadow-[0_25px_50px_rgba(120,82,12,0.12)] dark:bg-[#17150f]">
         <header className="relative z-30 flex items-center justify-between border-b border-amber-900/10 bg-[#fbf5e6] px-5 pb-3 pt-5 dark:border-amber-200/10 dark:bg-[#17150f]">
-          <button
-            type="button"
-            aria-label="Open menu"
+          <MenuButton
             onClick={() => setIsMenuOpen(true)}
             className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-[#302817] transition hover:bg-amber-500/10 dark:text-white"
-          >
-            <Menu className="h-6 w-6" strokeWidth={2.2} />
-          </button>
+          />
           <h1 className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-amber-800 dark:text-amber-300">
             <Crown className="h-5 w-5" />
             {t('parkShare')}

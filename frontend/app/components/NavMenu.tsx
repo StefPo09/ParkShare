@@ -1,9 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useLanguage } from './LanguageProvider';
+import {
+  getActiveNotificationUser,
+  getUnreadNotificationIds,
+  unreadNotificationsChangedEvent,
+} from './notificationState';
 import {
   X,
   Bell,
@@ -26,6 +31,24 @@ interface NavMenuProps {
 export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
   const router = useRouter();
   const { t } = useLanguage();
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
+  useEffect(() => {
+    const updateUnreadCount = () => {
+      const userId = getActiveNotificationUser();
+      setUnreadNotificationCount(
+        userId !== null ? getUnreadNotificationIds(userId).length : 0,
+      );
+    };
+
+    updateUnreadCount();
+    window.addEventListener(unreadNotificationsChangedEvent(), updateUnreadCount);
+    window.addEventListener('storage', updateUnreadCount);
+    return () => {
+      window.removeEventListener(unreadNotificationsChangedEvent(), updateUnreadCount);
+      window.removeEventListener('storage', updateUnreadCount);
+    };
+  }, []);
 
   return (
     <>
@@ -60,7 +83,17 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
               onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.NOTIFICATIONS); }}
               className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-[var(--border)] hover:bg-white/40 active:scale-[0.99]"
             >
-              <Bell className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
+              <span className="relative inline-flex">
+                <Bell className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
+                {unreadNotificationCount > 0 && (
+                  <span
+                    aria-label={`${unreadNotificationCount} unread notifications`}
+                    className="absolute -right-3 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                  >
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </span>
+                )}
+              </span>
               <span className="tracking-wide">{t('notifications')}</span>
             </a>
 
