@@ -40,6 +40,8 @@ class User(UserMixin, db.Model):
         for subscription in self.premium_subscriptions:
             if subscription.status not in {'active', 'trialing'}:
                 continue
+            if subscription.cancel_at_period_end:
+                continue
             period_end = subscription.current_period_end
             if period_end is None:
                 return True
