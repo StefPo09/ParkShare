@@ -611,11 +611,7 @@ export default function HomePage() {
                   </p>
                 ) : nearbySpots.length === 0 ? (
                   <p className="px-2 py-5 text-center text-sm text-[#42565d] dark:text-[#dfeef0]">
-                    {userLocation
-                      ? `No available spots found within ${MAX_FEATURED_DISTANCE_KM} km.`
-                      : userCity
-                        ? `No available spots found in ${userCity}.`
-                        : 'Enable location access or add a city to your profile to see nearby spots.'}
+                    No available spots found
                   </p>
                 ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
