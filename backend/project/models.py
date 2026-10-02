@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     google_picture_url = db.Column(db.String(1024), nullable=True)
     phone_country_code = db.Column(db.String(8), nullable=True)
     phone = db.Column(db.String(30), nullable=True)
+    stripe_customer_id = db.Column(db.String(255), nullable=True, index=True)
     country = db.Column(db.String(100), nullable=True)
     city = db.Column(db.String(100), nullable=True)
     reset_token = db.Column(db.String(128), unique=True, nullable=True)
@@ -31,6 +32,22 @@ class User(UserMixin, db.Model):
     reports_made = db.relationship('UserReport', foreign_keys='UserReport.reporter_id', back_populates='reporter', cascade='all, delete-orphan')
     reports_received = db.relationship('UserReport', foreign_keys='UserReport.target_id', back_populates='target', cascade='all, delete-orphan')
     favorite_spots = db.relationship('FavoriteSpot', back_populates='user', cascade='all, delete-orphan')
+    premium_subscriptions = db.relationship('PremiumSubscription', back_populates='user', cascade='all, delete-orphan')
+
+    @property
+    def is_premium(self):
+        now = datetime.now(timezone.utc)
+        for subscription in self.premium_subscriptions:
+            if subscription.status not in {'active', 'trialing'}:
+                continue
+            period_end = subscription.current_period_end
+            if period_end is None:
+                return True
+            if period_end.tzinfo is None:
+                period_end = period_end.replace(tzinfo=timezone.utc)
+            if period_end > now:
+                return True
+        return False
 
     def has_role(self, role):
         return self.role == role
@@ -162,6 +179,7 @@ class ParkingSpot(db.Model):
             'id': self.id,
             'user_id': self.user_id,
             'owner': {'id': self.owner.id, 'name': self.owner.name} if self.owner else None,
+            'is_promoted': bool(self.owner and self.owner.is_premium),
             'city_id': self.city_id,
             'title': self.title,
             'address': self.address,
@@ -202,6 +220,22 @@ class FavoriteSpot(db.Model):
 
     user = db.relationship('User', back_populates='favorite_spots')
     spot = db.relationship('ParkingSpot', back_populates='favorited_by')
+
+
+class PremiumSubscription(db.Model):
+    __tablename__ = 'premium_subscription'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=False)
+    stripe_customer_id = db.Column(db.String(255), nullable=True, index=True)
+    status = db.Column(db.String(32), nullable=False)
+    current_period_end = db.Column(db.DateTime(timezone=True), nullable=True)
+    cancel_at_period_end = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='premium_subscriptions')
 
 
 class Booking(db.Model):

@@ -15,6 +15,7 @@ import {
   Newspaper,
   HelpCircle,
   Info,
+  Crown,
 } from 'lucide-react';
 
 interface NavMenuProps {
@@ -88,6 +89,15 @@ export default function NavMenu({ isOpen, onClose }: NavMenuProps) {
             >
               <Heart className="h-5 w-5 text-[var(--muted)]" strokeWidth={2.2} />
               <span className="tracking-wide">{t('favoritesTitle')}</span>
+            </a>
+
+            <a
+              href={ROUTES.PREMIUM}
+              onClick={(e) => { e.preventDefault(); onClose(); router.push(ROUTES.PREMIUM); }}
+              className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3.5 text-left text-base font-semibold text-[var(--text)] transition duration-200 hover:border-amber-300/50 hover:bg-amber-100/30 active:scale-[0.99]"
+            >
+              <Crown className="h-5 w-5 text-amber-500" strokeWidth={2.2} />
+              <span className="tracking-wide">{t('premiumPlan')}</span>
             </a>
 
             <a

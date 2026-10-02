@@ -91,6 +91,7 @@ interface ParkingSpot {
   lat: number;
   lng: number;
   is_on_sale?: boolean;
+  is_promoted?: boolean;
   bookings?: Array<{ start_date: string; end_date: string; status: string }>;
 }
 
@@ -276,6 +277,7 @@ function RentPageContent() {
             lat: Number(s.latitude ?? s.lat ?? (s.location && s.location.lat) ?? 0),
             lng: Number(s.longitude ?? s.lng ?? (s.location && s.location.lng) ?? 0),
             is_on_sale: Boolean(s.is_on_sale),
+            is_promoted: Boolean(s.is_promoted),
             bookings: Array.isArray(s.bookings) ? s.bookings : [],
           };
         });
@@ -529,6 +531,9 @@ function RentPageContent() {
                     const greyPinSvg = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
                         '<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"#42565d\" stroke=\"#64748b\" stroke-width=\"1.5\"><path d=\"M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z\"/><circle cx=\"12\" cy=\"10\" r=\"3\" fill=\"white\"/></svg>'
                     )}`;
+                    const premiumPinSvg = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+                        '<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"32\" height=\"32\" viewBox=\"0 0 24 24\" fill=\"#d4a017\" stroke=\"#9a6b08\" stroke-width=\"1.5\"><path d=\"M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z\"/><circle cx=\"12\" cy=\"10\" r=\"3\" fill=\"white\"/></svg>'
+                    )}`;
 
                     return (
                         <MarkerF
@@ -542,14 +547,15 @@ function RentPageContent() {
                             }}
                             label={{
                               text: `${spot.price} ${spot.price_currency || 'RON'}`,
-                              color: isSelected ? '#ffffff' : '#121212',
+                              color: isSelected ? '#ffffff' : spot.is_promoted ? '#9a6b08' : '#121212',
                               fontSize: '11px',
                               fontWeight: 'bold',
                             }}
                             icon={{
-                              url: isSelected ? redPinSvg : greyPinSvg,
+                              url: isSelected ? redPinSvg : spot.is_promoted ? premiumPinSvg : greyPinSvg,
                               anchor: isLoaded ? new window.google.maps.Point(18, 36) : undefined,
                             }}
+                            zIndex={isSelected ? 200 : spot.is_promoted ? 100 : 1}
                         />
                     );
                   })}
@@ -638,6 +644,11 @@ function RentPageContent() {
                   ) : (
                       <div className="absolute top-2 left-2 z-10 rounded-full bg-red-500 dark:bg-red-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-md">
                         UNAVAILABLE
+                      </div>
+                  )}
+                  {selectedSpot.is_promoted && (
+                      <div className="absolute bottom-2 left-2 z-10 rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-black tracking-wide text-amber-950 shadow-md">
+                        {t('premiumPromotedLabel')}
                       </div>
                   )}
 

@@ -37,6 +37,21 @@ html.dark {
   background-color: var(--page-bg);
 }
 
+html[data-premium="true"] {
+  --page-bg: #f7f0dc;
+  --panel: rgba(255, 251, 235, 0.38);
+  --panel-soft: rgba(255, 251, 235, 0.72);
+  --border: rgba(166, 120, 25, 0.2);
+  background-color: var(--page-bg);
+}
+
+html.dark[data-premium="true"] {
+  --page-bg: #17150f;
+  --panel: rgba(245, 196, 77, 0.07);
+  --panel-soft: rgba(245, 196, 77, 0.11);
+  --border: rgba(245, 196, 77, 0.2);
+}
+
 body {
   min-height: 100dvh;
   max-width: 100%;
@@ -74,6 +89,21 @@ nav.fixed:has(> a:nth-child(3)) {
 html.dark body {
   background-color: var(--page-bg);
   color: var(--text);
+}
+
+html[data-premium="true"] body {
+  background-image: radial-gradient(ellipse at 50% -20%, rgba(245, 196, 77, 0.18), transparent 58%);
+}
+
+html[data-premium="true"] nav.fixed,
+html[data-premium="true"] nav.absolute {
+  border-color: rgba(166, 120, 25, 0.2);
+  background-color: #faf4e4;
+}
+
+html.dark[data-premium="true"] nav.fixed,
+html.dark[data-premium="true"] nav.absolute {
+  background-color: #17150f;
 }
 
 nav:has(> a[class*="scale-110"]),

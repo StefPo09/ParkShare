@@ -60,6 +60,14 @@ interface SpotDetails {
     bookings: SpotBooking[];
 }
 
+interface PaymentQuote {
+    paymentIntentId: string;
+    subtotal: number;
+    discount: number;
+    total: number;
+    currency: string;
+}
+
 const INVALID_DESTINATION_TEXTS = [
     'parking spot address',
     'parking spot',
@@ -156,6 +164,8 @@ function PaymentContent() {
     const [customEndTime, setCustomEndTime] = useState('10:00');
 
     const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [paymentQuote, setPaymentQuote] = useState<PaymentQuote | null>(null);
+    const [isCreatingPayment, setIsCreatingPayment] = useState(false);
     const [bookingError, setBookingError] = useState<string | null>(null);
 
     const { resolvedTheme } = useTheme();
@@ -166,17 +176,6 @@ function PaymentContent() {
     }, []);
 
     const isDark = mounted && resolvedTheme === 'dark';
-
-    useEffect(() => {
-        fetch('/api/create-payment-intent', {
-            method: 'POST',
-        })
-            .then((res) => res.json())
-            .then((data) => setClientSecret(data.clientSecret))
-            .catch((err) =>
-                console.error('Failed to create payment intent:', err)
-            );
-    }, []);
 
     // Fetch Spot Details & Bookings
     useEffect(() => {
@@ -580,6 +579,76 @@ function PaymentContent() {
         };
     };
 
+    useEffect(() => {
+        let cancelled = false;
+        setClientSecret(null);
+        setPaymentQuote(null);
+
+        const requestedBooking = getRequestedBooking();
+        if (!spotIdParam || !requestedBooking) {
+            setIsCreatingPayment(false);
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        setIsCreatingPayment(true);
+        setBookingError(null);
+        fetch(`${API}/api/bookings/payment-intent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                spot_id: requestedBooking.spotId,
+                start_date: requestedBooking.startDate.toISOString(),
+                end_date: requestedBooking.endDate.toISOString(),
+            }),
+        })
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Unable to start payment.');
+                return data as {
+                    clientSecret: string;
+                    paymentIntentId: string;
+                    subtotal: number;
+                    discount: number;
+                    total: number;
+                    currency: string;
+                };
+            })
+            .then((data) => {
+                if (cancelled) return;
+                setClientSecret(data.clientSecret);
+                setPaymentQuote({
+                    paymentIntentId: data.paymentIntentId,
+                    subtotal: data.subtotal,
+                    discount: data.discount,
+                    total: data.total,
+                    currency: data.currency,
+                });
+            })
+            .catch((error: unknown) => {
+                if (!cancelled) {
+                    setBookingError(error instanceof Error ? error.message : 'Unable to start payment.');
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setIsCreatingPayment(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        API,
+        spotIdParam,
+        spotDetails?.id,
+        selectedDate?.getTime(),
+        timeValidation.isValid,
+        timeValidation.startMinutes,
+        timeValidation.endMinutes,
+    ]);
+
     const validateAvailabilityBeforePayment = async () => {
         const requestedBooking = getRequestedBooking();
         if (!requestedBooking) return 'Please select a valid date and time before paying.';
@@ -633,7 +702,7 @@ function PaymentContent() {
         }
     };
 
-    const handlePaymentSuccess = async () => {
+    const handlePaymentSuccess = async (paymentIntentId: string) => {
         const requestedBooking = getRequestedBooking();
         if (!requestedBooking) {
             throw new Error('Please select a valid date and time before paying.');
@@ -647,6 +716,7 @@ function PaymentContent() {
                 spot_id: requestedBooking.spotId,
                 start_date: requestedBooking.startDate.toISOString(),
                 end_date: requestedBooking.endDate.toISOString(),
+                payment_intent_id: paymentIntentId,
             }),
         });
 
@@ -668,6 +738,7 @@ function PaymentContent() {
             throw new Error(errorMessage || `Could not create booking (${res.status}).`);
         }
 
+        const bookingData = await res.json();
         setBookingError(null);
 
         const queryParams = new URLSearchParams();
@@ -694,7 +765,7 @@ function PaymentContent() {
         }
         if (durationMinutes > 0) {
             queryParams.set('duration', formattedDuration);
-            queryParams.set('total', calculatedPrice.toFixed(2));
+            queryParams.set('total', Number(bookingData.booking.total_price).toFixed(2));
         }
         if (startTimeFormatted && endTimeFormatted) {
             queryParams.set('startHour', startTimeFormatted);
@@ -1205,7 +1276,8 @@ function PaymentContent() {
 
                                 {timeValidation.isValid && durationMinutes > 0 ? (
                                     <div className="mt-3 rounded-xl bg-[#0f4c81]/10 p-2.5 text-center text-xs font-semibold text-[#0f4c81] dark:bg-[#2dd4bf]/10 dark:text-[#2dd4bf]">
-                                        Selected: {formattedDuration} ({startTimeFormatted} - {endTimeFormatted}) — Total: {calculatedPrice.toFixed(2)} {spotDetails?.price_currency || 'RON'}
+                                        Selected: {formattedDuration} ({startTimeFormatted} - {endTimeFormatted}) — Total: {(paymentQuote?.total ?? calculatedPrice).toFixed(2)} {paymentQuote?.currency || spotDetails?.price_currency || 'RON'}
+                                        {paymentQuote?.discount ? ` (Premium saves ${paymentQuote.discount.toFixed(2)} ${paymentQuote.currency})` : ''}
                                     </div>
                                 ) : timeValidation.error ? (
                                     <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/10 p-2.5 text-xs font-medium text-red-700 dark:text-red-300">
@@ -1247,8 +1319,9 @@ function PaymentContent() {
                             </div>
                         )}
 
-                        {clientSecret ? (
+                        {clientSecret && paymentQuote ? (
                             <Elements
+                                key={paymentQuote.paymentIntentId}
                                 stripe={stripePromise}
                                 options={{
                                     clientSecret,
@@ -1256,14 +1329,18 @@ function PaymentContent() {
                                 }}
                             >
                                 <CheckoutForm
-                                    disabled={!isBookingValid}
+                                    disabled={!isBookingValid || isCreatingPayment}
                                     onBeforeConfirm={validateAvailabilityBeforePayment}
                                     onSuccess={handlePaymentSuccess}
                                 />
                             </Elements>
+                        ) : isCreatingPayment ? (
+                            <p className="text-sm text-[#42565d] dark:text-[#d6e7ea]">
+                                Preparing your booking total…
+                            </p>
                         ) : (
                             <p className="text-sm text-[#42565d] dark:text-[#d6e7ea]">
-                                Loading payment form…
+                                {!spotIdParam ? 'Select an available parking spot to book online.' : 'Select a valid date and time to prepare payment.'}
                             </p>
                         )}
                     </div>
