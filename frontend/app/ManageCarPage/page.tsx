@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
-import { Menu, ChevronRight, Plus, Car, Key, Home } from 'lucide-react';
+import { ChevronRight, Plus, Car, Key, Home } from 'lucide-react';
 import NavMenu from "../components/NavMenu";
 import ProfileMenu from "../components/ProfileMenu";
+import MenuButton from '../components/MenuButton';
 import { useLanguage } from '../components/LanguageProvider';
 
 interface CarItem {
@@ -60,13 +61,10 @@ export default function ManageCarsPage() {
 
                 {/* --- Header Navigation --- */}
                 <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10">
-                    <button
-                        aria-label="Open menu"
+                    <MenuButton
                         onClick={() => setIsMenuOpen(true)}
                         className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
-                    >
-                        <Menu className="w-6 h-6" strokeWidth={2.2} />
-                    </button>
+                    />
 
                     <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
                         {t('manageYourCars')}

@@ -5,11 +5,12 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
-import { Menu, Search, ChevronRight, Car, Home, Key, Calendar as CalendarIcon, Clock, MapPin, Sparkles } from 'lucide-react';
+import { Search, ChevronRight, Car, Home, Key, Calendar as CalendarIcon, Clock, MapPin, Sparkles } from 'lucide-react';
 import ProfileMenu from '../components/ProfileMenu';
 import NavMenu from '../components/NavMenu';
 import { useLanguage } from '../components/LanguageProvider';
 import InteractiveTimer from '../components/InteractiveTimer';
+import MenuButton from '../components/MenuButton';
 
 const DEFAULT_SPOT_IMAGE =
   'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=800&q=80';
@@ -410,13 +411,10 @@ export default function HomePage() {
 
           {/* Header Navigation */}
           <header className={`home-page-header flex items-center justify-between px-5 pt-5 pb-3 z-10 bg-[#dfeef0] dark:bg-[#011b1b] ${isPremium ? 'premium-home-header' : ''}`}>
-            <button
-                aria-label="Open menu"
-                onClick={() => setIsMenuOpen(true)}
-                className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5 ${isPremium ? 'premium-home-menu-button' : ''}`}
-            >
-              <Menu className="h-6 w-6" strokeWidth={2.2} />
-            </button>
+            <MenuButton
+              onClick={() => setIsMenuOpen(true)}
+              className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5 ${isPremium ? 'premium-home-menu-button' : ''}`}
+            />
             <h1 className={`home-page-title text-[28px] font-bold tracking-tight text-[#121212] dark:text-white ${isPremium ? 'premium-home-title' : ''}`}>
               {t('parkShare')}
               {isPremium && (
