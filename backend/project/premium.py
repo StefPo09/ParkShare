@@ -169,7 +169,7 @@ def create_premium_checkout():
                 },
                 'quantity': 1,
             }],
-            success_url=f'{frontend_url}/PremiumPage?checkout=success',
+            success_url=f'{frontend_url}/PremiumPage?checkout=success&session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'{frontend_url}/PremiumPage?checkout=cancelled',
             customer=current_user.stripe_customer_id if current_user.stripe_customer_id else None,
             customer_email=None if current_user.stripe_customer_id else current_user.email,
@@ -183,6 +183,63 @@ def create_premium_checkout():
         return jsonify({'error': 'Unable to start Premium checkout. Please try again.'}), 502
 
     return jsonify({'url': session.url}), 200
+
+
+@premium.route('/api/premium/confirm', methods=['POST'])
+@login_required
+def confirm_premium_checkout():
+    api_key = current_app.config.get('STRIPE_SECRET_KEY')
+    if not api_key:
+        return jsonify({'error': 'Premium billing is not configured.'}), 503
+
+    data = request.get_json(silent=True) or {}
+    session_id = data.get('session_id')
+    if not isinstance(session_id, str) or not session_id.startswith('cs_'):
+        return jsonify({'error': 'A valid Stripe Checkout Session ID is required.'}), 400
+
+    try:
+        checkout_session = stripe.checkout.Session.retrieve(
+            session_id,
+            api_key=api_key,
+        )
+    except StripeError as error:
+        current_app.logger.warning('Stripe Checkout Session lookup failed (%s).', type(error).__name__)
+        return jsonify({'error': 'Unable to verify this checkout with Stripe.'}), 502
+
+    metadata_user_id = _field(_field(checkout_session, 'metadata', {}), 'user_id')
+    reference_user_id = _field(checkout_session, 'client_reference_id')
+    matching_user_ids = {
+        str(value) for value in (metadata_user_id, reference_user_id) if value is not None
+    }
+    if (
+        _field(checkout_session, 'mode') != 'subscription'
+        or str(current_user.id) not in matching_user_ids
+        or any(user_id != str(current_user.id) for user_id in matching_user_ids)
+    ):
+        return jsonify({'error': 'This checkout does not belong to your account.'}), 404
+
+    if (
+        _field(checkout_session, 'status') != 'complete'
+        or _field(checkout_session, 'payment_status') not in {'paid', 'no_payment_required'}
+    ):
+        return jsonify({'error': 'Stripe has not confirmed payment for this checkout yet.'}), 202
+
+    subscription_id = _stripe_id(_field(checkout_session, 'subscription'))
+    if not subscription_id:
+        return jsonify({'error': 'The completed checkout has no subscription.'}), 409
+    customer_id = _stripe_id(_field(checkout_session, 'customer'))
+
+    try:
+        subscription = stripe.Subscription.retrieve(subscription_id, api_key=api_key)
+        _sync_subscription(subscription, current_user.id, customer_id)
+    except (StripeError, ValueError) as error:
+        current_app.logger.warning('Premium Checkout confirmation sync failed (%s).', type(error).__name__)
+        return jsonify({'error': 'Unable to activate Premium from this checkout yet.'}), 502
+
+    return jsonify({
+        'is_premium': current_user.is_premium,
+        'status': _field(subscription, 'status'),
+    }), 200 if current_user.is_premium else 202
 
 
 @premium.route('/api/premium/portal', methods=['POST'])
