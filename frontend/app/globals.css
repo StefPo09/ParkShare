@@ -52,6 +52,70 @@ html.dark[data-premium="true"] {
   --border: rgba(245, 196, 77, 0.2);
 }
 
+html[data-premium="true"] body {
+  background-image: radial-gradient(ellipse at 50% -20%, rgba(245, 196, 77, 0.15), transparent 58%);
+}
+
+html[data-premium="true"] .bg-\[\#dfeef0\] {
+  background-color: #f7f0dc;
+}
+
+html[data-premium="true"] .dark\:bg-\[\#dfeef0\] {
+  background-color: #f7f0dc;
+}
+
+html.dark[data-premium="true"] .dark\:bg-\[\#011b1b\] {
+  background-color: #17150f;
+}
+
+html[data-premium="true"] [class~="dark:bg-[#0b1c2c]/70"] {
+  background-color: rgba(44, 35, 17, 0.74);
+}
+
+html[data-premium="true"] [class~="border-black/5"] {
+  border-color: rgba(166, 120, 25, 0.18);
+}
+
+html[data-premium="true"] [class~="dark:border-white/10"] {
+  border-color: rgba(245, 196, 77, 0.16);
+}
+
+html[data-premium="true"] [class~="bg-white/20"] {
+  background-color: rgba(255, 249, 232, 0.55);
+}
+
+html[data-premium="true"] [class~="dark:bg-white/5"] {
+  background-color: rgba(245, 196, 77, 0.055);
+}
+
+html[data-premium="true"] [class~="bg-[#0f4c81]"] {
+  background-color: #a87819;
+}
+
+html[data-premium="true"] [class~="bg-[#2dd4bf]"] {
+  background-color: #e6b941;
+}
+
+html[data-premium="true"] [class~="text-[#0f4c81]"] {
+  color: #91630d;
+}
+
+html[data-premium="true"] [class~="text-[#2dd4bf]"] {
+  color: #e4b22e;
+}
+
+html[data-premium="true"] [class~="dark:bg-[#2dd4bf]/10"] {
+  background-color: rgba(230, 185, 65, 0.12);
+}
+
+html[data-premium="true"] [class~="border-[#2dd4bf]"] {
+  border-color: rgba(230, 185, 65, 0.55);
+}
+
+html[data-premium="true"] [class~="ring-[#2dd4bf]"] {
+  --tw-ring-color: rgba(230, 185, 65, 0.55);
+}
+
 body {
   min-height: 100dvh;
   max-width: 100%;
@@ -91,10 +155,6 @@ html.dark body {
   color: var(--text);
 }
 
-html[data-premium="true"] body {
-  background-image: radial-gradient(ellipse at 50% -20%, rgba(245, 196, 77, 0.18), transparent 58%);
-}
-
 html[data-premium="true"] nav.fixed,
 html[data-premium="true"] nav.absolute {
   border-color: rgba(166, 120, 25, 0.2);
@@ -104,6 +164,12 @@ html[data-premium="true"] nav.absolute {
 html.dark[data-premium="true"] nav.fixed,
 html.dark[data-premium="true"] nav.absolute {
   background-color: #17150f;
+}
+
+html[data-premium="true"] nav:has(> a[class*="scale-110"])::before,
+html[data-premium="true"] nav:has(> a[aria-current="page"])::before {
+  border-color: rgba(184, 134, 11, 0.2);
+  background: rgba(218, 165, 32, 0.2);
 }
 
 nav:has(> a[class*="scale-110"]),
