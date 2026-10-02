@@ -11,35 +11,9 @@ import NavMenu from '../components/NavMenu';
 import { useLanguage } from '../components/LanguageProvider';
 import InteractiveTimer from '../components/InteractiveTimer';
 
-const parkingListings = [
-  {
-    id: 1,
-    title: 'Seller name 1',
-    name: 'NAME 1',
-    address: 'Address 1',
-    price: '$1099',
-    image:
-        'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    id: 2,
-    title: 'Seller name 2',
-    name: 'NAME 2',
-    address: 'Address 2',
-    price: '$501',
-    image:
-        'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    id: 3,
-    title: 'Seller name 3',
-    name: 'NAME 3',
-    address: 'Address 3',
-    price: '$99',
-    image:
-        'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=900&q=80',
-  },
-];
+const DEFAULT_SPOT_IMAGE =
+  'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=800&q=80';
+const MAX_FEATURED_DISTANCE_KM = 30;
 
 type SpotInfo = {
   id: number;
@@ -52,6 +26,36 @@ type SpotInfo = {
   price_currency: string;
   image_url?: string | null;
 };
+
+type CitySpot = {
+  id: number;
+  city_id: number;
+  city_name?: string;
+  title: string;
+  address: string;
+  price_per_day: number;
+  price_currency: string;
+  image_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distance_km?: number;
+};
+
+function distanceInKm(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+) {
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const latitudeDelta = toRadians(destination.lat - origin.lat);
+  const longitudeDelta = toRadians(destination.lng - origin.lng);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(toRadians(origin.lat)) *
+      Math.cos(toRadians(destination.lat)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+
+  return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
 
 type BookingItem = {
   id: number;
@@ -131,8 +135,14 @@ export default function HomePage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'key' | 'home' | 'car'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  const [nearbySpots, setNearbySpots] = useState<CitySpot[]>([]);
+  const [spotsLoading, setSpotsLoading] = useState(true);
+  const [spotsError, setSpotsError] = useState<string | null>(null);
+  const [userCity, setUserCity] = useState('');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [dashboardTimers, setDashboardTimers] = useState<{
@@ -187,6 +197,148 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchDashboardData();
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const API = getApiBaseUrl();
+
+    const fetchCitySpots = async () => {
+      try {
+        const [spotsResponse, userResponse, citiesResponse] = await Promise.all([
+          fetch(`${API}/api/spots?available_only=true`),
+          fetch(`${API}/api/auth/me`, { credentials: 'include' }).catch(() => null),
+          fetch(`${API}/api/cities`).catch(() => null),
+        ]);
+
+        if (!spotsResponse.ok) throw new Error(`Unable to load spots (${spotsResponse.status})`);
+
+        const spotsData = await spotsResponse.json();
+        const rawSpots = Array.isArray(spotsData?.spots) ? spotsData.spots : [];
+        let profileCity = '';
+        if (userResponse?.ok) {
+          const userData = await userResponse.json();
+          profileCity = String(userData?.user?.city || '').trim();
+        }
+
+        const citiesData = citiesResponse?.ok ? await citiesResponse.json() : null;
+        const cityNames = new Map<number, string>(
+          (Array.isArray(citiesData?.cities) ? citiesData.cities : []).map(
+            (city: { id: number; name: string }) => [Number(city.id), city.name],
+          ),
+        );
+        const spots: CitySpot[] = rawSpots.map((spot: CitySpot) => ({
+          ...spot,
+          id: Number(spot.id),
+          city_id: Number(spot.city_id),
+          city_name: spot.city_name || cityNames.get(Number(spot.city_id)) || '',
+          price_per_day: Number(spot.price_per_day) || 0,
+          price_currency: spot.price_currency || 'RON',
+          latitude: spot.latitude == null ? null : Number(spot.latitude),
+          longitude: spot.longitude == null ? null : Number(spot.longitude),
+        }));
+
+        if (isCancelled) return;
+        setUserCity(profileCity);
+
+        let location: { lat: number; lng: number } | null = null;
+        if (navigator.geolocation) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: false,
+                timeout: 7000,
+                maximumAge: 600000,
+              });
+            });
+            location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+          } catch {
+            // Fall back to the city saved in the user's profile.
+          }
+        }
+
+        if (isCancelled) return;
+        setUserLocation(location);
+
+        if (location) {
+          const nearby = spots
+            .filter(
+              (spot) =>
+                Number.isFinite(spot.latitude) &&
+                Number.isFinite(spot.longitude) &&
+                spot.latitude !== null &&
+                spot.longitude !== null,
+            )
+            .map((spot) => ({
+              ...spot,
+              distance_km: distanceInKm(location!, {
+                lat: spot.latitude!,
+                lng: spot.longitude!,
+              }),
+            }))
+            .filter((spot) => spot.distance_km <= MAX_FEATURED_DISTANCE_KM)
+            .sort((a, b) => a.distance_km - b.distance_km);
+          setNearbySpots(nearby.slice(0, 3));
+        } else if (profileCity) {
+          setNearbySpots(
+            spots
+              .filter((spot) => spot.city_name?.toLocaleLowerCase() === profileCity.toLocaleLowerCase())
+              .slice(0, 3),
+          );
+        } else {
+          setNearbySpots([]);
+        }
+      } catch (error) {
+        console.warn('Unable to load nearby parking spots:', error);
+        if (!isCancelled) setSpotsError('Unable to load nearby spots right now.');
+      } finally {
+        if (!isCancelled) setSpotsLoading(false);
+      }
+    };
+
+    void fetchCitySpots();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchPlanStatus = async () => {
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        if (response.status === 401) {
+          if (!isCancelled) {
+            setIsPremium(false);
+            delete document.documentElement.dataset.premium;
+          }
+          return;
+        }
+        if (!response.ok) return;
+        const data = await response.json();
+        if (isCancelled) return;
+
+        const premium = Boolean(data?.user?.is_premium);
+        setIsPremium(premium);
+        document.documentElement.dataset.premium = String(premium);
+      } catch (error) {
+        console.warn('Unable to load Premium theme status:', error);
+      }
+    };
+
+    void fetchPlanStatus();
+    window.addEventListener('parkshare-premium-updated', fetchPlanStatus);
+    return () => {
+      isCancelled = true;
+      window.removeEventListener('parkshare-premium-updated', fetchPlanStatus);
+    };
   }, []);
 
   // Split bookings by active/overtime vs upcoming based on live `now`
@@ -253,20 +405,26 @@ export default function HomePage() {
   };
 
   return (
-      <div className="min-h-screen bg-[#dfeef0] px-0 py-0 dark:bg-[#011b1b] relative overflow-hidden">
-        <div className="mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden bg-[#dfeef0] text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:bg-[#011b1b] dark:text-white">
+      <div className={`home-page-shell min-h-screen px-0 py-0 relative overflow-hidden ${isPremium ? 'premium-home-shell' : 'bg-[#dfeef0] dark:bg-[#011b1b]'}`}>
+        <div className={`home-page-frame mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:text-white ${isPremium ? 'premium-home-frame' : 'bg-[#dfeef0] dark:bg-[#011b1b]'}`}>
 
           {/* Header Navigation */}
-          <header className="flex items-center justify-between px-5 pt-5 pb-3 z-10 bg-[#dfeef0] dark:bg-[#011b1b]">
+          <header className={`home-page-header flex items-center justify-between px-5 pt-5 pb-3 z-10 bg-[#dfeef0] dark:bg-[#011b1b] ${isPremium ? 'premium-home-header' : ''}`}>
             <button
                 aria-label="Open menu"
                 onClick={() => setIsMenuOpen(true)}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
+                className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5 ${isPremium ? 'premium-home-menu-button' : ''}`}
             >
               <Menu className="h-6 w-6" strokeWidth={2.2} />
             </button>
-            <h1 className="text-[28px] font-bold tracking-tight text-[#121212] dark:text-white">
+            <h1 className={`home-page-title text-[28px] font-bold tracking-tight text-[#121212] dark:text-white ${isPremium ? 'premium-home-title' : ''}`}>
               {t('parkShare')}
+              {isPremium && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-400/15 px-2 py-1 align-middle text-[9px] font-extrabold uppercase tracking-[0.12em] text-amber-800 dark:text-amber-200">
+                  <Sparkles className="h-3 w-3" />
+                  {t('premiumPlan')}
+                </span>
+              )}
             </h1>
 
             <ProfileMenu />
@@ -330,7 +488,7 @@ export default function HomePage() {
                     upcomingList.map((booking) => (
                         <div
                             key={booking.id}
-                            className="rounded-[28px] border border-black/5 bg-white/30 p-4 shadow-[0_18px_30px_rgba(15,32,35,0.08)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5 transition-all duration-300"
+                            className={`home-booking-card rounded-[28px] border border-black/5 bg-white/30 p-4 shadow-[0_18px_30px_rgba(15,32,35,0.08)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5 transition-all duration-300 ${isPremium ? 'premium-home-card' : ''}`}
                         >
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
@@ -347,7 +505,7 @@ export default function HomePage() {
                               </div>
                             </div>
 
-                            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0f4c81] dark:bg-blue-500/20 dark:text-blue-200">
+                            <span className={`home-upcoming-time rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0f4c81] dark:bg-blue-500/20 dark:text-blue-200 ${isPremium ? 'premium-home-upcoming-time' : ''}`}>
                               {formatTimeUntil(booking.start_date, now)}
                             </span>
                           </div>
@@ -378,7 +536,7 @@ export default function HomePage() {
 
                 {/* Empty State when no active and no upcoming bookings */}
                 {!timerError && activeOrOvertimeList.length === 0 && upcomingList.length === 0 ? (
-                    <div className="rounded-[28px] border border-dashed border-black/10 bg-white/20 p-5 text-center dark:border-white/10 dark:bg-white/5">
+                    <div className={`home-empty-card rounded-[28px] border border-dashed border-black/10 bg-white/20 p-5 text-center dark:border-white/10 dark:bg-white/5 ${isPremium ? 'premium-home-card' : ''}`}>
                       <p className="text-sm font-semibold text-[#121212] dark:text-white">
                         No active parking session or upcoming reservations.
                       </p>
@@ -392,7 +550,7 @@ export default function HomePage() {
               <form
                   onSubmit={handleSearchSubmit}
                   onClick={() => triggerSearchTransition(searchValue)}
-                  className={`flex items-center gap-3 rounded-[28px] border border-black/5 bg-white/40 p-2 pl-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,box-shadow] ${
+                  className={`home-search-form flex items-center gap-3 rounded-[28px] border border-black/5 bg-white/40 p-2 pl-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,box-shadow] ${isPremium ? 'premium-home-search' : ''} ${
                     isAnimatingSearch
                       ? '-translate-y-[228px] z-50 shadow-md bg-white/60 dark:bg-white/20'
                       : 'translate-y-0 shadow-sm'
@@ -410,7 +568,7 @@ export default function HomePage() {
                 <button
                     type="submit"
                     aria-label={t('searchSpotOffers')}
-                    className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[20px] bg-[#0f4c81] shadow-md shadow-[#0f4c81]/15 transition hover:brightness-105 active:scale-95 dark:bg-[#9ad7db] dark:text-[#011b1b]"
+                    className={`home-search-button flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[20px] bg-[#0f4c81] shadow-md shadow-[#0f4c81]/15 transition hover:brightness-105 active:scale-95 dark:bg-[#9ad7db] dark:text-[#011b1b] ${isPremium ? 'premium-home-search-button' : ''}`}
                 >
                   <Search className="h-5 w-5 text-white dark:text-[#011b1b]" strokeWidth={2.2} />
                 </button>
@@ -418,7 +576,7 @@ export default function HomePage() {
 
               {/* Featured Listings */}
               <div
-                className={`rounded-[28px] border border-black/5 bg-white/20 p-3 shadow-[0_18px_30px_rgba(15,32,35,0.08)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${
+                className={`home-featured-listings rounded-[28px] border border-black/5 bg-white/20 p-3 shadow-[0_18px_30px_rgba(15,32,35,0.08)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${isPremium ? 'premium-home-featured' : ''} ${
                   isAnimatingSearch
                     ? 'opacity-0 translate-y-6 scale-[0.97] pointer-events-none'
                     : 'opacity-100 translate-y-0 scale-100'
@@ -433,33 +591,75 @@ export default function HomePage() {
                   <ChevronRight className="h-7 w-7 text-[#42565d] dark:text-[#dfeef0]" strokeWidth={2.5} />
                 </a>
 
+                {userLocation && (
+                  <p className="mb-2 px-1 text-xs font-medium text-[#42565d] dark:text-[#dfeef0]">
+                    Within {MAX_FEATURED_DISTANCE_KM} km of your current location
+                  </p>
+                )}
+                {!userLocation && userCity && (
+                  <p className="mb-2 px-1 text-xs font-medium text-[#42565d] dark:text-[#dfeef0]">
+                    Based on your profile location: {userCity}
+                  </p>
+                )}
+                {spotsLoading ? (
+                  <p className="px-2 py-5 text-center text-sm text-[#42565d] dark:text-[#dfeef0]">
+                    Finding parking spots near you...
+                  </p>
+                ) : spotsError ? (
+                  <p className="px-2 py-5 text-center text-sm text-[#42565d] dark:text-[#dfeef0]">
+                    {spotsError}
+                  </p>
+                ) : nearbySpots.length === 0 ? (
+                  <p className="px-2 py-5 text-center text-sm text-[#42565d] dark:text-[#dfeef0]">
+                    No available spots found
+                  </p>
+                ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {parkingListings.map((spot) => (
+                  {nearbySpots.map((spot) => {
+                    const imageUrl = spot.image_url
+                      ? spot.image_url.startsWith('http')
+                        ? spot.image_url
+                        : `${getApiBaseUrl()}${spot.image_url}`
+                      : DEFAULT_SPOT_IMAGE;
+                    const searchQuery = spot.address || spot.title;
+
+                    return (
                   <a
-                          key={spot.id}
-                      href={ROUTES.RENT}
-                      onClick={(e) => { e.preventDefault(); router.push(ROUTES.RENT); }}
-                          className="min-w-0 cursor-pointer overflow-hidden rounded-[22px] border border-black/5 bg-white/40 p-2 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/50 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                      key={spot.id}
+                      href={`${ROUTES.RENT}?search=${encodeURIComponent(searchQuery)}`}
+                      onClick={(e) => { e.preventDefault(); router.push(`${ROUTES.RENT}?search=${encodeURIComponent(searchQuery)}`); }}
+                          className={`home-listing-card min-w-0 cursor-pointer overflow-hidden rounded-[22px] border border-black/5 bg-white/40 p-2 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/50 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 ${isPremium ? 'premium-home-card' : ''}`}
                       >
                         <div className="relative h-32 overflow-hidden rounded-[18px] bg-[#d9d9d9] sm:h-36 xl:h-40">
                           <Image
-                              src={spot.image}
+                              src={imageUrl}
                               alt={spot.title}
                               fill
                               sizes="(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 33vw"
                               className="object-cover"
+                              unoptimized
                           />
                         </div>
 
                         <div className="mt-2 space-y-1">
-                          <p className="truncate text-xs font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.title}</p>
-                          <p className="truncate text-sm font-bold text-[#121212] dark:text-white">{spot.name}</p>
+                          <p className="truncate text-sm font-bold text-[#121212] dark:text-white">{spot.title}</p>
                           <p className="truncate text-xs font-medium text-[#42565d] dark:text-[#dfeef0]">{spot.address}</p>
-                          <p className="text-xl font-bold text-[#121212] dark:text-white">{spot.price}</p>
+                          <p className="text-xl font-bold text-[#121212] dark:text-white">
+                            {spot.price_per_day.toFixed(2)} {spot.price_currency}
+                          </p>
+                          {spot.distance_km !== undefined && (
+                            <p className="text-xs font-medium text-[#42565d] dark:text-[#dfeef0]">
+                              {spot.distance_km < 1
+                                ? `${Math.round(spot.distance_km * 1000)} m away`
+                                : `${spot.distance_km.toFixed(1)} km away`}
+                            </p>
+                          )}
                         </div>
                       </a>
-                  ))}
+                    );
+                  })}
                 </div>
+                )}
               </div>
             </div>
           </main>
