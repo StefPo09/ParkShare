@@ -538,6 +538,29 @@ def get_my_bookings():
     return jsonify({'bookings': [booking.to_dict() for booking in bookings]}), 200
 
 
+@parking.route('/api/bookings/<int:booking_id>/end', methods=['POST'])
+@login_required
+def end_booking(booking_id):
+    booking = db.session.execute(
+        db.select(Booking).where(Booking.id == booking_id).with_for_update()
+    ).scalar_one_or_none()
+    if not booking:
+        return jsonify({'error': 'Booking not found.'}), 404
+    if booking.user_id != current_user.id:
+        return jsonify({'error': 'Booking not found.'}), 404
+    if booking.status in {'cancelled', 'completed'} or booking.actual_end_date:
+        return jsonify({'error': 'This parking session has already ended.'}), 409
+
+    now = datetime.utcnow()
+    if booking.start_date > now:
+        return jsonify({'error': 'This parking session has not started yet.'}), 409
+
+    booking.actual_end_date = now
+    booking.status = 'completed'
+    db.session.commit()
+    return jsonify({'booking': booking.to_dict()}), 200
+
+
 @parking.route('/api/owner-bookings', methods=['GET'])
 @login_required
 def get_owner_bookings():
@@ -620,7 +643,8 @@ def create_booking():
 
     overlapping = Booking.query.filter(
         Booking.spot_id == spot.id,
-        Booking.status != 'cancelled',
+        Booking.status.notin_(('cancelled', 'completed')),
+        Booking.actual_end_date.is_(None),
         Booking.start_date < end_date,
         Booking.end_date > start_date
     ).first()
@@ -665,7 +689,8 @@ def create_booking_payment_intent():
 
     conflicting_booking = Booking.query.filter(
         Booking.spot_id == spot.id,
-        Booking.status != 'cancelled',
+        Booking.status.notin_(('cancelled', 'completed')),
+        Booking.actual_end_date.is_(None),
         Booking.start_date < end_date,
         Booking.end_date > start_date,
     ).first()
@@ -708,7 +733,8 @@ def get_dashboard_timers():
     now = datetime.utcnow()
     bookings = Booking.query.filter(
         Booking.user_id == current_user.id,
-        Booking.status != 'cancelled'
+        Booking.status.notin_(('cancelled', 'completed')),
+        Booking.actual_end_date.is_(None),
     ).order_by(Booking.start_date.asc()).all()
 
     active_booking = None
