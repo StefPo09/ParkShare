@@ -342,52 +342,60 @@ export default function HomePage() {
     };
   }, []);
 
-  // Split bookings by active/overtime vs upcoming based on live `now`
-  const { activeOrOvertimeList, upcomingList } = useMemo(() => {
-    const activeList: BookingItem[] = [];
+  // Split bookings by active vs upcoming based on live `now`
+  const { activeList, upcomingList } = useMemo(() => {
+    const active: BookingItem[] = [];
     const upcoming: BookingItem[] = [];
 
     bookings.forEach((b) => {
       if (b.status === 'cancelled') return;
       const startMs = new Date(b.start_date).getTime();
-      if (startMs <= now) {
-        activeList.push(b);
-      } else {
+      const endMs = new Date(b.end_date).getTime();
+      if (startMs <= now && now <= endMs) {
+        active.push(b);
+      } else if (startMs > now) {
         upcoming.push(b);
       }
     });
 
     // If no explicit bookings list but dashboardTimers provided
-    if (activeList.length === 0 && dashboardTimers.rental && dashboardTimers.rental.start_date && dashboardTimers.rental.end_date) {
-      activeList.push({
-        id: dashboardTimers.rental.id || 1,
-        spot_id: dashboardTimers.rental.spot?.id || 1,
-        start_date: dashboardTimers.rental.start_date,
-        end_date: dashboardTimers.rental.end_date,
-        total_price: 0,
-        status: dashboardTimers.rental.status,
-        spot: dashboardTimers.rental.spot,
-      });
+    if (active.length === 0 && dashboardTimers.rental && dashboardTimers.rental.start_date && dashboardTimers.rental.end_date) {
+      const rentalStartMs = new Date(dashboardTimers.rental.start_date).getTime();
+      const rentalEndMs = new Date(dashboardTimers.rental.end_date).getTime();
+      if (rentalStartMs <= now && now <= rentalEndMs && !dashboardTimers.rental.is_overtime) {
+        active.push({
+          id: dashboardTimers.rental.id || 1,
+          spot_id: dashboardTimers.rental.spot?.id || 1,
+          start_date: dashboardTimers.rental.start_date,
+          end_date: dashboardTimers.rental.end_date,
+          total_price: 0,
+          status: dashboardTimers.rental.status,
+          spot: dashboardTimers.rental.spot,
+        });
+      }
     }
 
     if (upcoming.length === 0 && dashboardTimers.reservation && dashboardTimers.reservation.start_date && dashboardTimers.reservation.end_date) {
-      upcoming.push({
-        id: dashboardTimers.reservation.id || 2,
-        spot_id: dashboardTimers.reservation.spot?.id || 2,
-        start_date: dashboardTimers.reservation.start_date,
-        end_date: dashboardTimers.reservation.end_date,
-        total_price: 0,
-        status: 'upcoming',
-        spot: dashboardTimers.reservation.spot,
-      });
+      const reservationStartMs = new Date(dashboardTimers.reservation.start_date).getTime();
+      if (reservationStartMs > now) {
+        upcoming.push({
+          id: dashboardTimers.reservation.id || 2,
+          spot_id: dashboardTimers.reservation.spot?.id || 2,
+          start_date: dashboardTimers.reservation.start_date,
+          end_date: dashboardTimers.reservation.end_date,
+          total_price: 0,
+          status: 'upcoming',
+          spot: dashboardTimers.reservation.spot,
+        });
+      }
     }
 
     // Sort active: most recent first
-    activeList.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+    active.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
     // Sort upcoming: soonest first
     upcoming.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
 
-    return { activeOrOvertimeList: activeList, upcomingList: upcoming };
+    return { activeList: active, upcomingList: upcoming };
   }, [bookings, dashboardTimers, now]);
 
   const triggerSearchTransition = (queryValue: string) => {
@@ -439,12 +447,11 @@ export default function HomePage() {
                     </div>
                 ) : null}
 
-                {/* Active or Overtime Parking Sessions */}
-                {activeOrOvertimeList.length > 0 ? (
-                    activeOrOvertimeList.map((booking) => {
+                {/* Active Parking Sessions */}
+                {activeList.length > 0 ? (
+                    activeList.map((booking) => {
                       const startMs = new Date(booking.start_date).getTime();
                       const endMs = new Date(booking.end_date).getTime();
-                      const isOvertime = now > endMs;
 
                       let hourlyRate = booking.spot?.price_per_day ?? 4.0;
                       if (booking.spot?.start_hour && booking.spot?.end_hour) {
@@ -468,8 +475,8 @@ export default function HomePage() {
                       return (
                           <InteractiveTimer
                               key={booking.id}
-                              title={isOvertime ? 'Overtime Warning' : (booking.spot?.title || 'Active Parking Session')}
-                              variant={isOvertime ? 'overtime' : 'rental'}
+                              title={booking.spot?.title || 'Active Parking Session'}
+                              variant="rental"
                               targetTime={endMs}
                               startTime={startMs}
                               spotAddress={booking.spot?.address}
@@ -533,7 +540,7 @@ export default function HomePage() {
                 ) : null}
 
                 {/* Empty State when no active and no upcoming bookings */}
-                {!timerError && activeOrOvertimeList.length === 0 && upcomingList.length === 0 ? (
+                {!timerError && activeList.length === 0 && upcomingList.length === 0 ? (
                     <div className={`home-empty-card rounded-[28px] border border-dashed border-black/10 bg-white/20 p-5 text-center dark:border-white/10 dark:bg-white/5 ${isPremium ? 'premium-home-card' : ''}`}>
                       <p className="text-sm font-semibold text-[#121212] dark:text-white">
                         No active parking session or upcoming reservations.
