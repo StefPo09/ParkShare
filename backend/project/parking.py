@@ -596,7 +596,8 @@ def create_booking():
     except StripeError:
         return jsonify({'error': 'Unable to verify payment. Please contact support before retrying.'}), 502
 
-    metadata = payment_intent.metadata or {}
+    stripe_metadata = payment_intent.metadata
+    metadata = stripe_metadata.to_dict() if stripe_metadata is not None else {}
     expected_start = start_date.isoformat()
     expected_end = end_date.isoformat()
     if (

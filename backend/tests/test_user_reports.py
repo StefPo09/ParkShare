@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from stripe import StripeObject
+
 from backend.project import create_app, db
 from backend.project.models import Booking, City, ParkingSpot, User, UserReport
 from werkzeug.security import generate_password_hash
@@ -62,7 +64,7 @@ class UserReportTests(unittest.TestCase):
     def _confirm_test_booking(self, client, spot_id, start_date, end_date, intent_id, intent_args):
         payment_intent = SimpleNamespace(
             status='succeeded',
-            metadata=intent_args['metadata'],
+            metadata=StripeObject.construct_from(intent_args['metadata'], None),
             amount=intent_args['amount'],
             amount_received=intent_args['amount'],
             currency=intent_args['currency'],
