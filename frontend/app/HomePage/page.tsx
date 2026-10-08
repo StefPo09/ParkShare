@@ -410,15 +410,15 @@ export default function HomePage() {
         <div className={`home-page-frame mx-auto flex h-screen w-full max-w-107.5 flex-col overflow-hidden text-[#121212] shadow-[0_25px_50px_rgba(15,32,35,0.12)] transition-colors duration-300 dark:text-white ${isPremium ? 'premium-home-frame' : 'bg-[#dfeef0] dark:bg-[#011b1b]'}`}>
 
           {/* Header Navigation */}
-          <header className={`home-page-header flex items-center justify-between px-5 pt-5 pb-3 z-10 bg-[#dfeef0] dark:bg-[#011b1b] ${isPremium ? 'premium-home-header' : ''}`}>
+          <header className={`home-page-header relative flex items-center justify-between px-5 pt-5 pb-3 z-10 bg-[#dfeef0] dark:bg-[#011b1b] ${isPremium ? 'premium-home-header' : ''}`}>
             <MenuButton
               onClick={() => setIsMenuOpen(true)}
               className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#121212] transition hover:scale-[1.02] hover:bg-black/5 dark:text-white dark:hover:bg-white/5 ${isPremium ? 'premium-home-menu-button' : ''}`}
             />
-            <h1 className={`home-page-title text-[28px] font-bold tracking-tight text-[#121212] dark:text-white ${isPremium ? 'premium-home-title' : ''}`}>
+            <h1 className={`home-page-title absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center whitespace-nowrap text-[clamp(1.1rem,5vw,1.75rem)] font-bold tracking-tight text-[#121212] dark:text-white ${isPremium ? 'premium-home-title' : ''}`}>
               {t('parkShare')}
               {isPremium && (
-                <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-400/15 px-2 py-1 align-middle text-[9px] font-extrabold uppercase tracking-[0.12em] text-amber-800 dark:text-amber-200">
+                <span className="ml-1.5 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-400/15 px-2 py-1 align-middle text-[clamp(7px,1.8vw,9px)] font-extrabold uppercase tracking-[0.12em] text-amber-800 dark:text-amber-200">
                   <Sparkles className="h-3 w-3" />
                   {t('premiumPlan')}
                 </span>
