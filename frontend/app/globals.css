@@ -327,6 +327,34 @@ html.dark nav:has(> a[aria-current="page"]) > a[aria-current="page"] {
   color: #2dd4bf;
 }
 
+html[data-premium="true"] header h1 {
+  display: flex;
+  max-width: calc(100vw - 7rem);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: #f3d477;
+  font-size: clamp(1rem, 5vw, 1.75rem);
+}
+
+html[data-premium="true"] header h1::after {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid rgba(218, 165, 32, 0.55);
+  border-radius: 9999px;
+  background: rgba(218, 165, 32, 0.12);
+  padding: 0.35rem 0.65rem;
+  color: #f3d477;
+  content: "✧ PREMIUM USER";
+  font-size: clamp(7px, 2vw, 10px);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   nav:has(> a[class*="scale-110"])::before,
   nav:has(> a[aria-current="page"])::before {

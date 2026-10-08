@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '../../constants/routes';
 import { getApiBaseUrl } from '../../constants/api';
-import { Search, ChevronRight, Car, Home, Key, Calendar as CalendarIcon, Clock, MapPin, Sparkles } from 'lucide-react';
+import { Search, ChevronRight, Car, Home, Key, Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
 import ProfileMenu from '../components/ProfileMenu';
 import NavMenu from '../components/NavMenu';
 import { useLanguage } from '../components/LanguageProvider';
@@ -426,12 +426,6 @@ export default function HomePage() {
             />
             <h1 className={`home-page-title absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center whitespace-nowrap text-[clamp(1.1rem,5vw,1.75rem)] font-bold tracking-tight text-[#121212] dark:text-white ${isPremium ? 'premium-home-title' : ''}`}>
               {t('parkShare')}
-              {isPremium && (
-                <span className="ml-1.5 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-400/15 px-2 py-1 align-middle text-[clamp(7px,1.8vw,9px)] font-extrabold uppercase tracking-[0.12em] text-amber-800 dark:text-amber-200">
-                  <Sparkles className="h-3 w-3" />
-                  {t('premiumPlan')}
-                </span>
-              )}
             </h1>
 
             <ProfileMenu />
