@@ -12,7 +12,13 @@ from werkzeug.utils import secure_filename
 import os
 
 from . import db
-from .billing import PREMIUM_DISCOUNT_PERCENT, calculate_booking_price, parse_booking_datetime, to_stripe_amount
+from .billing import (
+    PREMIUM_DISCOUNT_PERCENT,
+    calculate_booking_price,
+    minimum_stripe_amount,
+    parse_booking_datetime,
+    to_stripe_amount,
+)
 from .models import Booking, Car, City, FavoriteSpot, ParkingSpot, User
 
 parking = Blueprint('parking', __name__)
@@ -675,6 +681,12 @@ def create_booking_payment_intent():
     discount_percent = PREMIUM_DISCOUNT_PERCENT if current_user.is_premium else 0
     pricing = calculate_booking_price(spot, start_date, end_date, discount_percent)
     currency = (spot.price_currency or 'RON').lower()
+    minimum_amount = minimum_stripe_amount(currency)
+    if minimum_amount is not None and to_stripe_amount(pricing['total']) < minimum_amount:
+        return jsonify({
+            'error': 'The minimum booking payment is RON 2.00. Please select a longer booking duration.'
+        }), 400
+
     try:
         intent = stripe.PaymentIntent.create(
             amount=to_stripe_amount(pricing['total']),

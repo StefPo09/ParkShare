@@ -267,6 +267,18 @@ class PremiumTests(unittest.TestCase):
         self.assertEqual(booking_response.status_code, 201, booking_response.get_json())
         self.assertEqual(booking_response.get_json()['booking']['total_price'], 18)
 
+    def test_payment_intent_rejects_ron_amount_below_stripe_minimum(self):
+        with patch('backend.project.parking.stripe.PaymentIntent.create') as create_intent:
+            response = self.client.post('/api/bookings/payment-intent', json={
+                'spot_id': self.spot.id,
+                'start_date': '2026-10-01T09:00:00Z',
+                'end_date': '2026-10-01T09:11:00Z',
+            })
+
+        self.assertEqual(response.status_code, 400, response.get_json())
+        self.assertIn('minimum booking payment is RON 2.00', response.get_json()['error'])
+        create_intent.assert_not_called()
+
     def test_promoted_premium_spots_are_returned_before_free_spots(self):
         premium_owner = User(
             email='promoted-owner@example.test',
