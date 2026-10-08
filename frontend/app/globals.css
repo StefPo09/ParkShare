@@ -327,6 +327,94 @@ html.dark nav:has(> a[aria-current="page"]) > a[aria-current="page"] {
   color: #2dd4bf;
 }
 
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) {
+  position: relative;
+  align-items: stretch;
+  padding-top: 0.55rem;
+  padding-bottom: calc(0.55rem + env(safe-area-inset-bottom));
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"])::before {
+  display: none;
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.65rem;
+  color: #0f4c81;
+  text-align: center;
+  text-decoration: none;
+  transform: none;
+  border: 1px solid transparent;
+  border-radius: 1.5rem;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:hover,
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:focus-visible,
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[class*="scale-110"],
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[aria-current="page"] {
+  border-color: rgba(15, 76, 129, 0.12);
+  background-color: rgba(15, 76, 129, 0.1);
+}
+
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:hover,
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:focus-visible,
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[class*="scale-110"],
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[aria-current="page"] {
+  border-color: rgba(154, 215, 219, 0.14);
+  background-color: rgba(154, 215, 219, 0.1);
+}
+
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a {
+  color: #9ad7db;
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a::after {
+  content: attr(aria-label);
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[href="/RentPage"]:not([aria-label])::after {
+  content: "Search spot offers";
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[href="/HomePage"]:not([aria-label])::after {
+  content: "Park Share";
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[href="/ManageCarPage"]:not([aria-label])::after {
+  content: "Manage your cars";
+}
+
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a {
+  color: #f3d477;
+}
+
+nav.premium-page-navigation > button {
+  border: 1px solid transparent;
+  border-radius: 1.5rem;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:hover,
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:focus-visible,
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[class*="scale-110"],
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[aria-current="page"],
+nav.premium-page-navigation > button:hover,
+nav.premium-page-navigation > button:focus-visible {
+  border-color: rgba(218, 165, 32, 0.2);
+  background-color: rgba(218, 165, 32, 0.12);
+}
+
 html[data-premium="true"] header:has(> button[aria-haspopup="menu"]) {
   position: relative;
 }
@@ -355,9 +443,13 @@ html[data-premium="true"] header:has(> button[aria-haspopup="menu"]) h1::after {
   border: 1px solid rgba(218, 165, 32, 0.55);
   border-radius: 9999px;
   background: rgba(218, 165, 32, 0.12);
-  padding: 0.35rem 0.65rem;
-  color: #f3d477;
-  content: "✧ PREMIUM USER";
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f3d477' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 20h20M5 20l1.6-11L12 13l5.4-4L19 20M5 8 2 5m17 3 3-3'/%3E%3C/svg%3E");
+  background-position: 0.55rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding: 0.35rem 0.65rem 0.35rem 1.9rem;
+  color: #fff;
+  content: "PREMIUM USER";
   font-size: clamp(7px, 2vw, 10px);
   font-weight: 800;
   letter-spacing: 0.12em;

@@ -62,12 +62,47 @@ export default function GoogleMapsProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const publicApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const [apiKey, setApiKey] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' ? publicApiKey : '';
+  });
   const [shouldLoad, setShouldLoad] = useState(false);
   const [loaderState, setLoaderState] = useState<{
     isLoaded: boolean;
     loadError: Error | undefined;
   }>({ isLoaded: false, loadError: undefined });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadRuntimeApiKey = async () => {
+      try {
+        const response = await fetch('/config/google-maps', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Google Maps configuration request failed (${response.status}).`);
+        }
+        const data: { apiKey?: unknown } = await response.json();
+        if (!cancelled) {
+          const runtimeApiKey =
+            typeof data.apiKey === 'string' ? data.apiKey.trim() : '';
+          setApiKey(runtimeApiKey || publicApiKey);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Unable to load runtime Google Maps configuration:', error);
+          setApiKey(publicApiKey);
+        }
+      }
+    };
+
+    void loadRuntimeApiKey();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const requestLoad = useCallback(() => {
     if (apiKey) setShouldLoad(true);
   }, [apiKey]);
