@@ -206,7 +206,7 @@ export default function PremiumPage() {
           </section>
         </main>
 
-        <nav aria-label="Main navigation" className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-amber-700/15 bg-[#fbf5e6]/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl dark:border-amber-200/15 dark:bg-[#17150f]/95">
+        <nav aria-label="Main navigation" className="premium-page-navigation absolute inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-amber-700/15 bg-[#fbf5e6]/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl dark:border-amber-200/15 dark:bg-[#17150f]/95">
           <button
             type="button"
             aria-label={t('searchSpotOffers')}

@@ -327,6 +327,94 @@ html.dark nav:has(> a[aria-current="page"]) > a[aria-current="page"] {
   color: #2dd4bf;
 }
 
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) {
+  position: relative;
+  align-items: stretch;
+  padding-top: 0.55rem;
+  padding-bottom: calc(0.55rem + env(safe-area-inset-bottom));
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"])::before {
+  display: none;
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.65rem;
+  color: #0f4c81;
+  text-align: center;
+  text-decoration: none;
+  transform: none;
+  border: 1px solid transparent;
+  border-radius: 1.5rem;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:hover,
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:focus-visible,
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[class*="scale-110"],
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[aria-current="page"] {
+  border-color: rgba(15, 76, 129, 0.12);
+  background-color: rgba(15, 76, 129, 0.1);
+}
+
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:hover,
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:focus-visible,
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[class*="scale-110"],
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[aria-current="page"] {
+  border-color: rgba(154, 215, 219, 0.14);
+  background-color: rgba(154, 215, 219, 0.1);
+}
+
+html.dark nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a {
+  color: #9ad7db;
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a::after {
+  content: attr(aria-label);
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[href="/RentPage"]:not([aria-label])::after {
+  content: "Search spot offers";
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[href="/HomePage"]:not([aria-label])::after {
+  content: "Park Share";
+}
+
+nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[href="/ManageCarPage"]:not([aria-label])::after {
+  content: "Manage your cars";
+}
+
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a {
+  color: #f3d477;
+}
+
+nav.premium-page-navigation > button {
+  border: 1px solid transparent;
+  border-radius: 1.5rem;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:hover,
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a:focus-visible,
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[class*="scale-110"],
+html[data-premium="true"] nav:has(> a[href="/RentPage"]):has(> a[href="/HomePage"]):has(> a[href="/ManageCarPage"]) > a[aria-current="page"],
+nav.premium-page-navigation > button:hover,
+nav.premium-page-navigation > button:focus-visible {
+  border-color: rgba(218, 165, 32, 0.2);
+  background-color: rgba(218, 165, 32, 0.12);
+}
+
 html[data-premium="true"] header:has(> button[aria-haspopup="menu"]) {
   position: relative;
 }
