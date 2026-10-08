@@ -192,7 +192,13 @@ export PATH="$PATH:/c/Program Files/nodejs"
 npm --version
 ```
 
-The rental page can use Google Maps when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is configured in the frontend environment.
+Google Maps uses `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` for local development. In production, set
+`GOOGLE_MAPS_API_KEY` in the Next.js server environment; the app reads it at runtime, so it does
+not need to be embedded in the client build. In Google Cloud, enable the Maps JavaScript API,
+attach billing, and restrict the key by HTTP referrer to the site origins (for example,
+`https://parkshare.adv.ro/*` and `https://www.parkshare.adv.ro/*` if both hostnames are used).
+After configuring the production environment variable, restart the Next.js service. Never commit
+the key to the repository.
 
 Run Flask and Next.js in separate terminals. Flask must be running before testing the frontend login.
 

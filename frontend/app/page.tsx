@@ -62,7 +62,7 @@ export default function StartPage() {
       {!isVideoHidden && (
         <div
           id="parkshare-loading-overlay"
-          className={`fixed inset-0 z-50 h-screen w-screen overflow-hidden bg-[#011b1b] transition-opacity duration-700 ease-in-out ${
+          className={`fixed inset-0 z-50 overflow-hidden bg-[#011b1b] transition-opacity duration-700 ease-in-out ${
             isMorphing ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}
         >
@@ -73,7 +73,7 @@ export default function StartPage() {
             muted
             playsInline
             onEnded={startMorphTransition}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain sm:object-cover"
           />
         </div>
       )}
