@@ -264,6 +264,58 @@ class UserReportTests(unittest.TestCase):
         self.assertEqual(data['reservation']['status'], 'upcoming')
         self.assertEqual(len(data['bookings']), 2)
 
+    def test_owner_can_end_rental_and_stop_overtime_timer(self):
+        city = City(name='Session Complete City')
+        db.session.add(city)
+        db.session.flush()
+        spot = ParkingSpot(
+            user_id=self.target.id,
+            city_id=city.id,
+            title='Session parking spot',
+            address='40 Session Street',
+            price_per_day=120,
+            price_currency='RON',
+            start_hour='08:00',
+            end_hour='18:00',
+        )
+        db.session.add(spot)
+        db.session.flush()
+        now = datetime.utcnow()
+        booking = Booking(
+            spot_id=spot.id,
+            user_id=self.reporters[0].id,
+            start_date=now - timedelta(hours=2),
+            end_date=now - timedelta(hours=1),
+            total_price=12,
+            status='confirmed',
+        )
+        db.session.add(booking)
+        db.session.commit()
+
+        renter = self._client_for(self.reporters[0])
+        ended = renter.post(f'/api/bookings/{booking.id}/end')
+        self.assertEqual(ended.status_code, 200, ended.get_json())
+        ended_booking = ended.get_json()['booking']
+        self.assertEqual(ended_booking['status'], 'completed')
+        self.assertIsNotNone(ended_booking['actual_end_date'])
+        self.assertEqual(renter.post(f'/api/bookings/{booking.id}/end').status_code, 409)
+
+        dashboard = renter.get('/api/dashboard/timers').get_json()
+        self.assertIsNone(dashboard['rental'])
+        self.assertEqual(dashboard['bookings'], [])
+
+        completed = renter.get('/api/bookings').get_json()['bookings'][0]
+        self.assertEqual(completed['status'], 'completed')
+        self.assertEqual(completed['actual_end_date'], ended_booking['actual_end_date'])
+
+        cleared_spot = renter.get(f'/api/spots/{spot.id}').get_json()['spot']
+        self.assertEqual(cleared_spot['bookings'][0]['end_date'], ended_booking['actual_end_date'])
+
+        next_start = (datetime.utcnow() + timedelta(minutes=15)).replace(microsecond=0).isoformat()
+        next_end = (datetime.utcnow() + timedelta(minutes=45)).replace(microsecond=0).isoformat()
+        payment = self._create_test_payment(renter, spot.id, next_start, next_end, 'pi_after_session_end')
+        other_user = self._client_for(self.reporters[1])
+        self.assertEqual(other_user.post(f'/api/bookings/{booking.id}/end').status_code, 404)
 
 if __name__ == '__main__':
     unittest.main()

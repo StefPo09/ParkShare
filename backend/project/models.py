@@ -202,7 +202,7 @@ class ParkingSpot(db.Model):
                 {
                     'id': b.id,
                     'start_date': b.start_date.replace(tzinfo=timezone.utc).isoformat() if b.start_date else None,
-                    'end_date': b.end_date.replace(tzinfo=timezone.utc).isoformat() if b.end_date else None,
+                    'end_date': (b.actual_end_date or b.end_date).replace(tzinfo=timezone.utc).isoformat() if b.end_date else None,
                     'status': b.status,
                 }
                 for b in self.bookings
@@ -248,6 +248,7 @@ class Booking(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
+    actual_end_date = db.Column(db.DateTime, nullable=True)
     total_price = db.Column(db.Float, nullable=False, default=0.0)
     status = db.Column(db.String(30), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -262,6 +263,7 @@ class Booking(db.Model):
             'user_id': self.user_id,
             'start_date': self.start_date.replace(tzinfo=timezone.utc).isoformat() if self.start_date else None,
             'end_date': self.end_date.replace(tzinfo=timezone.utc).isoformat() if self.end_date else None,
+            'actual_end_date': self.actual_end_date.replace(tzinfo=timezone.utc).isoformat() if self.actual_end_date else None,
             'total_price': self.total_price,
             'status': self.status,
             'created_at': self.created_at.replace(tzinfo=timezone.utc).isoformat() if self.created_at else None,

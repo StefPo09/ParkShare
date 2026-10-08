@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Clock3, Pause, Play, RotateCcw, AlertTriangle, MapPin, DollarSign } from 'lucide-react';
+import { useLanguage } from './LanguageProvider';
 
 type TimerVariant = 'reservation' | 'rental' | 'overtime';
 
@@ -15,6 +16,7 @@ type InteractiveTimerProps = {
     hourlyRate?: number;
     currency?: string;
     leaveByTime?: string;
+    onEndRental?: () => Promise<void>;
 };
 
 const themeMap: Record<
@@ -80,11 +82,16 @@ export default function InteractiveTimer({
                                              hourlyRate = 4.0,
                                              currency = 'RON',
                                              leaveByTime,
+                                             onEndRental,
                                          }: InteractiveTimerProps) {
+    const { t } = useLanguage();
     const [minutes, setMinutes] = useState(defaultMinutes);
     const [manualTimeLeft, setManualTimeLeft] = useState(defaultMinutes * 60);
     const [isRunningManual, setIsRunningManual] = useState(false);
     const [now, setNow] = useState(() => Date.now());
+    const [isConfirmingEnd, setIsConfirmingEnd] = useState(false);
+    const [isEndingRental, setIsEndingRental] = useState(false);
+    const [endRentalError, setEndRentalError] = useState('');
 
     useEffect(() => {
         const interval = window.setInterval(() => {
@@ -167,6 +174,19 @@ export default function InteractiveTimer({
     const handleResetManual = () => {
         setIsRunningManual(false);
         setManualTimeLeft(minutes * 60);
+    };
+
+    const handleEndRental = async () => {
+        if (!onEndRental) return;
+        setIsEndingRental(true);
+        setEndRentalError('');
+        try {
+            await onEndRental();
+        } catch {
+            setEndRentalError(t('endSessionFailed'));
+        } finally {
+            setIsEndingRental(false);
+        }
     };
 
     return (
@@ -269,6 +289,29 @@ export default function InteractiveTimer({
                     <p className="mt-1 text-[11px] text-[#52737c] dark:text-[#9db0b6]">
                         Rate: {hourlyRate.toFixed(2)} {currency}/hour
                     </p>
+                </div>
+            )}
+
+            {onEndRental && (
+                <div className="mb-3">
+                    {isConfirmingEnd ? (
+                        <div className="space-y-2 rounded-xl border border-black/10 bg-white/40 p-3 dark:border-white/10 dark:bg-white/5">
+                            <p className="text-center text-sm font-semibold text-[#183a38] dark:text-[#e5f5f1]">{t('confirmLeftSpot')}</p>
+                            <div className="flex gap-2">
+                                <button type="button" disabled={isEndingRental} onClick={() => setIsConfirmingEnd(false)} className="flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm font-semibold text-[#183a38] hover:bg-black/5 disabled:opacity-50 dark:border-white/15 dark:text-white dark:hover:bg-white/10">
+                                    {t('cancel')}
+                                </button>
+                                <button type="button" disabled={isEndingRental} onClick={() => void handleEndRental()} className="flex-1 rounded-lg bg-[#126b5b] px-3 py-2 text-sm font-semibold text-white hover:bg-[#0d5548] disabled:opacity-50">
+                                    {isEndingRental ? t('endingSession') : t('confirmLeaveSpot')}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <button type="button" onClick={() => { setEndRentalError(''); setIsConfirmingEnd(true); }} className="w-full rounded-lg border border-[#126b5b]/30 bg-[#126b5b]/10 px-4 py-2.5 text-sm font-bold text-[#126b5b] transition hover:bg-[#126b5b]/15 dark:text-[#78d4bd]">
+                            {t('markSpotClear')}
+                        </button>
+                    )}
+                    {endRentalError && <p role="alert" className="mt-2 text-center text-xs font-medium text-red-700 dark:text-red-300">{endRentalError}</p>}
                 </div>
             )}
 

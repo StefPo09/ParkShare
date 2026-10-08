@@ -63,6 +63,7 @@ type BookingItem = {
   spot_id: number;
   start_date: string;
   end_date: string;
+  actual_end_date?: string | null;
   total_price: number;
   status: string;
   spot?: SpotInfo | null;
@@ -348,7 +349,7 @@ export default function HomePage() {
     const upcoming: BookingItem[] = [];
 
     bookings.forEach((b) => {
-      if (b.status === 'cancelled') return;
+      if (b.status === 'cancelled' || b.status === 'completed' || b.actual_end_date) return;
       const startMs = new Date(b.start_date).getTime();
       const endMs = new Date(b.end_date).getTime();
       if (startMs <= now && now <= endMs) {
@@ -483,6 +484,17 @@ export default function HomePage() {
                               hourlyRate={hourlyRate}
                               currency={booking.spot?.price_currency || 'RON'}
                               leaveByTime={leaveByTime}
+                              onEndRental={async () => {
+                                const response = await fetch(`${getApiBaseUrl()}/api/bookings/${booking.id}/end`, {
+                                  method: 'POST',
+                                  credentials: 'include',
+                                });
+                                if (!response.ok) {
+                                  const data = await response.json().catch(() => ({}));
+                                  throw new Error(data.error || 'Unable to end parking session.');
+                                }
+                                await fetchDashboardData();
+                              }}
                           />
                       );
                     })

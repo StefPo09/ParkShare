@@ -159,6 +159,10 @@ def create_app():
             if col_name not in spot_columns:
                 db.session.execute(text(ddl))
 
+        booking_columns = {column['name'] for column in inspect(db.engine).get_columns('booking')}
+        if 'actual_end_date' not in booking_columns:
+            db.session.execute(text('ALTER TABLE booking ADD COLUMN actual_end_date DATETIME'))
+
         db.session.commit()
 
     @login_manager.user_loader
