@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from stripe import StripeObject
+
 from backend.project import create_app, db
 from backend.project.models import City, ParkingSpot, PremiumSubscription, User
 from werkzeug.security import generate_password_hash
@@ -14,6 +16,7 @@ class PremiumTests(unittest.TestCase):
         self.environment = patch.dict(os.environ, {
             'MYSQL_DATABASE_URI': 'sqlite://',
             'DATABASE_URL': 'sqlite://',
+            'FRONTEND_ORIGINS': 'https://parkshare.adv.ro',
         })
         self.environment.start()
         self.app = create_app()
@@ -75,6 +78,37 @@ class PremiumTests(unittest.TestCase):
         self.assertIn(
             '&session_id={CHECKOUT_SESSION_ID}',
             create_session.call_args.kwargs['success_url'],
+        )
+
+    def test_local_frontend_origin_remains_allowed_with_configured_origins(self):
+        response = self.client.options(
+            '/api/bookings',
+            headers={
+                'Origin': 'http://localhost:3000',
+                'Access-Control-Request-Method': 'POST',
+                'Access-Control-Request-Headers': 'content-type',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get('Access-Control-Allow-Origin'),
+            'http://localhost:3000',
+        )
+
+        configured_origin_response = self.client.options(
+            '/api/bookings',
+            headers={
+                'Origin': 'https://parkshare.adv.ro',
+                'Access-Control-Request-Method': 'POST',
+                'Access-Control-Request-Headers': 'content-type',
+            },
+        )
+
+        self.assertEqual(configured_origin_response.status_code, 200)
+        self.assertEqual(
+            configured_origin_response.headers.get('Access-Control-Allow-Origin'),
+            'https://parkshare.adv.ro',
         )
 
     def test_subscription_webhook_updates_entitlement(self):
@@ -248,7 +282,7 @@ class PremiumTests(unittest.TestCase):
         args = create_intent.call_args.kwargs
         payment_intent = SimpleNamespace(
             status='succeeded',
-            metadata=args['metadata'],
+            metadata=StripeObject.construct_from(args['metadata'], None),
             amount=args['amount'],
             amount_received=args['amount'],
             currency=args['currency'],
@@ -266,6 +300,18 @@ class PremiumTests(unittest.TestCase):
 
         self.assertEqual(booking_response.status_code, 201, booking_response.get_json())
         self.assertEqual(booking_response.get_json()['booking']['total_price'], 18)
+
+    def test_payment_intent_rejects_ron_amount_below_stripe_minimum(self):
+        with patch('backend.project.parking.stripe.PaymentIntent.create') as create_intent:
+            response = self.client.post('/api/bookings/payment-intent', json={
+                'spot_id': self.spot.id,
+                'start_date': '2026-10-01T09:00:00Z',
+                'end_date': '2026-10-01T09:11:00Z',
+            })
+
+        self.assertEqual(response.status_code, 400, response.get_json())
+        self.assertIn('minimum booking payment is RON 2.00', response.get_json()['error'])
+        create_intent.assert_not_called()
 
     def test_promoted_premium_spots_are_returned_before_free_spots(self):
         premium_owner = User(

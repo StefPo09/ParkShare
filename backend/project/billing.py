@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
 
 PREMIUM_DISCOUNT_PERCENT = 10
+MINIMUM_STRIPE_AMOUNT_BY_CURRENCY = {
+    'ron': 200,
+}
 
 
 def parse_booking_datetime(value):
@@ -39,3 +42,7 @@ def calculate_booking_price(spot, start_date, end_date, discount_percent=0):
 
 def to_stripe_amount(amount):
     return int(round(amount * 100))
+
+
+def minimum_stripe_amount(currency):
+    return MINIMUM_STRIPE_AMOUNT_BY_CURRENCY.get(currency.lower())

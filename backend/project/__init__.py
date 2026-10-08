@@ -79,16 +79,15 @@ def create_app():
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     configured_origins = os.environ.get('FRONTEND_ORIGINS')
-    allowed_origins = (
-        [origin.strip() for origin in configured_origins.split(',') if origin.strip()]
-        if configured_origins
-        else [
-            re.compile(
-                r'^https?://(?:localhost|127\.0\.0\.1|10(?:\.\d{1,3}){3}|' 
-                r'192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})'
-                r'(?::\d+)?$'
-            )
-        ]
+    allowed_origins = [
+        origin.strip() for origin in configured_origins.split(',') if origin.strip()
+    ] if configured_origins else []
+    allowed_origins.append(
+        re.compile(
+            r'^https?://(?:localhost|127\.0\.0\.1|10(?:\.\d{1,3}){3}|'
+            r'192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})'
+            r'(?::\d+)?$'
+        )
     )
     CORS(app, origins=allowed_origins, supports_credentials=True)
     db.init_app(app)
