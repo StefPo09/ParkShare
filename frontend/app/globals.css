@@ -355,9 +355,13 @@ html[data-premium="true"] header:has(> button[aria-haspopup="menu"]) h1::after {
   border: 1px solid rgba(218, 165, 32, 0.55);
   border-radius: 9999px;
   background: rgba(218, 165, 32, 0.12);
-  padding: 0.35rem 0.65rem;
-  color: #f3d477;
-  content: "✧ PREMIUM USER";
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f3d477' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 20h20M5 20l1.6-11L12 13l5.4-4L19 20M5 8 2 5m17 3 3-3'/%3E%3C/svg%3E");
+  background-position: 0.55rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding: 0.35rem 0.65rem 0.35rem 1.9rem;
+  color: #fff;
+  content: "PREMIUM USER";
   font-size: clamp(7px, 2vw, 10px);
   font-weight: 800;
   letter-spacing: 0.12em;
