@@ -327,18 +327,28 @@ html.dark nav:has(> a[aria-current="page"]) > a[aria-current="page"] {
   color: #2dd4bf;
 }
 
-html[data-premium="true"] header h1 {
+html[data-premium="true"] header:has(> button[aria-haspopup="menu"]) {
+  position: relative;
+}
+
+html[data-premium="true"] header:has(> button[aria-haspopup="menu"]) h1 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   display: flex;
-  max-width: calc(100vw - 7rem);
+  width: max-content;
+  max-width: calc(100% - 7rem);
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 0.4rem;
   color: #f3d477;
   font-size: clamp(1rem, 5vw, 1.75rem);
+  text-align: center;
+  transform: translate(-50%, -50%);
 }
 
-html[data-premium="true"] header h1::after {
+html[data-premium="true"] header:has(> button[aria-haspopup="menu"]) h1::after {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
