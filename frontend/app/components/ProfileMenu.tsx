@@ -99,7 +99,7 @@ export default function ProfileMenu() {
     setShowSignOutModal(true);
   };
 
-  const handleConfirmSignOut = async () => {
+  const handleSignOut = async (destination: string = ROUTES.START) => {
     try {
       const API = getApiBaseUrl();
       await fetch(`${API}/api/auth/logout`, {
@@ -118,7 +118,7 @@ export default function ProfileMenu() {
 
     setShowSignOutModal(false);
     delete document.documentElement.dataset.premium;
-    router.push(ROUTES.START);
+    router.push(destination);
     router.refresh();
   };
 
@@ -187,6 +187,10 @@ export default function ProfileMenu() {
 
           <button
             type="button"
+            onClick={() => {
+              setIsOpen(false);
+              void handleSignOut(ROUTES.LOGIN);
+            }}
             className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left text-[15px] font-semibold text-[#121212] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/5"
           >
             <span>{t('switchAccount')}</span>
@@ -225,7 +229,7 @@ export default function ProfileMenu() {
               </button>
               <button
                 type="button"
-                onClick={handleConfirmSignOut}
+                onClick={() => void handleSignOut()}
                 className="flex-1 cursor-pointer rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-50 dark:border-red-900 dark:bg-black dark:text-red-400 dark:hover:bg-red-950/30"
               >
                 {t('signOut')}
